@@ -19,6 +19,8 @@ export interface RunOptions {
   onOutput?: (line: string) => void;
   /** Extra environment variables (values only from trusted code). */
   env?: Record<string, string>;
+  /** Text written to stdin (e.g. a prompt) — never passed as an argument. */
+  input?: string;
 }
 
 export interface RunResult {
@@ -26,7 +28,10 @@ export interface RunResult {
   signal: string | null;
   timedOut: boolean;
   cancelled: boolean;
+  /** stdout and stderr interleaved, for logs. */
   output: string;
+  /** stdout only, for machine-readable results. */
+  stdout: string;
 }
 
 export class CommandNotFoundError extends Error {
@@ -85,7 +90,7 @@ export interface SpawnPlan {
  */
 export function planSpawn(resolved: string, args: readonly string[], platform = process.platform): SpawnPlan {
   if (platform === 'win32' && /\.(cmd|bat)$/i.test(resolved)) {
-    const quoted = [`"${resolved}"`, ...args].join(' ');
+    const quoted = [`"${resolved}"`, ...args.map((a) => (a === '' ? '""' : a))].join(' ');
     return { file: process.env.ComSpec ?? 'cmd.exe', args: ['/d', '/s', '/c', `"${quoted}"`], windowsVerbatimArguments: true };
   }
   return { file: resolved, args: [...args], windowsVerbatimArguments: false };
@@ -106,7 +111,8 @@ function killTree(pid: number): void {
 export async function runAllowlisted(options: RunOptions): Promise<RunResult> {
   if (!ALLOWED_BINARIES.includes(options.binary)) throw new Error(`Binary not allowed: ${options.binary}`);
   for (const arg of options.args) {
-    if (!SAFE_ARG.test(arg)) throw new Error(`Unsafe argument rejected: ${JSON.stringify(arg)}`);
+    // Empty strings are allowed (e.g. `--tools ""`); everything else must match SAFE_ARG.
+    if (arg !== '' && !SAFE_ARG.test(arg)) throw new Error(`Unsafe argument rejected: ${JSON.stringify(arg)}`);
   }
   const env = childEnv(options.env);
   const resolved = await findOnPath(options.binary, env);
@@ -120,13 +126,14 @@ interface BoundedOptions {
   env: Record<string, string>;
   signal?: AbortSignal | undefined;
   onOutput?: ((line: string) => void) | undefined;
+  input?: string | undefined;
 }
 
 /** Internal: run an already-vetted spawn plan with timeout, cancellation and output cap. */
 export function spawnBounded(plan: SpawnPlan, options: BoundedOptions): Promise<RunResult> {
   return new Promise<RunResult>((resolve, reject) => {
     if (options.signal?.aborted) {
-      resolve({ exitCode: null, signal: null, timedOut: false, cancelled: true, output: '' });
+      resolve({ exitCode: null, signal: null, timedOut: false, cancelled: true, output: '', stdout: '' });
       return;
     }
     const child = spawn(plan.file, plan.args, {
@@ -137,9 +144,14 @@ export function spawnBounded(plan: SpawnPlan, options: BoundedOptions): Promise<
       windowsVerbatimArguments: plan.windowsVerbatimArguments,
       // Own process group on POSIX so cancellation kills the whole tree.
       detached: process.platform !== 'win32',
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
     });
+    if (options.input !== undefined && child.stdin) {
+      child.stdin.on('error', () => undefined); // child may exit before reading everything
+      child.stdin.end(options.input);
+    }
     let output = '';
+    let stdout = '';
     let timedOut = false;
     let cancelled = false;
     const MAX_OUTPUT = 1_000_000;
@@ -148,8 +160,11 @@ export function spawnBounded(plan: SpawnPlan, options: BoundedOptions): Promise<
       if (output.length < MAX_OUTPUT) output += text;
       for (const line of text.split(/\r?\n/)) if (line.trim()) options.onOutput?.(line);
     };
-    child.stdout.on('data', onData);
-    child.stderr.on('data', onData);
+    child.stdout?.on('data', (chunk: Buffer) => {
+      if (stdout.length < MAX_OUTPUT) stdout += chunk.toString('utf8');
+      onData(chunk);
+    });
+    child.stderr?.on('data', onData);
 
     const stop = () => {
       if (child.pid !== undefined && child.exitCode === null) killTree(child.pid);
@@ -172,7 +187,7 @@ export function spawnBounded(plan: SpawnPlan, options: BoundedOptions): Promise<
     child.on('close', (exitCode, signal) => {
       clearTimeout(timer);
       options.signal?.removeEventListener('abort', onAbort);
-      resolve({ exitCode, signal, timedOut, cancelled, output });
+      resolve({ exitCode, signal, timedOut, cancelled, output, stdout });
     });
   });
 }

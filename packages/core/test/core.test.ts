@@ -76,6 +76,19 @@ describe('process runner', () => {
     expect(result.output).toContain('hi');
   });
 
+  it('passes stdin input without using arguments and separates stdout', async () => {
+    const code = 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{console.log(d.toUpperCase());console.error("warn")})';
+    const result = await spawnBounded(nodePlan(code), { cwd: '.', timeoutMs: 10_000, env: childEnv(), input: 'secret prompt; rm -rf /' });
+    expect(result.stdout.trim()).toBe('SECRET PROMPT; RM -RF /');
+    expect(result.output).toContain('warn');
+    expect(result.stdout).not.toContain('warn');
+  });
+
+  it('allows empty-string arguments and quotes them for cmd.exe', () => {
+    const plan = planSpawn('C:\\x\\claude.cmd', ['--tools', ''], 'win32');
+    expect(plan.args[3]).toBe('""C:\\x\\claude.cmd" --tools """');
+  });
+
   it('enforces timeouts', async () => {
     const result = await spawnBounded(nodePlan('setInterval(()=>{}, 1000)'), { cwd: '.', timeoutMs: 300, env: childEnv() });
     expect(result.timedOut).toBe(true);

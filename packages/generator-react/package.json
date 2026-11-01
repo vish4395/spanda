@@ -1,0 +1,18 @@
+{
+  "name": "@studio/generator-react",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@studio/contracts": "workspace:*",
+    "@studio/core": "workspace:*"
+  }
+}

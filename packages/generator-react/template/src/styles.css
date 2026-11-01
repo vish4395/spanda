@@ -1,0 +1,297 @@
+/* Scene styles. Design tokens (colors, fonts) live in tokens.css, generated from the StorySpec. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: 4rem;
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2 {
+  font-family: var(--font-heading);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--color-fg);
+  color: var(--color-bg);
+  border-radius: 0.5rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.site-header {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem clamp(1.25rem, 4vw, 3rem);
+}
+
+.brand {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.8125rem;
+}
+
+.scene {
+  position: relative;
+  padding: clamp(4rem, 10vw, 8rem) clamp(1.25rem, 4vw, 3rem);
+}
+
+.scene__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 72rem;
+  margin: 0 auto;
+}
+
+.eyebrow {
+  margin-bottom: 1rem;
+  color: var(--color-accent);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.scene__body {
+  max-width: 38rem;
+  margin-top: 1.5rem;
+  color: var(--color-fg-muted);
+  font-size: clamp(1.0625rem, 1.4vw, 1.25rem);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  min-height: 3rem;
+  margin-top: 2rem;
+  padding: 0 1.5rem;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 160ms ease-out;
+}
+
+.cta:hover {
+  transform: translateY(-2px);
+}
+
+/* Hero */
+.scene--hero {
+  display: flex;
+  align-items: flex-end;
+  min-height: 100vh;
+  min-height: 100svh;
+  overflow: hidden;
+  padding-bottom: clamp(3rem, 8vw, 6rem);
+  background:
+    radial-gradient(60% 70% at 78% 38%, color-mix(in srgb, var(--color-accent) 34%, transparent), transparent 70%),
+    radial-gradient(50% 50% at 12% 100%, color-mix(in srgb, var(--color-accent) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in srgb, var(--color-bg) 82%, #000) 0%, var(--color-bg) 100%);
+}
+
+.scene--hero[data-background='solid'] {
+  background: var(--color-bg);
+}
+
+.scene--hero .scene__inner {
+  width: 100%;
+}
+
+.scene--hero h1 {
+  max-width: 14ch;
+  font-size: clamp(2.75rem, 8vw, 6.5rem);
+  font-weight: 650;
+}
+
+.scene__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+}
+
+/* Invisible (but measurable) until the first frame renders; removed entirely without WebGL. */
+html[data-webgl='loading'] .scene__canvas {
+  visibility: hidden;
+}
+
+html[data-webgl='off'] .scene__canvas {
+  display: none;
+}
+
+.scene__fallback {
+  margin-top: 1.25rem;
+  max-width: 38rem;
+  font-size: 0.9375rem;
+  color: var(--color-fg-muted);
+  border-left: 2px solid var(--color-accent);
+  padding-left: 0.875rem;
+}
+
+/* Fallback caption is visible only when the 3D layer is unavailable. */
+html:not([data-webgl='off']) .scene__fallback {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Chapter */
+.scene--chapter .scene__inner {
+  display: grid;
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: center;
+}
+
+.scene--chapter[data-layout='split'] .scene__inner {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.scene--chapter[data-layout='centered'] .scene__inner {
+  text-align: center;
+  justify-items: center;
+}
+
+.scene--chapter h2 {
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-weight: 620;
+}
+
+.chapter-visual {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  border-radius: 1.5rem;
+  overflow: hidden;
+  background:
+    repeating-radial-gradient(circle at 30% 110%, transparent 0 22px, color-mix(in srgb, var(--color-accent) 28%, transparent) 22px 23px),
+    radial-gradient(80% 60% at 30% 100%, color-mix(in srgb, var(--color-accent) 42%, transparent), transparent 75%),
+    linear-gradient(160deg, color-mix(in srgb, var(--color-fg) 10%, var(--color-bg)), var(--color-bg));
+  border: 1px solid color-mix(in srgb, var(--color-fg) 14%, transparent);
+}
+
+.chapter-visual::after {
+  content: '';
+  position: absolute;
+  inset: 18% 22% auto auto;
+  width: 28%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--color-fg), var(--color-accent) 70%);
+  opacity: 0.85;
+  filter: blur(0.5px);
+}
+
+.site-footer {
+  padding: 3rem clamp(1.25rem, 4vw, 3rem);
+  border-top: 1px solid color-mix(in srgb, var(--color-fg) 12%, transparent);
+  color: var(--color-fg-muted);
+  font-size: 0.875rem;
+}
+
+/* Reveal motion: only hidden when JS runs and motion is allowed. */
+.js[data-motion='full'] [data-reveal] {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 700ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.js[data-motion='full'] [data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+/* Responsive intent */
+@media (max-width: 767px) {
+  .scene--chapter[data-mobile='stacked'] .scene__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .scene--chapter[data-mobile='stacked'] .chapter-visual {
+    aspect-ratio: 16 / 10;
+  }
+
+  .scene--hero[data-mobile='static-hero'] .scene__canvas {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

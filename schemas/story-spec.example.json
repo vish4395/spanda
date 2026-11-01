@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "demo-heritage",
+    "name": "Heritage Journey",
+    "goal": "Introduce a heritage site with a cinematic but accessible story"
+  },
+  "design": {
+    "theme": "warm heritage",
+    "colors": {
+      "background": "#10141c",
+      "foreground": "#f4eee4",
+      "accent": "#d9a76c"
+    },
+    "typography": {
+      "heading": "system-ui",
+      "body": "system-ui"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "scenes": [
+        {
+          "id": "hero-01",
+          "type": "hero",
+          "content": {
+            "heading": "A Place With a Story",
+            "body": "Discover the place and its history."
+          },
+          "visual": {
+            "background": "gradient",
+            "modelAssetId": null
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "static-hero"
+          },
+          "accessibility": {
+            "label": "Welcome",
+            "fallbackText": "A heritage introduction with scenic imagery."
+          }
+        },
+        {
+          "id": "chapter-02",
+          "type": "chapter",
+          "content": {
+            "heading": "Explore the Journey",
+            "body": "Stories and spaces to discover."
+          },
+          "visual": {
+            "layout": "split"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Journey",
+            "fallbackText": "Learn more about the heritage story."
+          }
+        }
+      ]
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "reducedMotion": true,
+    "webglFallback": true,
+    "targetBrowsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ]
+  }
+}

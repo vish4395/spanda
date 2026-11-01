@@ -1,0 +1,22 @@
+{
+  "name": "@studio/qa",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "generate:sample": "node src/generate-sample.ts",
+    "test:browsers": "playwright test"
+  },
+  "dependencies": {
+    "@studio/contracts": "workspace:*",
+    "@studio/core": "workspace:*",
+    "@studio/generator-html": "workspace:*",
+    "@studio/generator-react": "workspace:*",
+    "@studio/preview": "workspace:*"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}

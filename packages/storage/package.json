@@ -1,0 +1,16 @@
+{
+  "name": "@studio/storage",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@studio/contracts": "workspace:*"
+  }
+}

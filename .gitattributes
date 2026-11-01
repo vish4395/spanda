@@ -1,0 +1,6 @@
+# Keep LF everywhere so generated-file drift tests and lockfiles match on Windows checkouts.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.glb binary
+*.woff2 binary

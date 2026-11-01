@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
 
+env:
+  COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+
 jobs:
   m0:
     name: M0 (${{ matrix.os }})

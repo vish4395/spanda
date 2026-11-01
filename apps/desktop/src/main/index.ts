@@ -44,15 +44,15 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 /** Serve the bundled renderer from app://studio/ with path containment and a strict CSP. */
-function registerAppProtocol(): void {
+function registerAppProtocol(rendererRoot: string): void {
   protocol.handle('app', async (request) => {
     const url = new URL(request.url);
     if (url.host !== 'studio') return new Response('Not found', { status: 404 });
     const relative = decodeURIComponent(url.pathname).replace(/^\/+/, '') || 'index.html';
-    const file = path.resolve(rendererDir, relative);
+    const file = path.resolve(rendererRoot, relative);
     try {
       const real = await realpath(file);
-      if (!real.startsWith(rendererDir + path.sep)) return new Response('Not found', { status: 404 });
+      if (!real.startsWith(rendererRoot + path.sep)) return new Response('Not found', { status: 404 });
       const body = await readFile(real);
       return new Response(body, {
         headers: {
@@ -122,7 +122,8 @@ app.whenReady().then(async () => {
   // Deny every permission request (camera, mic, geolocation, notifications…).
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
-  registerAppProtocol();
+  // Compare against the canonical path: drive-letter case (Windows) and symlinks (/private on macOS) differ otherwise.
+  registerAppProtocol(await realpath(rendererDir));
 
   const workspaceRoot = process.env.STUDIO_WORKSPACE && !app.isPackaged ? path.resolve(process.env.STUDIO_WORKSPACE) : path.join(app.getPath('userData'), 'workspace');
   services = new StudioServices(workspaceRoot, {

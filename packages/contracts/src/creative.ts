@@ -1,0 +1,132 @@
+import { z } from 'zod';
+
+// Creative workflow contracts (M2: discovery → brief → storyboard → StorySpec).
+
+const Id = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
+const ShortText = (max: number) => z.string().trim().max(max);
+
+export const DiscoveryOption = z.object({ id: Id, label: z.string(), explanation: z.string() });
+export const DiscoveryQuestion = z.object({
+  id: Id,
+  reason: z.string(),
+  prompt: z.string(),
+  options: z.array(DiscoveryOption).min(2).max(4),
+  default: Id,
+});
+export type DiscoveryQuestion = z.infer<typeof DiscoveryQuestion>;
+
+/** An option id, or the user explicitly skipping / letting the studio decide. */
+export const DiscoveryAnswer = z.union([Id, z.literal('skip'), z.literal('ai-decide')]);
+export type DiscoveryAnswer = z.infer<typeof DiscoveryAnswer>;
+
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const CreativeDirection = z.object({
+  id: Id,
+  name: z.string(),
+  description: z.string(),
+  colors: z.object({ background: Hex, foreground: Hex, accent: Hex }),
+  typography: z.object({ heading: z.string(), body: z.string() }),
+  motion: z.enum(['calm', 'balanced', 'bold']),
+});
+export type CreativeDirection = z.infer<typeof CreativeDirection>;
+
+export const ReferenceObservation = z.object({ text: z.string(), confidence: z.enum(['high', 'medium', 'low']), source: z.enum(['html', 'css', 'screenshot']) });
+
+export const ReferenceReport = z.object({
+  id: z.string().uuid(),
+  url: z.string().url(),
+  finalUrl: z.string().url(),
+  fetchedAt: z.string(),
+  title: z.string().nullable(),
+  description: z.string().nullable(),
+  headings: z.array(z.string()),
+  colors: z.array(z.object({ hex: z.string(), count: z.number() })),
+  fonts: z.array(z.string()),
+  observations: z.array(ReferenceObservation),
+  screenshot: z.string().nullable(),
+  truncated: z.boolean(),
+  /** What the user wants to take from this reference (free text, their words). */
+  inspiration: ShortText(300),
+  rightsNotice: z.string(),
+});
+export type ReferenceReport = z.infer<typeof ReferenceReport>;
+
+export const CreativeBrief = z.object({
+  audience: ShortText(200),
+  tone: ShortText(120),
+  directionId: Id,
+  motion: z.enum(['calm', 'balanced', 'bold']),
+  chapters: z.number().int().min(1).max(6),
+  notes: ShortText(1000),
+  approved: z.boolean(),
+  approvedAt: z.string().nullable(),
+});
+export type CreativeBrief = z.infer<typeof CreativeBrief>;
+
+export const StoryboardScene = z.object({
+  id: Id,
+  type: z.enum(['hero', 'chapter']),
+  eyebrow: ShortText(120).optional(),
+  heading: ShortText(200).min(1),
+  body: ShortText(1200),
+  layout: z.enum(['split', 'centered']).optional(),
+  visualNote: ShortText(300),
+});
+export type StoryboardScene = z.infer<typeof StoryboardScene>;
+
+export const StoryboardSource = z.object({
+  kind: z.enum(['local-planner', 'claude-code']),
+  detail: z.string(),
+  createdAt: z.string(),
+});
+
+export const Storyboard = z.object({
+  scenes: z.array(StoryboardScene).min(1).max(8),
+  source: StoryboardSource,
+  approved: z.boolean(),
+  approvedAt: z.string().nullable(),
+});
+export type Storyboard = z.infer<typeof Storyboard>;
+
+export const ProjectStage = z.enum(['draft', 'discovery', 'brief_ready', 'storyboard_ready', 'approved']);
+export type ProjectStage = z.infer<typeof ProjectStage>;
+
+/** Persisted per project in creative.json. */
+export const CreativeFile = z.object({
+  version: z.literal(1),
+  answers: z.record(z.string(), DiscoveryAnswer),
+  brief: CreativeBrief.nullable(),
+  storyboard: Storyboard.nullable(),
+  references: z.array(ReferenceReport).max(10),
+});
+export type CreativeFile = z.infer<typeof CreativeFile>;
+
+export const CreativeState = z.object({
+  stage: ProjectStage,
+  idea: z.string(),
+  nextQuestion: DiscoveryQuestion.nullable(),
+  answered: z.array(z.object({ question: DiscoveryQuestion, answer: DiscoveryAnswer })),
+  directions: z.array(CreativeDirection),
+  brief: CreativeBrief.nullable(),
+  storyboard: Storyboard.nullable(),
+  references: z.array(ReferenceReport),
+  planners: z.array(z.object({ id: z.enum(['local-planner', 'claude-code']), label: z.string(), available: z.boolean(), reason: z.string().nullable() })),
+});
+export type CreativeState = z.infer<typeof CreativeState>;
+
+/** Shape an AI provider must return when drafting a storyboard (validated, then sanitised). */
+export const DraftStoryboardOutput = z.object({
+  scenes: z
+    .array(
+      z.object({
+        type: z.enum(['hero', 'chapter']),
+        eyebrow: z.string().max(120).optional(),
+        heading: z.string().min(1).max(200),
+        body: z.string().max(1200),
+        visualNote: z.string().max(300).default(''),
+      }),
+    )
+    .min(2)
+    .max(7),
+});
+export type DraftStoryboardOutput = z.infer<typeof DraftStoryboardOutput>;

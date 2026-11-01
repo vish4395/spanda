@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { IpcChannel } from './ipc-channels.ts';
+import { CreativeBrief, CreativeState, DiscoveryAnswer, StoryboardScene } from './creative.ts';
 
 export { IPC_CHANNELS, type IpcChannel, type IpcEnvelope } from './ipc-channels.ts';
 
@@ -107,6 +108,14 @@ export const ProjectDetail = z.object({
 });
 export type ProjectDetail = z.infer<typeof ProjectDetail>;
 
+export const StudioSettings = z.object({
+  /** Opt-in: draft storyboards with the user's own Claude Code CLI. */
+  claudeStoryboard: z.boolean(),
+});
+export type StudioSettings = z.infer<typeof StudioSettings>;
+
+const BriefInput = CreativeBrief.pick({ audience: true, tone: true, directionId: true, motion: true, chapters: true, notes: true }).strict();
+
 export const ipcContract = {
   'projects.list': { request: z.void(), response: z.array(ProjectSummary) },
   'projects.create': { request: CreateProjectRequest, response: ProjectSummary },
@@ -123,6 +132,17 @@ export const ipcContract = {
   'preview.start': { request: z.strictObject({ projectId: ProjectId, target: OutputTarget }), response: PreviewSession },
   'providers.probe': { request: z.void(), response: z.array(ProviderStatus) },
   'skills.list': { request: z.void(), response: z.array(SkillManifest) },
+  'settings.get': { request: z.void(), response: StudioSettings },
+  'settings.set': { request: StudioSettings.strict(), response: StudioSettings },
+  'creative.get': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
+  'creative.answer': { request: z.strictObject({ projectId: ProjectId, questionId: z.string().max(64), answer: DiscoveryAnswer.nullable() }), response: CreativeState },
+  'creative.saveBrief': { request: z.strictObject({ projectId: ProjectId, brief: BriefInput }), response: CreativeState },
+  'creative.approveBrief': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
+  'creative.draftStoryboard': { request: z.strictObject({ projectId: ProjectId, planner: z.enum(['local-planner', 'claude-code']) }), response: CreativeState },
+  'creative.saveStoryboard': { request: z.strictObject({ projectId: ProjectId, scenes: z.array(StoryboardScene).min(1).max(8) }), response: CreativeState },
+  'creative.approveStoryboard': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
+  'references.analyze': { request: z.strictObject({ projectId: ProjectId, url: z.string().max(2048), inspiration: z.string().trim().max(300) }), response: CreativeState },
+  'references.remove': { request: z.strictObject({ projectId: ProjectId, referenceId: z.string().uuid() }), response: CreativeState },
 } as const satisfies Record<IpcChannel, { request: z.ZodType; response: z.ZodType }>;
 
 // Compile-time guard: the contract and the channel allowlist list exactly the same channels.

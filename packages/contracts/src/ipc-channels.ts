@@ -12,6 +12,17 @@ export const IPC_CHANNELS = [
   'preview.start',
   'providers.probe',
   'skills.list',
+  'settings.get',
+  'settings.set',
+  'creative.get',
+  'creative.answer',
+  'creative.saveBrief',
+  'creative.approveBrief',
+  'creative.draftStoryboard',
+  'creative.saveStoryboard',
+  'creative.approveStoryboard',
+  'references.analyze',
+  'references.remove',
 ] as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[number];

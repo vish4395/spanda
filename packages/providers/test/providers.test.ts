@@ -3,7 +3,7 @@ import { CommandNotFoundError } from '@studio/core';
 import { PROVIDERS, probeProvider } from '../src/index.ts';
 
 const def = PROVIDERS[0]!;
-const ok = { signal: null, timedOut: false, cancelled: false };
+const ok = { signal: null, timedOut: false, cancelled: false, stdout: '' };
 
 describe('provider probe', () => {
   it('reports available CLIs with version and never claims auth state', async () => {

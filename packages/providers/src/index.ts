@@ -41,3 +41,4 @@ export async function probeProvider(def: ProviderDef, run: Runner = runAllowlist
 export function probeAll(run?: Runner): Promise<ProviderStatus[]> {
   return Promise.all(PROVIDERS.map((def) => probeProvider(def, run)));
 }
+export * from './claude-code.ts';

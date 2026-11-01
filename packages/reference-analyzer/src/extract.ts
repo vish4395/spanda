@@ -34,11 +34,64 @@ const decode = (text: string) =>
 
 const clean = (text: string, max = 160) => decode(text.replace(/<[^>]*>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, max);
 
-function meta(html: string, name: string): string | null {
-  const re = new RegExp(`<meta[^>]+(?:name|property)=["']${name}["'][^>]*>`, 'i');
-  const tag = re.exec(html)?.[0];
-  const content = tag && /content=["']([^"']*)["']/i.exec(tag)?.[1];
-  return content ? clean(content, 300) : null;
+/** Analysis input cap; together with the linear scanners below this bounds work on hostile pages. */
+export const MAX_EXTRACT_CHARS = 512_000;
+
+/** Linear scan for `<tag ...>content</tag>` blocks (no backtracking regex on the full page). */
+function blocks(html: string, lower: string, tag: string, limit = Infinity): { start: number; end: number; inner: string }[] {
+  const out: { start: number; end: number; inner: string }[] = [];
+  const open = `<${tag}`;
+  const close = `</${tag}`;
+  let pos = 0;
+  let nextClose = -2;
+  while (out.length < limit) {
+    const start = lower.indexOf(open, pos);
+    if (start === -1) break;
+    const after = lower.charCodeAt(start + open.length);
+    // Require a tag boundary: `<h1` must not match `<h1x`, `<style` must not match `<styled`.
+    if (!(after === 62 || after === 32 || after === 9 || after === 10 || after === 13 || after === 47)) {
+      pos = start + open.length;
+      continue;
+    }
+    const gt = lower.indexOf('>', start);
+    if (gt === -1) break;
+    if (nextClose !== -1 && nextClose < gt) nextClose = lower.indexOf(close, gt); // monotonic → amortised linear
+    if (nextClose === -1) {
+      out.push({ start, end: html.length, inner: html.slice(gt + 1) });
+      break;
+    }
+    const endGt = lower.indexOf('>', nextClose);
+    const end = endGt === -1 ? html.length : endGt + 1;
+    out.push({ start, end, inner: html.slice(gt + 1, nextClose) });
+    pos = end;
+  }
+  return out;
+}
+
+function stripBlocks(html: string, tag: string): string {
+  const lower = html.toLowerCase();
+  let result = '';
+  let cursor = 0;
+  for (const b of blocks(html, lower, tag)) {
+    result += `${html.slice(cursor, b.start)} `;
+    cursor = b.end;
+  }
+  return result + html.slice(cursor);
+}
+
+function meta(html: string, lower: string, name: string): string | null {
+  let pos = 0;
+  for (let i = 0; i < 200; i += 1) {
+    const start = lower.indexOf('<meta', pos);
+    if (start === -1) return null;
+    const tag = html.slice(start, Math.min(html.length, start + 2000, (lower.indexOf('>', start) + 1) || html.length));
+    pos = start + 5;
+    if (new RegExp(`(?:name|property)=["']${name}["']`, 'i').test(tag)) {
+      const content = /content=["']([^"']{0,1000})["']/i.exec(tag)?.[1];
+      return content ? clean(content, 300) : null;
+    }
+  }
+  return null;
 }
 
 function normalizeHex(hex: string): string {
@@ -46,18 +99,27 @@ function normalizeHex(hex: string): string {
   return h.length === 4 ? `#${h[1]}${h[1]}${h[2]}${h[2]}${h[3]}${h[3]}` : h.slice(0, 7);
 }
 
-export function extractFacts(html: string): PageFacts {
-  const withoutScripts = html.replace(/<script\b[\s\S]*?<\/script>/gi, ' ').replace(/<noscript\b[\s\S]*?<\/noscript>/gi, ' ');
-  const title = clean(/<title[^>]*>([\s\S]*?)<\/title>/i.exec(withoutScripts)?.[1] ?? '', 200) || null;
-  const description = meta(withoutScripts, 'description') ?? meta(withoutScripts, 'og:description');
-  const language = /<html[^>]*\blang=["']([a-zA-Z-]{2,15})["']/i.exec(withoutScripts)?.[1] ?? null;
-  const headings = [...withoutScripts.matchAll(/<h([1-3])[^>]*>([\s\S]*?)<\/h\1>/gi)].map((m) => clean(m[2] ?? '', 120)).filter(Boolean).slice(0, 12);
-  const sectionCount = (withoutScripts.match(/<section\b/gi) ?? []).length;
-  const imageCount = (withoutScripts.match(/<img\b/gi) ?? []).length;
-  const hasVideo = /<video\b/i.test(withoutScripts);
-  const hasCanvasOrWebGL = /<canvas\b/i.test(withoutScripts) || /three(\.module)?(\.min)?\.js|webgl/i.test(html);
+export function extractFacts(input: string): PageFacts {
+  const html = input.slice(0, MAX_EXTRACT_CHARS);
+  const withoutScripts = stripBlocks(stripBlocks(html, 'script'), 'noscript');
+  const lower = withoutScripts.toLowerCase();
+  const titleBlock = blocks(withoutScripts, lower, 'title', 1)[0];
+  const title = titleBlock ? clean(titleBlock.inner.slice(0, 2000), 200) || null : null;
+  const description = meta(withoutScripts, lower, 'description') ?? meta(withoutScripts, lower, 'og:description');
+  const language = /<html[^>]{0,500}\blang=["']([a-zA-Z-]{2,15})["']/i.exec(withoutScripts.slice(0, 5000))?.[1] ?? null;
+  const headings = (['h1', 'h2', 'h3'] as const)
+    .flatMap((tag) => blocks(withoutScripts, lower, tag, 12))
+    .sort((a, b) => a.start - b.start)
+    .map((b) => clean(b.inner.slice(0, 2000), 120))
+    .filter(Boolean)
+    .slice(0, 12);
+  const sectionCount = (lower.match(/<section\b/g) ?? []).length;
+  const imageCount = (lower.match(/<img\b/g) ?? []).length;
+  const hasVideo = lower.includes('<video');
+  const hasCanvasOrWebGL = lower.includes('<canvas') || /three(\.module)?(\.min)?\.js|webgl/i.test(html);
 
-  const css = [...html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join('\n') + [...html.matchAll(/style=["']([^"']*)["']/gi)].map((m) => m[1]).join(';');
+  const htmlLower = html.toLowerCase();
+  const css = blocks(html, htmlLower, 'style').map((b) => b.inner).join('\n') + [...html.matchAll(/style=["']([^"']{0,2000})["']/gi)].map((m) => m[1]).join(';');
   const colorCounts = new Map<string, number>();
   for (const m of css.matchAll(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g)) {
     const hex = normalizeHex(m[0]);

@@ -4,10 +4,10 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { BlockedUrlError, extractFacts, isPublicAddress, safeFetch, vetUrl } from '../src/index.ts';
 
 describe('SSRF policy', () => {
-  it.each(['127.0.0.1', '10.1.2.3', '172.16.0.1', '192.168.1.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '::1', 'fe80::1', 'fd00::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1'])('%s is not public', (ip) => {
+  it.each(['127.0.0.1', '10.1.2.3', '172.16.0.1', '192.168.1.1', '169.254.169.254', '100.64.0.1', '0.0.0.0', '::1', 'fe80::1', 'fd00::1', '::ffff:127.0.0.1', '::ffff:10.0.0.1', '::ffff:7f00:1', '::127.0.0.1', '64:ff9b::a00:1', '64:ff9b:1::1', '2002:0a00:0001::1', '2001:0:4136:e378::1', 'fec0::1', '2001:db8::1', 'ff02::1', '::'])('%s is not public', (ip) => {
     expect(isPublicAddress(ip)).toBe(false);
   });
-  it.each(['93.184.216.34', '1.1.1.1', '2606:4700:4700::1111'])('%s is public', (ip) => {
+  it.each(['93.184.216.34', '1.1.1.1', '2606:4700:4700::1111', '::ffff:1.1.1.1', '2002:0101:0101::1'])('%s is public', (ip) => {
     expect(isPublicAddress(ip)).toBe(true);
   });
 
@@ -81,6 +81,14 @@ describe('safeFetch limits (loopback test server)', () => {
 });
 
 describe('extractFacts', () => {
+  it('stays fast on hostile, unclosed markup (no catastrophic backtracking)', () => {
+    const hostile = '<script>'.repeat(40_000) + '<h1>'.repeat(40_000) + '<meta '.repeat(20_000) + '<style>'.repeat(20_000);
+    const started = performance.now();
+    const facts = extractFacts(hostile);
+    expect(performance.now() - started).toBeLessThan(1500);
+    expect(facts.headings).toEqual([]);
+  });
+
   it('summarises structure without executing or trusting content', () => {
     const html = `<html lang="en"><head><title>Aurora &amp; Co</title><meta name="description" content="Northern lights tours">
       <style>body{color:#fff;background:#0a0b10;font-family:"Fraunces", serif} h1{color:#ffcc00}</style></head>

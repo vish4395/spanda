@@ -3,9 +3,9 @@ import type { Scene } from '../types';
 import type { WebGLState } from '../hooks/useWebGL';
 import { SceneCopy } from './SceneCopy';
 
-const HeroCanvas = lazy(() => import('../three/HeroCanvas'));
+const SceneCanvas = lazy(() => import('../three/SceneCanvas'));
 
-class CanvasBoundary extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
+export class CanvasBoundary extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
   override state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
@@ -50,7 +50,7 @@ export function HeroScene({ scene, headingLevel, reducedMotion, webgl }: Props) 
       {webgl.state !== 'off' && (
         <CanvasBoundary onError={webgl.fail}>
           <Suspense fallback={null}>
-            <HeroCanvas animate={onScreen && !reducedMotion} onFirstFrame={webgl.ready} onContextLost={webgl.fail} />
+            <SceneCanvas animate={onScreen && !reducedMotion} onFirstFrame={webgl.ready} onContextLost={webgl.fail} />
           </Suspense>
         </CanvasBoundary>
       )}

@@ -75,3 +75,20 @@ describe('JSON schema', () => {
     expect(readFileSync(`${root}schemas/story-spec.schema.json`, 'utf8')).toBe(serializeJsonSchema());
   });
 });
+
+describe('M3 primitives', () => {
+  const bench = JSON.parse(readFileSync(`${root}fixtures/benchmarks/all-primitives.json`, 'utf8')) as StorySpec;
+  it('accepts the all-primitives benchmark', () => {
+    expect(validateStorySpec(bench).issues).toEqual([]);
+  });
+  it('enforces per-primitive requirements', () => {
+    const spec = structuredClone(bench);
+    const scenes = spec.pages[0]!.scenes;
+    delete scenes[5]!.content.cta;
+    scenes[4]!.content.items = scenes[4]!.content.items!.slice(0, 1);
+    delete scenes[2]!.visual.object;
+    scenes[3]!.content.items = [{ title: 'x', text: 'y' }];
+    const paths = validateStorySpec(spec).issues.map((i) => i.path).sort();
+    expect(paths).toEqual(['pages.0.scenes.2.visual.object', 'pages.0.scenes.3.content.items', 'pages.0.scenes.4.content.items', 'pages.0.scenes.5.content.cta']);
+  });
+});

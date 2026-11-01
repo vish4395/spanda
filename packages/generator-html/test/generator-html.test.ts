@@ -41,7 +41,8 @@ describe('html-three generator', () => {
 
   it('fails loudly on unsupported primitives and invalid specs', () => {
     const spec = clone();
-    spec.pages[0]!.scenes[1]!.type = 'gallery';
+    spec.pages.push({ id: 'second', path: '/second', scenes: [spec.pages[0]!.scenes[0]!] });
+    spec.pages[1]!.scenes = [{ ...spec.pages[0]!.scenes[0]!, id: 'hero-99' }];
     expect(() => prepareSpec(spec)).toThrow(UnsupportedSceneError);
     expect(() => prepareSpec({ nope: true })).toThrow(InvalidSpecError);
   });
@@ -50,7 +51,7 @@ describe('html-three generator', () => {
     const out = path.join(await mkdtemp(path.join(tmpdir(), 'studio-html-')), 'html');
     const files = await generateHtmlSite(example, out);
     expect(files).toEqual(
-      expect.arrayContaining(['index.html', 'tokens.css', 'styles.css', 'js/main.js', 'js/hero-scene.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'story-spec.json']),
+      expect.arrayContaining(['index.html', 'tokens.css', 'styles.css', 'js/main.js', 'js/scene3d.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'story-spec.json']),
     );
     const notices = await readFile(path.join(out, 'THIRD_PARTY_NOTICES.md'), 'utf8');
     expect(notices).toContain('MIT');
@@ -64,5 +65,23 @@ describe('html-three generator', () => {
     const a = await renderHtmlSite(example);
     const b = await renderHtmlSite(example);
     expect(a.get('index.html')).toBe(b.get('index.html'));
+  });
+});
+
+describe('M3 primitives (html-three)', () => {
+  it('renders every primitive with semantic markup and escaped item text', async () => {
+    const bench = JSON.parse(await readFile(fileURLToPath(new URL('../../../fixtures/benchmarks/all-primitives.json', import.meta.url)), 'utf8')) as StorySpec;
+    bench.pages[0]!.scenes[4]!.content.items![0]!.title = '<img src=x onerror=alert(1)>';
+    const html = renderIndexHtml(prepareSpec(bench));
+    for (const id of ['hero-01', 'reveal-02', 'showcase-03', 'chapter-04', 'gallery-05', 'cta-06']) expect(html).toContain(`id="${id}"`);
+    expect(html.match(/<h1\b/g)).toHaveLength(1);
+    expect(html).toContain('<ol class="reveal-steps">');
+    expect(html).toContain('data-scene3d="showcase" data-object="vessel" data-camera="orbit"');
+    expect(html).toContain('class="gallery__track" tabindex="0"');
+    expect(html).toContain('aria-label="Next items"');
+    expect(html).toContain('href="#hero-01"');
+    expect(html).not.toContain('<img src=x');
+    expect(html).not.toMatch(/ style="/); // strict CSP: no inline style attributes
+    expect(html).toContain("style-src 'self';");
   });
 });

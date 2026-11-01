@@ -12,7 +12,7 @@ import {
 import { escapeHtml, writeGeneratedFiles, type GeneratedFiles } from '@studio/core';
 
 export const REACT_TARGET = 'react-r3f';
-export const SUPPORTED_SCENES: readonly SceneType[] = ['hero', 'chapter'];
+export const SUPPORTED_SCENES: readonly SceneType[] = ['hero', 'chapter', 'scroll-reveal', 'model-showcase', 'gallery', 'cta'];
 
 /** Template location; bundled hosts (Electron) pass a copied directory. */
 export function defaultTemplateDir(): string {
@@ -30,6 +30,11 @@ export function prepareSpec(input: unknown): StorySpec {
   const result = validateStorySpec(input);
   if (!result.ok) throw new InvalidSpecError(result.issues);
   const issues = findUnsupportedScenes(result.spec, SUPPORTED_SCENES);
+  result.spec.pages.forEach((page, pi) =>
+    page.scenes.forEach((scene, si) => {
+      if (scene.visual.modelAssetId) issues.push({ path: `pages.${pi}.scenes.${si}.visual.modelAssetId`, message: 'Model asset files arrive with asset import (M4); use an object preset for now' });
+    }),
+  );
   if (result.spec.pages.length !== 1 || result.spec.pages[0]?.path !== '/') {
     issues.push({ path: 'pages', message: 'M0 renders exactly one page at "/"' });
   }

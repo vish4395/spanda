@@ -53,17 +53,29 @@ const RelativeAssetPath = z
     'Asset paths must be relative and stay inside the project',
   );
 
+/** Items for scroll-reveal steps and gallery cards (text only; image assets arrive with asset import). */
+export const SceneItemSchema = z.strictObject({
+  title: PlainText(120).min(1),
+  text: PlainText(600),
+});
+
 export const SceneContentSchema = z.strictObject({
   eyebrow: PlainText(120).optional(),
   heading: PlainText(200).min(1),
   body: PlainText(4000).optional(),
   cta: z.strictObject({ label: PlainText(80).min(1), href: SafeHref }).optional(),
+  items: z.array(SceneItemSchema).max(8).optional(),
 });
+
+/** Procedural 3D objects (original geometry, no external model files). */
+export const OBJECT_PRESETS = ['monolith', 'vessel', 'orb'] as const;
 
 export const SceneVisualSchema = z.strictObject({
   background: z.enum(['gradient', 'solid', 'procedural-3d']).optional(),
   layout: z.enum(['split', 'centered']).optional(),
   modelAssetId: StableId.nullable().optional(),
+  object: z.enum(OBJECT_PRESETS).optional(),
+  camera: z.enum(['orbit', 'front', 'low']).optional(),
 });
 
 export const SceneMotionSchema = z.strictObject({
@@ -155,6 +167,18 @@ export const StorySpecSchema = z
       if (paths.has(page.path)) ctx.addIssue({ code: 'custom', path: ['pages', pi, 'path'], message: `Duplicate page path "${page.path}"` });
       paths.add(page.path);
     });
+    // Per-primitive requirements (docs/04): renderers must never silently drop content.
+    spec.pages.forEach((page, pi) =>
+      page.scenes.forEach((scene, si) => {
+        const at = (...rest: (string | number)[]) => ['pages', pi, 'scenes', si, ...rest];
+        const items = scene.content.items?.length ?? 0;
+        if (scene.type === 'cta' && !scene.content.cta) ctx.addIssue({ code: 'custom', path: at('content', 'cta'), message: 'A cta scene needs a call to action (label and link)' });
+        if (scene.type === 'gallery' && (items < 2 || items > 8)) ctx.addIssue({ code: 'custom', path: at('content', 'items'), message: 'A gallery needs 2–8 items' });
+        if (scene.type === 'scroll-reveal' && (items < 2 || items > 5)) ctx.addIssue({ code: 'custom', path: at('content', 'items'), message: 'A scroll-reveal scene needs 2–5 steps' });
+        if (scene.type === 'model-showcase' && !scene.visual.object && !scene.visual.modelAssetId) ctx.addIssue({ code: 'custom', path: at('visual', 'object'), message: 'A model-showcase scene needs an object preset or a model asset' });
+        if (items && !['gallery', 'scroll-reveal'].includes(scene.type)) ctx.addIssue({ code: 'custom', path: at('content', 'items'), message: `Items are only used by gallery and scroll-reveal scenes, not ${scene.type}` });
+      }),
+    );
     const assets = new Map(spec.assets.map((a) => [a.id, a]));
     spec.assets.forEach((a, ai) => claim(a.id, ['assets', ai, 'id']));
     spec.pages.forEach((page, pi) =>

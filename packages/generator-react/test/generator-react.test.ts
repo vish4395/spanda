@@ -14,7 +14,7 @@ const clone = (): StorySpec => structuredClone(example);
 describe('react-r3f generator', () => {
   it('emits a complete Vite/TS/R3F project with pinned dependencies', async () => {
     const files = await renderReactProject(example);
-    for (const f of ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'src/main.tsx', 'src/App.tsx', 'src/scenes/HeroScene.tsx', 'src/scenes/ChapterScene.tsx', 'src/three/HeroCanvas.tsx', 'src/story-spec.json', 'src/tokens.css', 'README.md', 'THIRD_PARTY_NOTICES.md']) {
+    for (const f of ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'src/main.tsx', 'src/App.tsx', 'src/scenes/HeroScene.tsx', 'src/scenes/ChapterScene.tsx', 'src/three/SceneCanvas.tsx', 'src/story-spec.json', 'src/tokens.css', 'README.md', 'THIRD_PARTY_NOTICES.md']) {
       expect(files.has(f), f).toBe(true);
     }
     const pkg = JSON.parse(files.get('package.json') as string) as { dependencies: Record<string, string>; devDependencies: Record<string, string> };
@@ -57,7 +57,8 @@ describe('react-r3f generator', () => {
 
   it('fails loudly on unsupported primitives and invalid specs', () => {
     const spec = clone();
-    spec.pages[0]!.scenes[0]!.type = 'model-showcase';
+    spec.assets.push({ id: 'boat', kind: 'model', path: 'models/boat.glb', rightsStatus: 'verified' });
+    spec.pages[0]!.scenes[0]!.visual.modelAssetId = 'boat';
     expect(() => prepareSpec(spec)).toThrow(UnsupportedSceneError);
     expect(() => prepareSpec(null)).toThrow(InvalidSpecError);
   });

@@ -16,7 +16,7 @@ import { escapeHtml, writeGeneratedFiles, type GeneratedFiles } from '@studio/co
 export { escapeHtml };
 
 export const HTML_TARGET = 'html-three';
-export const SUPPORTED_SCENES: readonly SceneType[] = ['hero', 'chapter'];
+export const SUPPORTED_SCENES: readonly SceneType[] = ['hero', 'chapter', 'scroll-reveal', 'model-showcase', 'gallery', 'cta'];
 
 /** Where static runtime files come from. Bundled hosts (Electron) pass copied locations. */
 export interface HtmlResources {
@@ -37,6 +37,11 @@ export function prepareSpec(input: unknown): StorySpec {
   const result = validateStorySpec(input);
   if (!result.ok) throw new InvalidSpecError(result.issues);
   const issues = findUnsupportedScenes(result.spec, SUPPORTED_SCENES);
+  result.spec.pages.forEach((page, pi) =>
+    page.scenes.forEach((scene, si) => {
+      if (scene.visual.modelAssetId) issues.push({ path: `pages.${pi}.scenes.${si}.visual.modelAssetId`, message: 'Model asset files arrive with asset import (M4); use an object preset for now' });
+    }),
+  );
   if (result.spec.pages.length !== 1 || result.spec.pages[0]?.path !== '/') {
     issues.push({ path: 'pages', message: 'M0 renders exactly one page at "/"' });
   }
@@ -92,6 +97,54 @@ ${sceneCopy(scene, heading)}
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
 <div class="chapter-visual" role="img" aria-label="${escapeHtml(scene.accessibility.fallbackText)}"${scene.motion.type === 'none' ? '' : ' data-reveal'}></div>
+</div>
+</section>`;
+    case 'scroll-reveal': {
+      const reveal = scene.motion.type === 'none' ? '' : ' data-reveal';
+      const steps = (scene.content.items ?? [])
+        .map((item, i) => `<li class="reveal-step reveal-step--${i}"${reveal}><span class="reveal-step__index" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p></li>`)
+        .join('\n');
+      return `<section ${sceneAttributes(scene)} ${label}>
+<div class="scene__inner">
+${sceneCopy(scene, heading)}
+<ol class="reveal-steps">
+${steps}
+</ol>
+</div>
+</section>`;
+    }
+    case 'model-showcase':
+      return `<section ${sceneAttributes(scene)} ${label}>
+<div class="scene__inner">
+${sceneCopy(scene, heading)}
+<div class="showcase-stage" data-object="${escapeHtml(scene.visual.object ?? 'orb')}">
+<canvas class="scene__canvas" data-scene3d="showcase" data-object="${escapeHtml(scene.visual.object ?? 'orb')}" data-camera="${escapeHtml(scene.visual.camera ?? 'orbit')}" aria-hidden="true"></canvas>
+</div>
+</div>
+</section>`;
+    case 'gallery': {
+      const items = (scene.content.items ?? [])
+        .map((item, i) => `<li class="gallery__item"><article><div class="gallery__art gallery__art--${i}" aria-hidden="true"></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p></article></li>`)
+        .join('\n');
+      return `<section ${sceneAttributes(scene)} ${label}>
+<div class="scene__inner">
+${sceneCopy(scene, heading)}
+<div class="gallery" data-gallery>
+<ul class="gallery__track" tabindex="0" aria-label="${escapeHtml(scene.content.heading)} — scroll horizontally or use the buttons">
+${items}
+</ul>
+<div class="gallery__controls">
+<button type="button" class="gallery__button" data-gallery-prev aria-label="Previous items">‹</button>
+<button type="button" class="gallery__button" data-gallery-next aria-label="Next items">›</button>
+</div>
+</div>
+</div>
+</section>`;
+    }
+    case 'cta':
+      return `<section ${sceneAttributes(scene)} ${label}>
+<div class="scene__inner">
+${sceneCopy(scene, heading)}
 </div>
 </section>`;
     default:
@@ -184,7 +237,7 @@ export async function renderHtmlSite(input: unknown, resources: HtmlResources = 
   files.set('tokens.css', renderTokensCss(spec));
   files.set('styles.css', await readFile(path.join(runtimeDir, 'styles.css'), 'utf8'));
   files.set('js/main.js', await readFile(path.join(runtimeDir, 'js/main.js'), 'utf8'));
-  files.set('js/hero-scene.js', await readFile(path.join(runtimeDir, 'js/hero-scene.js'), 'utf8'));
+  files.set('js/scene3d.js', await readFile(path.join(runtimeDir, 'js/scene3d.js'), 'utf8'));
   files.set('vendor/three/three.module.js', await readFile(path.join(threeDir, 'build/three.module.js')));
   files.set('vendor/three/three.core.js', await readFile(path.join(threeDir, 'build/three.core.js')));
   const threeLicense = await readFile(path.join(threeDir, 'LICENSE'), 'utf8');

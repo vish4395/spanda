@@ -54,13 +54,43 @@ if (canvases.length === 0) {
   markReady('off');
 } else {
   root.dataset.webgl = 'loading';
-  import('./hero-scene.js')
-    .then(({ mountHeroScene }) =>
-      Promise.all(canvases.map((canvas) => mountHeroScene(canvas, { reducedMotion, onContextLost: () => markReady('off') }))),
+  import('./scene3d.js')
+    .then(({ mountScene }) =>
+      Promise.all(
+        canvases.map((canvas) =>
+          mountScene(canvas, {
+            variant: canvas.dataset.scene3d,
+            object: canvas.dataset.object,
+            camera: canvas.dataset.camera,
+            reducedMotion,
+            onContextLost: () => markReady('off'),
+          }),
+        ),
+      ),
     )
     .then(() => markReady('on'))
     .catch((error) => {
       console.warn('3D layer unavailable, showing static fallback.', error);
       markReady('off');
     });
+}
+
+// Galleries: native horizontal scrolling (keyboard focusable) plus previous/next buttons.
+for (const gallery of document.querySelectorAll('[data-gallery]')) {
+  const track = gallery.querySelector('.gallery__track');
+  const prev = gallery.querySelector('[data-gallery-prev]');
+  const next = gallery.querySelector('[data-gallery-next]');
+  if (!track || !prev || !next) continue;
+  const step = () => (track.firstElementChild ? track.firstElementChild.getBoundingClientRect().width + 16 : track.clientWidth);
+  const update = () => {
+    // Tolerance covers snap/padding rounding at either end.
+    prev.disabled = track.scrollLeft <= 8;
+    next.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 8;
+  };
+  const behavior = () => (reducedMotion.matches ? 'auto' : 'smooth');
+  prev.addEventListener('click', () => track.scrollBy({ left: -step(), behavior: behavior() }));
+  next.addEventListener('click', () => track.scrollBy({ left: step(), behavior: behavior() }));
+  track.addEventListener('scroll', update, { passive: true });
+  new ResizeObserver(update).observe(track);
+  update();
 }

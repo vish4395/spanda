@@ -169,6 +169,29 @@
                         "href"
                       ],
                       "additionalProperties": false
+                    },
+                    "items": {
+                      "maxItems": 8,
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "title": {
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 120
+                          },
+                          "text": {
+                            "type": "string",
+                            "maxLength": 600
+                          }
+                        },
+                        "required": [
+                          "title",
+                          "text"
+                        ],
+                        "additionalProperties": false
+                      }
                     }
                   },
                   "required": [
@@ -205,6 +228,22 @@
                         {
                           "type": "null"
                         }
+                      ]
+                    },
+                    "object": {
+                      "type": "string",
+                      "enum": [
+                        "monolith",
+                        "vessel",
+                        "orb"
+                      ]
+                    },
+                    "camera": {
+                      "type": "string",
+                      "enum": [
+                        "orbit",
+                        "front",
+                        "low"
                       ]
                     }
                   },

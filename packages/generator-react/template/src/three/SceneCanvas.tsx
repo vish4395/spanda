@@ -1,7 +1,8 @@
-// Decorative, procedural hero scene (original geometry; no external models or textures).
+// Decorative, procedural 3D scenes (original geometry; no external models or textures).
+// variant 'hero': faceted form with rings and dust. variant 'showcase': one object preset, centred.
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
-import { Color, type Group, type Mesh, type Points } from 'three';
+import { Color, Vector2, type Group, type Mesh, type Points } from 'three';
 
 function cssColor(name: string, fallback: string): Color {
   const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -22,6 +23,45 @@ function mulberry32(seed: number) {
 
 function useSmallScreen() {
   return useMemo(() => window.matchMedia('(max-width: 767px)').matches, []);
+}
+
+type ObjectPreset = 'monolith' | 'vessel' | 'orb';
+type CameraPreset = 'orbit' | 'front' | 'low';
+
+const CAMERAS: Record<CameraPreset, { position: [number, number, number]; spin: number }> = {
+  orbit: { position: [0, 0.4, 7], spin: 0.35 },
+  front: { position: [0, 0, 7], spin: 0.08 },
+  low: { position: [0, -1.6, 6.6], spin: 0.2 },
+};
+
+const VESSEL_PROFILE = [
+  [0.0, -1.5], [0.85, -1.45], [1.05, -1.0], [0.9, -0.2], [0.55, 0.6], [0.45, 1.2], [0.62, 1.55], [0.58, 1.6],
+].map(([x, y]) => new Vector2(x, y));
+
+function ShowcaseObject({ preset, color, spin }: { preset: ObjectPreset; color: Color; spin: number }) {
+  const mesh = useRef<Mesh>(null);
+  const { size } = useThree();
+  useFrame((_, delta) => {
+    if (mesh.current) mesh.current.rotation.y += Math.min(delta, 0.1) * spin;
+  });
+  const scale = Math.min(1, (size.width / size.height) * 0.95);
+  return (
+    <mesh ref={mesh} scale={scale} rotation={preset === 'monolith' ? [0.08, 0.5, 0.04] : [0, 0, 0]}>
+      {preset === 'monolith' && <boxGeometry args={[1.3, 2.8, 0.55]} />}
+      {preset === 'vessel' && <latheGeometry args={[VESSEL_PROFILE, 14]} />}
+      {preset === 'orb' && <icosahedronGeometry args={[1.5, 3]} />}
+      <meshStandardMaterial color={color} flatShading roughness={0.45} metalness={0.3} />
+    </mesh>
+  );
+}
+
+function CameraRig({ position }: { position: [number, number, number] }) {
+  const camera = useThree((state) => state.camera);
+  useEffect(() => {
+    camera.position.set(...position);
+    camera.lookAt(0, 0, 0);
+  }, [camera, position]);
+  return null;
 }
 
 function Monument({ colors, small }: { colors: { accent: Color; fg: Color }; small: boolean }) {
@@ -110,9 +150,14 @@ interface Props {
   animate: boolean;
   onFirstFrame: () => void;
   onContextLost: () => void;
+  variant?: 'hero' | 'showcase';
+  object?: ObjectPreset;
+  camera?: CameraPreset;
 }
 
-export default function HeroCanvas({ animate, onFirstFrame, onContextLost }: Props) {
+export default function SceneCanvas({ animate, onFirstFrame, onContextLost, variant = 'hero', object = 'orb', camera = 'orbit' }: Props) {
+  const showcase = variant === 'showcase';
+  const cameraPreset = CAMERAS[camera];
   const small = useSmallScreen();
   const colors = useMemo(
     () => ({ accent: cssColor('--color-accent', '#d9a76c'), fg: cssColor('--color-fg', '#f4eee4'), bg: cssColor('--color-bg', '#10141c') }),
@@ -136,7 +181,14 @@ export default function HeroCanvas({ animate, onFirstFrame, onContextLost }: Pro
         <hemisphereLight args={[colors.fg, colors.bg, 0.9]} />
         <directionalLight position={[4, 5, 6]} intensity={2.4} />
         <pointLight position={[-3, -2, 3]} color={colors.accent} intensity={30} distance={20} />
+        {showcase ? (
+        <>
+          <CameraRig position={cameraPreset.position} />
+          <ShowcaseObject preset={object} color={colors.accent} spin={cameraPreset.spin} />
+        </>
+      ) : (
         <Monument colors={colors} small={small} />
+      )}
         <FirstFrame onFirstFrame={onFirstFrame} />
         <Invalidator animate={animate} />
       </Canvas>

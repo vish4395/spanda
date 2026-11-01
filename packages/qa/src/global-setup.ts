@@ -3,13 +3,12 @@ import { generateSample } from './sample.ts';
 
 // Generates both exports once, then serves each from its own isolated origin.
 export default async function globalSetup() {
-  const manifest = await generateSample((line) => process.stdout.write(`${line}\n`));
-  const html = await startStaticServer(manifest.htmlRoot);
-  const react = await startStaticServer(manifest.reactRoot);
-  process.env.STUDIO_HTML_URL = html.url;
-  process.env.STUDIO_REACT_URL = react.url;
+  const log = (line: string) => process.stdout.write(`${line}\n`);
+  const manifest = await generateSample(log, 'heritage');
+  const bench = await generateSample(log, 'primitives');
+  const servers = await Promise.all([manifest.htmlRoot, manifest.reactRoot, bench.htmlRoot, bench.reactRoot].map((root) => startStaticServer(root)));
+  [process.env.STUDIO_HTML_URL, process.env.STUDIO_REACT_URL, process.env.STUDIO_BENCH_HTML_URL, process.env.STUDIO_BENCH_REACT_URL] = servers.map((s) => s.url);
   return async () => {
-    await html.close();
-    await react.close();
+    await Promise.all(servers.map((s) => s.close()));
   };
 }

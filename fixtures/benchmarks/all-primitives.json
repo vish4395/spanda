@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "bench-all-primitives",
+    "name": "Tidewater Glassworks",
+    "goal": "Show every StorySpec primitive in one original story about a coastal glass studio"
+  },
+  "design": {
+    "theme": "sea glass",
+    "colors": { "background": "#0b1215", "foreground": "#eef6f5", "accent": "#7fd1c7" },
+    "typography": { "heading": "Georgia, serif", "body": "system-ui" }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "scenes": [
+        {
+          "id": "hero-01",
+          "type": "hero",
+          "content": { "heading": "Tidewater Glassworks", "body": "Glass shaped by fire and finished by the sea." },
+          "visual": { "background": "gradient", "modelAssetId": null },
+          "motion": { "type": "subtle-reveal" },
+          "responsive": { "mobile": "static-hero" },
+          "accessibility": { "label": "Welcome", "fallbackText": "Decorative 3D artwork of a faceted glass form." }
+        },
+        {
+          "id": "reveal-02",
+          "type": "scroll-reveal",
+          "content": {
+            "eyebrow": "The process",
+            "heading": "From sand to light",
+            "items": [
+              { "title": "Gather", "text": "Molten glass is gathered on the end of a long pipe." },
+              { "title": "Shape", "text": "Breath and gravity give the piece its first form." },
+              { "title": "Cool", "text": "The kiln lowers the heat slowly over a full night." }
+            ]
+          },
+          "visual": {},
+          "motion": { "type": "scroll-reveal" },
+          "responsive": { "mobile": "stacked" },
+          "accessibility": { "label": "The process", "fallbackText": "Three steps of glassmaking." }
+        },
+        {
+          "id": "showcase-03",
+          "type": "model-showcase",
+          "content": { "heading": "The tide vessel", "body": "A single form, turned slowly so every facet catches the light." },
+          "visual": { "object": "vessel", "camera": "orbit" },
+          "motion": { "type": "scroll-reveal" },
+          "responsive": { "mobile": "stacked" },
+          "accessibility": { "label": "The tide vessel", "fallbackText": "A tall, faceted glass vessel shown as decorative 3D art." }
+        },
+        {
+          "id": "chapter-04",
+          "type": "chapter",
+          "content": { "eyebrow": "The studio", "heading": "Built where the river meets the sea", "body": "Morning light from the estuary fills the workshop." },
+          "visual": { "layout": "split" },
+          "motion": { "type": "scroll-reveal" },
+          "responsive": { "mobile": "stacked" },
+          "accessibility": { "label": "The studio", "fallbackText": "Abstract decorative artwork in sea-glass colours." }
+        },
+        {
+          "id": "gallery-05",
+          "type": "gallery",
+          "content": {
+            "heading": "Recent pieces",
+            "items": [
+              { "title": "Estuary bowl", "text": "Wide and shallow, tinted like low water." },
+              { "title": "Lantern float", "text": "A hollow sphere that glows when lit." },
+              { "title": "Salt tumbler", "text": "Frosted by hand with fine sand." },
+              { "title": "Kelp vase", "text": "Tall, green and gently twisted." }
+            ]
+          },
+          "visual": {},
+          "motion": { "type": "scroll-reveal" },
+          "responsive": { "mobile": "stacked" },
+          "accessibility": { "label": "Recent pieces", "fallbackText": "Four decorative cards for recent glass pieces." }
+        },
+        {
+          "id": "cta-06",
+          "type": "cta",
+          "content": { "heading": "Visit the workshop", "body": "Open studio days run every spring.", "cta": { "label": "Plan a visit", "href": "#hero-01" } },
+          "visual": {},
+          "motion": { "type": "subtle-reveal" },
+          "responsive": {},
+          "accessibility": { "label": "Visit", "fallbackText": "Invitation to visit the workshop." }
+        }
+      ]
+    }
+  ],
+  "assets": [],
+  "quality": { "reducedMotion": true, "webglFallback": true, "targetBrowsers": ["chromium", "firefox", "webkit"] }
+}

@@ -15,15 +15,21 @@ export interface SampleManifest {
   generatedAt: string;
 }
 
-/** Generate both targets from the canonical example spec and build the React one. */
-export async function generateSample(log: (line: string) => void = console.log): Promise<SampleManifest> {
-  const spec = JSON.parse(await readFile(path.join(repoRoot, 'schemas/story-spec.example.json'), 'utf8')) as unknown;
-  const htmlRoot = path.join(sampleDir, 'html');
-  const reactProject = path.join(sampleDir, 'react');
+export const SAMPLES = {
+  heritage: 'schemas/story-spec.example.json',
+  primitives: 'fixtures/benchmarks/all-primitives.json',
+} as const;
+
+/** Generate both targets from a sample spec and build the React one. */
+export async function generateSample(log: (line: string) => void = console.log, sample: keyof typeof SAMPLES = 'heritage'): Promise<SampleManifest> {
+  const spec = JSON.parse(await readFile(path.join(repoRoot, SAMPLES[sample]), 'utf8')) as unknown;
+  const base = sample === 'heritage' ? sampleDir : path.join(artifactsDir, `sample-${sample}`);
+  const htmlRoot = path.join(base, 'html');
+  const reactProject = path.join(base, 'react');
   log(`html-three: ${(await generateHtmlSite(spec, htmlRoot)).length} files -> ${htmlRoot}`);
   log(`react-r3f: ${(await generateReactProject(spec, reactProject)).length} files -> ${reactProject}`);
   const reactRoot = await buildReactExport(reactProject, { signal: new AbortController().signal, log: (l) => log(`  ${l}`) });
   const manifest = { htmlRoot, reactRoot, generatedAt: new Date().toISOString() };
-  await writeFile(path.join(sampleDir, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFile(path.join(base, 'manifest.json'), `${JSON.stringify(manifest, null, 2)}\n`);
   return manifest;
 }

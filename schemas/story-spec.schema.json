@@ -1,0 +1,397 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "goal": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1000
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "goal"
+      ],
+      "additionalProperties": false
+    },
+    "design": {
+      "type": "object",
+      "properties": {
+        "theme": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "colors": {
+          "type": "object",
+          "properties": {
+            "background": {
+              "type": "string",
+              "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            "foreground": {
+              "type": "string",
+              "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            "accent": {
+              "type": "string",
+              "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            }
+          },
+          "required": [
+            "background",
+            "foreground",
+            "accent"
+          ],
+          "additionalProperties": false
+        },
+        "typography": {
+          "type": "object",
+          "properties": {
+            "heading": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9 ,-]+$"
+            },
+            "body": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "pattern": "^[A-Za-z0-9 ,-]+$"
+            }
+          },
+          "required": [
+            "heading",
+            "body"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "theme",
+        "colors",
+        "typography"
+      ],
+      "additionalProperties": false
+    },
+    "pages": {
+      "minItems": 1,
+      "maxItems": 20,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^\\/[a-z0-9/-]*$"
+          },
+          "scenes": {
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64,
+                  "pattern": "^[a-z0-9][a-z0-9-]*$"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "hero",
+                    "scroll-reveal",
+                    "model-showcase",
+                    "chapter",
+                    "gallery",
+                    "cta"
+                  ]
+                },
+                "content": {
+                  "type": "object",
+                  "properties": {
+                    "eyebrow": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "heading": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    },
+                    "body": {
+                      "type": "string",
+                      "maxLength": 4000
+                    },
+                    "cta": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "href": {
+                          "type": "string",
+                          "maxLength": 2048,
+                          "pattern": "^(?:#[A-Za-z0-9_-]*|https:\\/\\/[^\\s\"'<>]+|mailto:[^\\s\"'<>]+)$"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "href"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "heading"
+                  ],
+                  "additionalProperties": false
+                },
+                "visual": {
+                  "type": "object",
+                  "properties": {
+                    "background": {
+                      "type": "string",
+                      "enum": [
+                        "gradient",
+                        "solid",
+                        "procedural-3d"
+                      ]
+                    },
+                    "layout": {
+                      "type": "string",
+                      "enum": [
+                        "split",
+                        "centered"
+                      ]
+                    },
+                    "modelAssetId": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 64,
+                          "pattern": "^[a-z0-9][a-z0-9-]*$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "motion": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "subtle-reveal",
+                        "scroll-reveal"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ],
+                  "additionalProperties": false
+                },
+                "responsive": {
+                  "type": "object",
+                  "properties": {
+                    "desktop": {
+                      "type": "string",
+                      "enum": [
+                        "same",
+                        "static-hero",
+                        "stacked"
+                      ]
+                    },
+                    "tablet": {
+                      "type": "string",
+                      "enum": [
+                        "same",
+                        "static-hero",
+                        "stacked"
+                      ]
+                    },
+                    "mobile": {
+                      "type": "string",
+                      "enum": [
+                        "same",
+                        "static-hero",
+                        "stacked"
+                      ]
+                    }
+                  },
+                  "additionalProperties": false
+                },
+                "accessibility": {
+                  "type": "object",
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 120
+                    },
+                    "fallbackText": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 1000
+                    }
+                  },
+                  "required": [
+                    "label",
+                    "fallbackText"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "content",
+                "visual",
+                "motion",
+                "responsive",
+                "accessibility"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "path",
+          "scenes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "assets": {
+      "maxItems": 500,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "model",
+              "video",
+              "font",
+              "audio"
+            ]
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 260
+          },
+          "rightsStatus": {
+            "type": "string",
+            "enum": [
+              "verified",
+              "user-confirmed",
+              "unknown",
+              "blocked"
+            ]
+          },
+          "license": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "sourceUrl": {
+            "type": "string",
+            "maxLength": 2048,
+            "format": "uri"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "path",
+          "rightsStatus"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "reducedMotion": {
+          "type": "boolean"
+        },
+        "webglFallback": {
+          "type": "boolean"
+        },
+        "targetBrowsers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "chromium",
+              "firefox",
+              "webkit"
+            ]
+          }
+        }
+      },
+      "required": [
+        "reducedMotion",
+        "webglFallback"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "project",
+    "design",
+    "pages",
+    "assets",
+    "quality"
+  ],
+  "additionalProperties": false,
+  "$id": "https://example.invalid/schemas/story-spec.schema.json",
+  "title": "AI Cinematic Studio StorySpec MVP",
+  "description": "GENERATED from packages/contracts/src/story-spec.ts — run `pnpm --filter @studio/contracts schema:write`. Cross-field rules (unique ids, asset references) are enforced by the Zod validator only."
+}

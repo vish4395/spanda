@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+
+# ADR-009: Vite 8 depends on lightningcss (MPL-2.0, review required). Pin Vite 7 until reviewed.
+overrides:
+  vite: 7.3.7
+
+# Dependency lifecycle scripts are denied unless listed here (supply-chain hardening).
+allowBuilds:
+  esbuild: false

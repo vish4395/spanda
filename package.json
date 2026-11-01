@@ -1,0 +1,26 @@
+{
+  "name": "ai-cinematic-studio",
+  "private": true,
+  "version": "0.0.0",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@12.14.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --parallel typecheck",
+    "test": "vitest run",
+    "build": "pnpm --filter @studio/desktop build",
+    "dev": "pnpm --filter @studio/desktop dev",
+    "generate:sample": "pnpm --filter @studio/qa generate:sample",
+    "test:browsers": "pnpm --filter @studio/qa test:browsers",
+    "test:desktop": "pnpm --filter @studio/desktop test:e2e",
+    "licenses:check": "pnpm --filter @studio/licensing check",
+    "check": "pnpm typecheck && pnpm test && pnpm licenses:check && pnpm build && pnpm test:browsers && pnpm test:desktop"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vitest": "5.0.5"
+  }
+}

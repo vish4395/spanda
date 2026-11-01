@@ -1,5 +1,21 @@
 # Implementation log
 
+## 2026-11-02 — M2 creative workflow (T011–T015)
+
+| Ticket | Result |
+|---|---|
+| T011 Idea intake + visual questions | One question at a time (4 total), 2–4 illustrated options, **Skip** and **You decide**, change any answer later |
+| T012 Reference URL analysis | `@studio/reference-analyzer`: SSRF policy (IPv4 blocklist, IPv6 global-unicast allowlist with embedded-IPv4 normalisation), re-vetted on every redirect with the socket pinned to the vetted IP, size/time/redirect caps, linear-time HTML extraction; observations carry confidence and source; rights notice on every report. Screenshots render in an in-memory Electron session where every request is re-vetted, permissions/downloads/popups are denied |
+| T013 Creative brief + approval | Five original art directions (contrast verified in tests), editable audience/tone/motion/chapters/notes; editing an approved brief requires re-approval |
+| T014 Storyboard + scene cards | Hero + chapters, edit copy and text alternatives, reorder with buttons (no drag-only), add/remove; approval writes the StorySpec and records a "Storyboard approved" version |
+| T015 Story agent with structured output | Default **local planner** (deterministic structure, labelled starter text — no AI). Opt-in **Claude Code CLI** planner: documented `-p --output-format json` mode, all tools disabled, no MCP, no session persistence, empty temp cwd, prompt via stdin, references wrapped as untrusted data, schema-validated with one corrective retry, sanitised (control/bidi characters removed). Live smoke test against the installed CLI succeeded (5 s) |
+
+Verification: typecheck pass · 163/163 unit tests · license gate passed · browser suite 30/30 · desktop E2E 8/8 including idea → discovery → brief → storyboard → approve → HTML and React preview of the edited copy.
+
+Security review follow-up: an automated review of the first analyzer commit flagged ReDoS-prone regexes and an incomplete IPv6 blocklist; both fixed in d03f82c with tests.
+
+Not done / limits: no vision analysis of screenshots (observations come from HTML/CSS only); reference analysis has no positive E2E (it needs the internet) — covered by unit tests with a fake fetcher plus the SSRF suite; Claude drafting is not exercised in E2E to avoid spending the user's plan.
+
 ## 2026-11-01 — M1 product foundation (T006–T010)
 
 Started at the user's explicit request while M0's Firefox/Windows/Linux verification is still pending CI.

@@ -39,7 +39,10 @@ const MIME: Record<string, string> = {
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: false } }]);
 app.enableSandbox();
 
-if (!app.requestSingleInstanceLock()) {
+// One studio per workspace: the lock guards the default workspace, while an explicit
+// development workspace (STUDIO_WORKSPACE, unpackaged only) runs alongside it.
+const workspaceOverride = process.env.STUDIO_WORKSPACE && !app.isPackaged ? path.resolve(process.env.STUDIO_WORKSPACE) : null;
+if (!workspaceOverride && !app.requestSingleInstanceLock()) {
   app.quit();
 }
 
@@ -125,14 +128,15 @@ app.whenReady().then(async () => {
   // Compare against the canonical path: drive-letter case (Windows) and symlinks (/private on macOS) differ otherwise.
   registerAppProtocol(await realpath(rendererDir));
 
-  const workspaceRoot = process.env.STUDIO_WORKSPACE && !app.isPackaged ? path.resolve(process.env.STUDIO_WORKSPACE) : path.join(app.getPath('userData'), 'workspace');
+  const workspaceRoot = workspaceOverride ?? path.join(app.getPath('userData'), 'workspace');
   services = new StudioServices(workspaceRoot, {
     htmlRuntimeDir: path.join(resourcesDir, 'html-runtime'),
     threeDir: path.join(resourcesDir, 'three'),
     reactTemplateDir: path.join(resourcesDir, 'react-template'),
+    skillsDir: path.join(resourcesDir, 'skills'),
   });
   const sample = JSON.parse(await readFile(path.join(resourcesDir, 'story-spec.example.json'), 'utf8')) as StorySpec;
-  await services.seed(sample);
+  await services.init(sample);
   registerIpc(services);
   createWindow();
 

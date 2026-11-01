@@ -21,6 +21,9 @@
     "@studio/licensing": "workspace:*",
     "@studio/preview": "workspace:*",
     "@studio/providers": "workspace:*",
+    "@studio/skills": "workspace:*",
+    "@studio/storage": "workspace:*",
+    "@studio/story-engine": "workspace:*",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "three": "0.186.1"

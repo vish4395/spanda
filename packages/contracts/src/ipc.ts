@@ -12,13 +12,33 @@ export type OutputTarget = z.infer<typeof OutputTarget>;
 const ProjectId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
 const JobId = z.string().uuid();
 
+const VersionId = z.string().uuid();
+
 export const ProjectSummary = z.object({
   id: ProjectId,
   name: z.string(),
   goal: z.string(),
   updatedAt: z.string(),
+  lastOpenedAt: z.string().nullable().optional(),
 });
 export type ProjectSummary = z.infer<typeof ProjectSummary>;
+
+export const ProjectVersion = z.object({
+  id: VersionId,
+  projectId: ProjectId,
+  parentId: VersionId.nullable(),
+  label: z.string(),
+  storySpecHash: z.string().regex(/^[0-9a-f]{64}$/),
+  createdAt: z.string(),
+  approved: z.boolean(),
+});
+export type ProjectVersion = z.infer<typeof ProjectVersion>;
+
+/** New-project form: plain text only; the studio derives the ID and starter StorySpec. */
+export const CreateProjectRequest = z.strictObject({
+  name: z.string().trim().min(1, 'Give the project a name').max(80, 'Keep the name under 80 characters'),
+  goal: z.string().trim().min(1, 'Describe the idea in one line').max(300, 'Keep the idea under 300 characters'),
+});
 
 export const ValidationIssueSchema = z.object({ path: z.string(), message: z.string() });
 
@@ -59,8 +79,40 @@ export const ProviderStatus = z.object({
 });
 export type ProviderStatus = z.infer<typeof ProviderStatus>;
 
+export const SkillManifest = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  version: z.string(),
+  source: z.string(),
+  license: z.string(),
+  supportedTargets: z.array(z.string()),
+  triggers: z.array(z.string()),
+  permissions: z.array(z.string()),
+  hash: z.string(),
+  files: z.number().int(),
+  // pinned: hash matches skills.lock.json · modified: content changed since pinning · unpinned: never reviewed
+  pin: z.enum(['pinned', 'modified', 'unpinned']),
+  hasScripts: z.boolean(),
+  scriptsApproved: z.boolean(),
+  enabled: z.boolean(),
+  reason: z.string().nullable(),
+});
+export type SkillManifest = z.infer<typeof SkillManifest>;
+
+export const ProjectDetail = z.object({
+  project: ProjectSummary,
+  versions: z.array(ProjectVersion),
+  jobs: z.array(JobSnapshot),
+});
+export type ProjectDetail = z.infer<typeof ProjectDetail>;
+
 export const ipcContract = {
   'projects.list': { request: z.void(), response: z.array(ProjectSummary) },
+  'projects.create': { request: CreateProjectRequest, response: ProjectSummary },
+  'projects.open': { request: z.strictObject({ projectId: ProjectId }), response: ProjectDetail },
+  'versions.snapshot': { request: z.strictObject({ projectId: ProjectId, label: z.string().trim().min(1).max(80).optional() }), response: ProjectVersion },
+  'versions.restore': { request: z.strictObject({ projectId: ProjectId, versionId: VersionId }), response: ProjectVersion },
   'story.validate': { request: z.strictObject({ projectId: ProjectId }), response: ValidationReport },
   'generation.start': {
     request: z.strictObject({ projectId: ProjectId, targets: z.array(OutputTarget).min(1).max(2) }),
@@ -70,6 +122,7 @@ export const ipcContract = {
   'generation.cancel': { request: z.strictObject({ jobId: JobId }), response: JobSnapshot },
   'preview.start': { request: z.strictObject({ projectId: ProjectId, target: OutputTarget }), response: PreviewSession },
   'providers.probe': { request: z.void(), response: z.array(ProviderStatus) },
+  'skills.list': { request: z.void(), response: z.array(SkillManifest) },
 } as const satisfies Record<IpcChannel, { request: z.ZodType; response: z.ZodType }>;
 
 // Compile-time guard: the contract and the channel allowlist list exactly the same channels.

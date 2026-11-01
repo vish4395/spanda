@@ -1,24 +1,14 @@
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test';
-
-const appDir = fileURLToPath(new URL('..', import.meta.url));
-const screenshots = path.resolve(appDir, '../../artifacts/screenshots');
+import { expect, test, type ElectronApplication, type Page } from '@playwright/test';
+import { launchStudio, screenshots } from './launch.ts';
 
 let app: ElectronApplication;
 let win: Page;
 
 test.beforeAll(async () => {
-  const workspace = await mkdtemp(path.join(tmpdir(), 'studio-e2e-'));
-  const env: Record<string, string> = {};
-  for (const [k, v] of Object.entries(process.env)) if (v !== undefined) env[k] = v;
-  delete env.ELECTRON_RUN_AS_NODE; // set by VS Code / some hosts; would start Electron as plain Node
-  env.STUDIO_WORKSPACE = workspace;
-  app = await electron.launch({ args: [path.join(appDir, 'dist/main.mjs')], cwd: appDir, env });
-  win = await app.firstWindow();
-  await win.setViewportSize({ width: 1440, height: 900 });
+  ({ app, win } = await launchStudio(await mkdtemp(path.join(tmpdir(), 'studio-e2e-'))));
 });
 
 test.afterAll(async () => {
@@ -45,14 +35,14 @@ test('lists the sample project and validates its StorySpec', async () => {
   await expect(win.getByRole('heading', { level: 1, name: 'Heritage Journey' })).toBeVisible();
   await expect(win.getByText('StorySpec valid')).toBeVisible();
   await expect(win.getByText('No preview yet')).toBeVisible();
-  await expect(win.getByText(/Claude Code CLI/)).toBeVisible();
+  await expect(win.getByRole('button', { name: /AI providers/ })).toBeVisible();
   await win.screenshot({ path: path.join(screenshots, 'desktop-empty.png') });
 });
 
 test('generates HTML + React and previews both in an isolated frame', async () => {
   await win.getByRole('button', { name: 'Generate HTML + React' }).click();
-  await expect(win.getByRole('status')).toContainText('Generating');
-  await expect(win.getByRole('status')).toContainText('Ready', { timeout: 200_000 });
+  await expect(win.locator('.topbar__status')).toContainText('Generating');
+  await expect(win.locator('.topbar__status')).toContainText('Ready', { timeout: 200_000 });
   await expect(win.getByRole('log')).toContainText('Build complete');
 
   for (const target of ['HTML', 'React'] as const) {

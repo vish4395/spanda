@@ -202,6 +202,15 @@ importers:
       '@studio/providers':
         specifier: workspace:*
         version: link:../../packages/providers
+      '@studio/skills':
+        specifier: workspace:*
+        version: link:../../packages/skills
+      '@studio/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      '@studio/story-engine':
+        specifier: workspace:*
+        version: link:../../packages/story-engine
       react:
         specifier: 19.3.1
         version: 19.3.1
@@ -311,6 +320,27 @@ importers:
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
+
+  packages/skills:
+    dependencies:
+      '@studio/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@studio/licensing':
+        specifier: workspace:*
+        version: link:../licensing
+
+  packages/storage:
+    dependencies:
+      '@studio/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
+  packages/story-engine:
+    dependencies:
+      '@studio/contracts':
+        specifier: workspace:*
+        version: link:../contracts
 
 packages:
 

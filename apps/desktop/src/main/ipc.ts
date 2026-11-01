@@ -14,6 +14,16 @@ function describe(err: unknown): string {
 export function registerIpc(services: StudioServices): void {
   const handlers: { [C in IpcChannel]: (req: unknown) => unknown } = {
     'projects.list': () => services.listProjects(),
+    'projects.create': (req) => services.createProject(req as { name: string; goal: string }),
+    'projects.open': (req) => services.openProject((req as { projectId: string }).projectId),
+    'versions.snapshot': (req) => {
+      const { projectId, label } = req as { projectId: string; label?: string };
+      return services.snapshot(projectId, label);
+    },
+    'versions.restore': (req) => {
+      const { projectId, versionId } = req as { projectId: string; versionId: string };
+      return services.restore(projectId, versionId);
+    },
     'story.validate': (req) => services.validate((req as { projectId: string }).projectId),
     'generation.start': (req) => {
       const { projectId, targets } = req as { projectId: string; targets: ('html' | 'react')[] };
@@ -26,6 +36,7 @@ export function registerIpc(services: StudioServices): void {
       return services.startPreview(projectId, target);
     },
     'providers.probe': () => services.probeProviders(),
+    'skills.list': () => services.listSkills(),
   };
 
   for (const channel of IPC_CHANNELS) {

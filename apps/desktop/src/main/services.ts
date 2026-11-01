@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import {
   type IpcResponse,
   type OutputTarget,
   type PreviewSession,
+  type ProjectVersion,
+  type SkillManifest,
   type StorySpec,
 } from '@studio/contracts';
 import { JobManager, ProjectWorkspace, throwIfCancelled } from '@studio/core';
@@ -10,11 +13,15 @@ import { generateHtmlSite } from '@studio/generator-html';
 import { generateReactProject } from '@studio/generator-react';
 import { buildReactExport, startStaticServer, type StaticServer } from '@studio/preview';
 import { probeAll } from '@studio/providers';
+import { loadRegistry } from '@studio/skills';
+import { StudioStore } from '@studio/storage';
+import { createStarterSpec } from '@studio/story-engine';
 
 export interface ResourcePaths {
   htmlRuntimeDir: string;
   threeDir: string;
   reactTemplateDir: string;
+  skillsDir: string;
 }
 
 /**
@@ -23,17 +30,38 @@ export interface ResourcePaths {
  */
 export class StudioServices {
   readonly workspace: ProjectWorkspace;
-  private readonly jobs = new JobManager();
+  readonly store: StudioStore;
+  private readonly jobs: JobManager;
   private readonly previews = new Map<string, StaticServer>();
   private readonly resources: ResourcePaths;
 
   constructor(workspaceRoot: string, resources: ResourcePaths) {
     this.workspace = new ProjectWorkspace(workspaceRoot);
+    this.store = StudioStore.open(path.join(workspaceRoot, 'studio.db'));
     this.resources = resources;
+    this.jobs = new JobManager({
+      started: (job) => this.store.recordJobStart(job),
+      logged: (jobId, line) => this.store.appendJobLog(jobId, line),
+      finished: (job) => this.store.recordJobEnd(job.id, job.status, job.error),
+    });
   }
 
-  async seed(sample: StorySpec): Promise<void> {
+  /** First-run seeding, crash recovery and import of project folders that have no metadata yet. */
+  async init(sample: StorySpec): Promise<void> {
+    this.store.markInterruptedJobs();
     await this.workspace.ensureSample(sample);
+    for (const project of await this.workspace.list()) {
+      if (this.store.hasProject(project.id)) continue;
+      this.store.upsertProject(project);
+      const spec = await this.workspace.readSpec(project.id);
+      if (spec.ok) await this.recordVersion(project.id, spec.spec, 'Imported', null);
+    }
+  }
+
+  private async recordVersion(projectId: string, spec: StorySpec, label: string, parentId: string | null): Promise<ProjectVersion> {
+    const id = randomUUID();
+    const snapshot = await this.workspace.writeSnapshot(projectId, id, spec);
+    return this.store.addVersion({ id, projectId, parentId, label, hash: snapshot.hash, snapshotPath: snapshot.path });
   }
 
   private async closePreview(projectId: string, target: OutputTarget): Promise<void> {
@@ -45,8 +73,30 @@ export class StudioServices {
     }
   }
 
-  async listProjects(): Promise<IpcResponse<'projects.list'>> {
-    return this.workspace.list();
+  private requireProject(projectId: string): void {
+    if (!this.store.hasProject(projectId)) throw new Error(`Project "${projectId}" was not found`);
+  }
+
+  // Projects -----------------------------------------------------------------
+
+  listProjects(): IpcResponse<'projects.list'> {
+    return this.store.listProjects();
+  }
+
+  async createProject(input: { name: string; goal: string }): Promise<IpcResponse<'projects.create'>> {
+    const spec = createStarterSpec(input);
+    const summary = await this.workspace.create(spec);
+    this.store.upsertProject(summary);
+    await this.recordVersion(summary.id, spec, 'Created', null);
+    this.store.touchProject(summary.id);
+    return this.store.listProjects().find((p) => p.id === summary.id)!;
+  }
+
+  openProject(projectId: string): IpcResponse<'projects.open'> {
+    this.requireProject(projectId);
+    this.store.touchProject(projectId);
+    const project = this.store.listProjects().find((p) => p.id === projectId)!;
+    return { project, versions: this.store.listVersions(projectId), jobs: this.store.listJobs(projectId, 5) };
   }
 
   async validate(projectId: string): Promise<IpcResponse<'story.validate'>> {
@@ -54,7 +104,41 @@ export class StudioServices {
     return { ok: result.ok, issues: result.issues };
   }
 
+  // Versions -----------------------------------------------------------------
+
+  /** Snapshot the current spec. A spec identical to the latest snapshot is not duplicated. */
+  async snapshot(projectId: string, label = 'Manual snapshot'): Promise<ProjectVersion> {
+    this.requireProject(projectId);
+    const current = await this.workspace.readSpec(projectId);
+    if (!current.ok) throw new Error('Fix the StorySpec issues before saving a snapshot.');
+    const latest = this.store.latestVersion(projectId);
+    const id = randomUUID();
+    const written = await this.workspace.writeSnapshot(projectId, id, current.spec);
+    if (latest && latest.storySpecHash === written.hash) return latest;
+    return this.store.addVersion({ id, projectId, parentId: latest?.id ?? null, label, hash: written.hash, snapshotPath: written.path });
+  }
+
+  /**
+   * Restore a snapshot as the current spec. The current spec is snapshotted first,
+   * so restoring never loses work. Snapshot hashes are verified before use.
+   */
+  async restore(projectId: string, versionId: string): Promise<ProjectVersion> {
+    this.requireProject(projectId);
+    const target = this.store.getVersion(projectId, versionId);
+    if (!target) throw new Error('That version no longer exists.');
+    const spec = await this.workspace.readSnapshot(projectId, target.snapshotPath, target.storySpecHash);
+    const current = await this.workspace.readSpec(projectId);
+    if (current.ok) await this.snapshot(projectId, 'Before restore');
+    await this.workspace.writeSpec(projectId, spec);
+    const restored = await this.recordVersion(projectId, spec, `Restored “${target.label}”`, target.id);
+    for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
+    return restored;
+  }
+
+  // Generation ---------------------------------------------------------------
+
   startGeneration(projectId: string, targets: OutputTarget[]): IpcResponse<'generation.start'> {
+    this.requireProject(projectId);
     const unique = [...new Set(targets)];
     return this.jobs.start(projectId, unique, async ({ signal, log }) => {
       const result = await this.workspace.readSpec(projectId);
@@ -102,13 +186,42 @@ export class StudioServices {
     return { target, url: server.url };
   }
 
-  probeProviders(): Promise<IpcResponse<'providers.probe'>> {
-    return probeAll();
+  // Providers and skills -----------------------------------------------------
+
+  async probeProviders(): Promise<IpcResponse<'providers.probe'>> {
+    const statuses = await probeAll();
+    this.store.saveProviderStatuses(statuses);
+    return statuses;
+  }
+
+  async listSkills(): Promise<SkillManifest[]> {
+    const { skills, errors } = await loadRegistry(this.resources.skillsDir);
+    // Broken skills are shown as disabled entries, never silently dropped.
+    const broken: SkillManifest[] = errors.map((e) => ({
+      id: e.id,
+      name: e.id,
+      description: '',
+      version: 'unknown',
+      source: 'local',
+      license: 'UNKNOWN',
+      supportedTargets: [],
+      triggers: [],
+      permissions: [],
+      hash: '',
+      files: 0,
+      pin: 'unpinned',
+      hasScripts: false,
+      scriptsApproved: false,
+      enabled: false,
+      reason: `Could not load: ${e.error}`,
+    }));
+    return [...skills.map((s) => s.manifest), ...broken];
   }
 
   async dispose(): Promise<void> {
     this.jobs.cancelAll();
     await Promise.all([...this.previews.values()].map((s) => s.close()));
     this.previews.clear();
+    this.store.close();
   }
 }

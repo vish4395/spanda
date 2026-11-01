@@ -59,6 +59,7 @@ const threeDir = path.dirname(path.dirname(createRequire(path.join(repoRoot, 'pa
 for (const file of ['LICENSE', 'package.json', 'build/three.module.js', 'build/three.core.js']) {
   await cp(path.join(threeDir, file), path.join(resources, 'three', file));
 }
+await cp(path.join(repoRoot, 'skills'), path.join(resources, 'skills'), { recursive: true });
 await cp(path.join(repoRoot, 'schemas/story-spec.example.json'), path.join(resources, 'story-spec.example.json'));
 
 console.log(`Built desktop app -> ${path.relative(repoRoot, dist)}`);

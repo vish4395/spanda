@@ -32,3 +32,6 @@ export const SpinnerIcon = () => (
 export const TerminalIcon = () => <Icon><rect x="3" y="4.5" width="18" height="15" rx="1.5" /><path d="m7 9.5 3 2.5-3 2.5M12.5 15H17" /></Icon>;
 export const ShieldIcon = () => <Icon><path d="M12 3 19.5 6v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z" /></Icon>;
 export const ChevronIcon = ({ open }: { open: boolean }) => <Icon><path d={open ? 'm6 9 6 6 6-6' : 'm6 15 6-6 6 6'} /></Icon>;
+export const PlusIcon = () => <Icon><path d="M12 5v14M5 12h14" /></Icon>;
+export const PuzzleIcon = () => <Icon><path d="M9 4.5a2 2 0 1 1 4 0V6h4v4h-1.5a2 2 0 1 0 0 4H17v4h-4v-1.5a2 2 0 1 0-4 0V18H5v-4h1.5a2 2 0 1 0 0-4H5V6h4z" /></Icon>;
+export const ServerIcon = () => <Icon><rect x="4" y="4" width="16" height="7" rx="1.5" /><rect x="4" y="13" width="16" height="7" rx="1.5" /><path d="M8 7.5h.01M8 16.5h.01" /></Icon>;

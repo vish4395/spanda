@@ -1,6 +1,12 @@
 ---
 name: visual-qa
 description: Critique actual rendered HTML and React websites with browser screenshots and structured quality checks.
+version: 0.1.0
+source: local
+license: LicenseRef-Studio-Original
+supportedTargets: [html, react]
+triggers: [qa, screenshot, critique, accessibility, regression]
+permissions: []
 ---
 # Visual QA
 ## Inputs

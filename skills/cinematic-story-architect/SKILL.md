@@ -1,6 +1,12 @@
 ---
 name: cinematic-story-architect
 description: Turn ideas and references into original scene-by-scene cinematic website stories and validated StorySpec. Use before code generation.
+version: 0.1.0
+source: local
+license: LicenseRef-Studio-Original
+supportedTargets: [html, react]
+triggers: [story, storyboard, brief, storyspec, discovery, scene]
+permissions: []
 ---
 # Cinematic Story Architect
 ## Inputs

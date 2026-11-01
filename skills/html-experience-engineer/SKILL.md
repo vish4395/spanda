@@ -1,6 +1,12 @@
 ---
 name: html-experience-engineer
 description: Generate accessible, responsive, cinematic static HTML/CSS/JavaScript/Three.js websites from StorySpec.
+version: 0.1.0
+source: local
+license: LicenseRef-Studio-Original
+supportedTargets: [html]
+triggers: [html, generate, scene, three, fallback, export]
+permissions: []
 ---
 # HTML Experience Engineer
 - Native HTML5 semantic landmarks, CSS, ES modules, Three.js only when necessary.

@@ -1,0 +1,30 @@
+{
+  "cinematic-story-architect": {
+    "version": "0.1.0",
+    "hash": "ee84fb1e6e908dbee1518a5125b8da86c69f07c398d4bc16107791984671fa5c",
+    "scriptsApproved": false,
+    "reviewedBy": "repository blueprint (studio-original, markdown only)",
+    "reviewedAt": "2026-11-01"
+  },
+  "html-experience-engineer": {
+    "version": "0.1.0",
+    "hash": "def5579ef4eec9b03749ba1d6d8f80862f3ba3174247b7b3706e5e4cefa1bc7c",
+    "scriptsApproved": false,
+    "reviewedBy": "repository blueprint (studio-original, markdown only)",
+    "reviewedAt": "2026-11-01"
+  },
+  "react-experience-engineer": {
+    "version": "0.1.0",
+    "hash": "40e0e5ada6ea29dcfe7dea101293c1c3c3ed1eea051300ab8bcffff8533c3606",
+    "scriptsApproved": false,
+    "reviewedBy": "repository blueprint (studio-original, markdown only)",
+    "reviewedAt": "2026-11-01"
+  },
+  "visual-qa": {
+    "version": "0.1.0",
+    "hash": "a58668f3d68419c81cbf7269e3a038af96c7340cfbeea8d0ab17eb0020c915d4",
+    "scriptsApproved": false,
+    "reviewedBy": "repository blueprint (studio-original, markdown only)",
+    "reviewedAt": "2026-11-01"
+  }
+}

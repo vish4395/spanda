@@ -1,6 +1,12 @@
 ---
 name: react-experience-engineer
 description: Generate accessible, responsive React/Vite/TypeScript/React Three Fiber cinematic websites from StorySpec.
+version: 0.1.0
+source: local
+license: LicenseRef-Studio-Original
+supportedTargets: [react]
+triggers: [react, generate, scene, r3f, fallback, export]
+permissions: []
 ---
 # React Experience Engineer
 - React + Vite + strict TypeScript, small composable components, R3F/Drei for appropriate scenes.

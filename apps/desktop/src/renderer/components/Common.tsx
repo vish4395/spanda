@@ -45,7 +45,7 @@ export function Segmented<T extends string>({ label, value, options, onChange }:
   );
 }
 
-export function ErrorBanner({ message, onRetry, onDismiss, retryDisabled }: { message: string; onRetry?: () => void; onDismiss: () => void; retryDisabled?: boolean }) {
+export function ErrorBanner({ message, onRetry, onDismiss, retryDisabled }: { message: string; onRetry?: (() => void) | undefined; onDismiss: () => void; retryDisabled?: boolean }) {
   return (
     <div className="alert" role="alert">
       <AlertIcon />

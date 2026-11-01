@@ -37,6 +37,44 @@ export function registerIpc(services: StudioServices): void {
     },
     'providers.probe': () => services.probeProviders(),
     'skills.list': () => services.listSkills(),
+    'settings.get': () => services.settings().settings(),
+    'settings.set': (req) => services.settings().saveSettings(req as { claudeStoryboard: boolean }),
+    'creative.get': (req) => {
+      const { projectId } = req as { projectId: string };
+      return services.creative(projectId).state(projectId);
+    },
+    'creative.answer': (req) => {
+      const { projectId, questionId, answer } = req as { projectId: string; questionId: string; answer: string | null };
+      return services.creative(projectId).answer(projectId, questionId, answer);
+    },
+    'creative.saveBrief': (req) => {
+      const { projectId, brief } = req as { projectId: string; brief: Parameters<ReturnType<typeof services.creative>['saveBrief']>[1] };
+      return services.creative(projectId).saveBrief(projectId, brief);
+    },
+    'creative.approveBrief': (req) => {
+      const { projectId } = req as { projectId: string };
+      return services.creative(projectId).approveBrief(projectId);
+    },
+    'creative.draftStoryboard': (req) => {
+      const { projectId, planner } = req as { projectId: string; planner: 'local-planner' | 'claude-code' };
+      return services.creative(projectId).draftStoryboard(projectId, planner);
+    },
+    'creative.saveStoryboard': (req) => {
+      const { projectId, scenes } = req as { projectId: string; scenes: Parameters<ReturnType<typeof services.creative>['saveStoryboard']>[1] };
+      return services.creative(projectId).saveStoryboard(projectId, scenes);
+    },
+    'creative.approveStoryboard': (req) => {
+      const { projectId } = req as { projectId: string };
+      return services.creative(projectId).approveStoryboard(projectId);
+    },
+    'references.analyze': (req) => {
+      const { projectId, url, inspiration } = req as { projectId: string; url: string; inspiration: string };
+      return services.creative(projectId).analyzeReference(projectId, url, inspiration);
+    },
+    'references.remove': (req) => {
+      const { projectId, referenceId } = req as { projectId: string; referenceId: string };
+      return services.creative(projectId).removeReference(projectId, referenceId);
+    },
   };
 
   for (const channel of IPC_CHANNELS) {

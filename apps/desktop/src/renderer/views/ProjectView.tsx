@@ -1,9 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CreativeState } from '@studio/contracts';
 import type { JobSnapshot, OutputTarget, ProjectDetail, ProjectVersion } from '@studio/contracts/ipc';
 import { call } from '../api';
 import { ErrorBanner, Segmented, StatusChip, timeAgo } from '../components/Common';
 import { ChevronIcon, PlayIcon, ShieldIcon, SpinnerIcon, StopIcon, TerminalIcon } from '../components/Icons';
 import { DEVICES, PreviewStage, type DeviceId } from '../components/PreviewStage';
+import { BriefTab } from './creative/BriefTab';
+import { DiscoverTab } from './creative/DiscoverTab';
+import { StoryboardTab } from './creative/StoryboardTab';
+
+const TABS = [
+  { id: 'discover', label: 'Discover' },
+  { id: 'brief', label: 'Brief' },
+  { id: 'storyboard', label: 'Storyboard' },
+  { id: 'build', label: 'Build & preview' },
+] as const;
+type TabId = (typeof TABS)[number]['id'];
+
+const TAB_FOR_STAGE: Record<CreativeState['stage'], TabId> = { draft: 'discover', discovery: 'discover', brief_ready: 'brief', storyboard_ready: 'storyboard', approved: 'build' };
 
 const TARGETS: { id: OutputTarget; label: string; stack: string }[] = [
   { id: 'html', label: 'HTML', stack: 'html-three' },
@@ -29,7 +43,10 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
   const [logOpen, setLogOpen] = useState(true);
   const [busyVersion, setBusyVersion] = useState<string | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [creative, setCreative] = useState<CreativeState | null>(null);
+  const [tab, setTab] = useState<TabId>('discover');
   const logRef = useRef<HTMLOListElement>(null);
+  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const running = job?.status === 'running';
 
@@ -46,10 +63,11 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
   }, [projectId]);
 
   const refresh = useCallback(async () => {
-    const [opened, validated] = await Promise.all([call('projects.open', { projectId }), call('story.validate', { projectId })]);
+    const [opened, validated, creativeState] = await Promise.all([call('projects.open', { projectId }), call('story.validate', { projectId }), call('creative.get', { projectId })]);
     setDetail(opened);
     setValidation(validated);
-    return opened;
+    setCreative(creativeState);
+    return { opened, creativeState };
   }, [projectId]);
 
   useEffect(() => {
@@ -58,9 +76,12 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
     setPreviews({});
     setError(null);
     refresh()
-      .then((opened) => {
+      .then(({ opened, creativeState }) => {
         // Show the most recent persisted run (survives app restarts).
         setJob(opened.jobs[0] ?? null);
+        // Imported projects (like the bundled sample) already have a full StorySpec: open on Build.
+        const imported = opened.versions.at(-1)?.label === 'Imported';
+        setTab(creativeState.stage === 'draft' && imported ? 'build' : TAB_FOR_STAGE[creativeState.stage]);
         onProjectsChanged();
       })
       .catch((err: Error) => setError(err.message));
@@ -167,7 +188,61 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
           </ul>
         )}
 
-        {error && <ErrorBanner message={error} onRetry={() => void generate()} retryDisabled={running || !validation?.ok} onDismiss={() => setError(null)} />}
+        {error && <ErrorBanner message={error} onRetry={tab === 'build' ? () => void generate() : undefined} retryDisabled={running || !validation?.ok} onDismiss={() => setError(null)} />}
+
+        <div className="tabs" role="tablist" aria-label="Project workflow">
+          {TABS.map((t, index) => (
+            <button
+              key={t.id}
+              ref={(el) => {
+                tabRefs.current[t.id] = el;
+              }}
+              type="button"
+              role="tab"
+              id={`tab-${t.id}`}
+              aria-selected={tab === t.id}
+              aria-controls={`panel-${t.id}`}
+              tabIndex={tab === t.id ? 0 : -1}
+              className="tab"
+              onClick={() => setTab(t.id)}
+              onKeyDown={(e) => {
+                const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+                if (!delta) return;
+                e.preventDefault();
+                const next = TABS[(index + delta + TABS.length) % TABS.length]!.id;
+                setTab(next);
+                tabRefs.current[next]?.focus();
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+          {creative && <span className="tabs__stage muted small">Stage: {creative.stage.replace('_', ' ')}</span>}
+        </div>
+
+        {creative && tab !== 'build' && (
+          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="tabpanel">
+            {tab === 'discover' && <DiscoverTab projectId={projectId} state={creative} onState={setCreative} onError={setError} />}
+            {tab === 'brief' && <BriefTab projectId={projectId} state={creative} onState={(st) => { setCreative(st); if (st.brief?.approved) setTab('storyboard'); }} onError={setError} />}
+            {tab === 'storyboard' && (
+              <StoryboardTab
+                projectId={projectId}
+                state={creative}
+                onState={setCreative}
+                onError={setError}
+                onApproved={() => {
+                  void refresh();
+                  setPreviews({});
+                  setAnnouncement('Storyboard approved and saved as the StorySpec. Generate to preview it.');
+                  setTab('build');
+                }}
+              />
+            )}
+          </div>
+        )}
+
+        {tab === 'build' && (
+          <div role="tabpanel" id="panel-build" aria-labelledby="tab-build" className="tabpanel tabpanel--build">
 
         <div className="toolbar">
           <Segmented label="Output target" value={target} onChange={setTarget} options={TARGETS.map((t) => ({ id: t.id, label: t.label }))} />
@@ -214,6 +289,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
             {!job && <li className="muted">Generation output appears here.</li>}
           </ol>
         </section>
+          </div>
+        )}
       </div>
 
       <aside className="inspector" aria-labelledby="versions-title">

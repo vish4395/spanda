@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, protocol, session, shell, type WebContents } from 'electron';
 import type { StorySpec } from '@studio/contracts';
 import { APP_ORIGIN, registerIpc } from './ipc.ts';
+import { captureReference } from './capture.ts';
 import { StudioServices } from './services.ts';
 
 // Layout produced by scripts/build.ts:
@@ -134,7 +135,7 @@ app.whenReady().then(async () => {
     threeDir: path.join(resourcesDir, 'three'),
     reactTemplateDir: path.join(resourcesDir, 'react-template'),
     skillsDir: path.join(resourcesDir, 'skills'),
-  });
+  }, { capture: captureReference });
   const sample = JSON.parse(await readFile(path.join(resourcesDir, 'story-spec.example.json'), 'utf8')) as StorySpec;
   await services.init(sample);
   registerIpc(services);

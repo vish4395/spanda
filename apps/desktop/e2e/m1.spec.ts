@@ -33,7 +33,9 @@ test('M1: create, snapshot, restore, settings, and persistence across restart', 
   await expect(win.getByRole('status').filter({ hasText: 'Snapshot saved' })).toHaveCount(1);
   await expect(versions.getByRole('listitem')).toHaveCount(1);
 
-  // Generate HTML + React for the new project; the run is persisted.
+  // New projects open on Discover; generate from Build & preview. The run is persisted.
+  await expect(win.getByRole('tab', { name: 'Discover' })).toHaveAttribute('aria-selected', 'true');
+  await win.getByRole('tab', { name: 'Build & preview' }).click();
   await win.getByRole('button', { name: 'Generate HTML + React' }).click();
   await expect(win.locator('.topbar__status')).toContainText('Ready', { timeout: 200_000 });
   await expect(win.frameLocator('iframe').locator('h1')).toHaveText('Orbital Bakery', { timeout: 30_000 });
@@ -55,7 +57,8 @@ test('M1: create, snapshot, restore, settings, and persistence across restart', 
   await win.getByRole('button', { name: /AI providers/ }).click();
   const table = win.getByRole('table');
   await expect(table.getByRole('row')).toHaveCount(3);
-  await expect(table.getByText('Off — pending terms review')).toHaveCount(2);
+  await expect(table.getByText('Off', { exact: true })).toHaveCount(2);
+  await expect(win.getByRole('heading', { name: 'Draft storyboards with Claude Code' })).toBeVisible();
   await win.getByRole('button', { name: 'Check again' }).click();
   await expect(win.getByRole('button', { name: 'Check again' })).toBeEnabled();
   await win.screenshot({ path: path.join(screenshots, 'desktop-m1-providers.png') });
@@ -66,6 +69,7 @@ test('M1: create, snapshot, restore, settings, and persistence across restart', 
   await expect(win.locator('.project-item').first()).toContainText('Heritage Journey'); // opened last
   await win.locator('.project-item', { hasText: 'Orbital Bakery' }).click();
   await expect(win.getByRole('heading', { level: 1, name: 'Orbital Bakery' })).toBeVisible();
+  await win.getByRole('tab', { name: 'Build & preview' }).click();
   await expect(win.getByRole('log')).toContainText('Done.');
   await expect(win.locator('.activity__toggle')).toContainText('last run succeeded');
   // Preview of the earlier build is still available after restart.

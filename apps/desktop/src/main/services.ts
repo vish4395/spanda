@@ -16,6 +16,7 @@ import { probeAll } from '@studio/providers';
 import { loadRegistry } from '@studio/skills';
 import { StudioStore } from '@studio/storage';
 import { createStarterSpec } from '@studio/story-engine';
+import { CreativeService, defaultCreativeDeps, type CreativeDeps } from './creative.ts';
 
 export interface ResourcePaths {
   htmlRuntimeDir: string;
@@ -34,11 +35,16 @@ export class StudioServices {
   private readonly jobs: JobManager;
   private readonly previews = new Map<string, StaticServer>();
   private readonly resources: ResourcePaths;
+  private readonly creativeService: CreativeService;
 
-  constructor(workspaceRoot: string, resources: ResourcePaths) {
+  constructor(workspaceRoot: string, resources: ResourcePaths, creativeDeps: Partial<CreativeDeps> = {}) {
     this.workspace = new ProjectWorkspace(workspaceRoot);
     this.store = StudioStore.open(path.join(workspaceRoot, 'studio.db'));
     this.resources = resources;
+    this.creativeService = new CreativeService(this.workspace, this.store, { ...defaultCreativeDeps, ...creativeDeps }, async (projectId, label) => {
+      await this.snapshot(projectId, label);
+      for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
+    });
     this.jobs = new JobManager({
       started: (job) => this.store.recordJobStart(job),
       logged: (jobId, line) => this.store.appendJobLog(jobId, line),
@@ -184,6 +190,18 @@ export class StudioServices {
     }
     this.previews.set(key, server);
     return { target, url: server.url };
+  }
+
+  // Creative workflow --------------------------------------------------------
+
+  /** Creative operations for an existing project (unknown IDs never create folders). */
+  creative(projectId: string): CreativeService {
+    this.requireProject(projectId);
+    return this.creativeService;
+  }
+
+  settings(): CreativeService {
+    return this.creativeService;
   }
 
   // Providers and skills -----------------------------------------------------

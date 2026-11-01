@@ -202,6 +202,9 @@ importers:
       '@studio/providers':
         specifier: workspace:*
         version: link:../../packages/providers
+      '@studio/reference-analyzer':
+        specifier: workspace:*
+        version: link:../../packages/reference-analyzer
       '@studio/skills':
         specifier: workspace:*
         version: link:../../packages/skills
@@ -320,6 +323,8 @@ importers:
       '@playwright/test':
         specifier: 1.64.1
         version: 1.64.1
+
+  packages/reference-analyzer: {}
 
   packages/skills:
     dependencies:

@@ -21,6 +21,7 @@
     "@studio/licensing": "workspace:*",
     "@studio/preview": "workspace:*",
     "@studio/providers": "workspace:*",
+    "@studio/reference-analyzer": "workspace:*",
     "@studio/skills": "workspace:*",
     "@studio/storage": "workspace:*",
     "@studio/story-engine": "workspace:*",

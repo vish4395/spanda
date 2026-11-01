@@ -13,7 +13,7 @@ describe('StudioStore', () => {
   it('migrates a fresh database and refuses databases from newer apps', async () => {
     const f = await file();
     const store = StudioStore.open(f);
-    expect(store.schemaVersion).toBe(1);
+    expect(store.schemaVersion).toBe(2);
     store.close();
     const raw = new DatabaseSync(f);
     raw.exec('PRAGMA user_version = 99');
@@ -61,6 +61,21 @@ describe('StudioStore', () => {
     const jobs = store.listJobs('p');
     expect(jobs.find((j) => j.id === done)).toMatchObject({ status: 'succeeded', log: ['step 1', 'step 2'] });
     expect(jobs.find((j) => j.id !== done)).toMatchObject({ status: 'failed', error: expect.stringContaining('Interrupted') });
+  });
+
+  it('upgrades a v1 database in place and stores settings', async () => {
+    const f = await file();
+    const raw = new DatabaseSync(f);
+    raw.exec("CREATE TABLE projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, goal TEXT NOT NULL, output_targets TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'draft', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, last_opened_at TEXT); PRAGMA user_version = 1;");
+    raw.exec("INSERT INTO projects (id, name, goal, created_at, updated_at) VALUES ('old', 'Old', 'g', 'x', 'x')");
+    raw.close();
+    const store = StudioStore.open(f);
+    expect(store.schemaVersion).toBe(2);
+    expect(store.hasProject('old')).toBe(true);
+    expect(store.getSetting('claudeStoryboard')).toBeNull();
+    store.setSetting('claudeStoryboard', 'true');
+    store.setSetting('claudeStoryboard', 'false');
+    expect(store.getSetting('claudeStoryboard')).toBe('false');
   });
 
   it('stores provider probe results without secrets', async () => {

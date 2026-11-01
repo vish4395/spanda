@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { mkdir, readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { InvalidSpecError, loadStorySpec, validateStorySpec, type ProjectSummary, type StorySpec, type ValidationResult, type OutputTarget } from '@studio/contracts';
+import { CreativeFile, InvalidSpecError, loadStorySpec, validateStorySpec, type ProjectSummary, type StorySpec, type ValidationResult, type OutputTarget } from '@studio/contracts';
 import { resolveInside, writeFileInside } from './safe-paths.ts';
 
 const PROJECT_ID = /^[a-z0-9][a-z0-9-]{0,63}$/;
@@ -113,6 +113,24 @@ export class ProjectWorkspace {
     const result = loadStorySpec(JSON.parse(text));
     if (!result.ok) throw new InvalidSpecError(result.issues);
     return result.spec;
+  }
+
+  /** Creative workflow state (answers, brief, storyboard, references); empty when absent. */
+  async readCreative(id: string): Promise<CreativeFile> {
+    try {
+      const raw = JSON.parse(await readFile(resolveInside(this.projectDir(id), 'creative.json'), 'utf8')) as unknown;
+      const parsed = CreativeFile.safeParse(raw);
+      if (parsed.success) return parsed.data;
+      throw new Error(`creative.json is invalid: ${parsed.error.issues[0]?.message ?? 'unknown'}`);
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { version: 1, answers: {}, brief: null, storyboard: null, references: [] };
+      throw err;
+    }
+  }
+
+  async writeCreative(id: string, data: CreativeFile): Promise<void> {
+    const parsed = CreativeFile.parse(data);
+    await writeFileInside(this.projectDir(id), 'creative.json', `${JSON.stringify(parsed, null, 2)}\n`);
   }
 
   /** Seed the workspace with the sample project on first run. */

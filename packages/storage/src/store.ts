@@ -57,6 +57,11 @@ const SCHEMA: readonly string[] = [
      detail TEXT,
      last_probe_at TEXT NOT NULL
    );`,
+  // v2: user settings (e.g. opt-in AI provider features)
+  `CREATE TABLE settings (
+     key TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+   );`,
 ];
 
 const MAX_EVENTS_PER_JOB = 2000;
@@ -164,6 +169,20 @@ export class StudioStore {
 
   touchProject(id: string): void {
     this.db.prepare('UPDATE projects SET last_opened_at = ? WHERE id = ?').run(now(), id);
+  }
+
+  setStage(id: string, stage: string): void {
+    this.db.prepare('UPDATE projects SET status = ?, updated_at = ? WHERE id = ?').run(stage, now(), id);
+  }
+
+  // Settings -----------------------------------------------------------------
+
+  getSetting(key: string): string | null {
+    return (this.db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined)?.value ?? null;
+  }
+
+  setSetting(key: string, value: string): void {
+    this.db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').run(key, value);
   }
 
   // Versions / snapshots -----------------------------------------------------

@@ -5,6 +5,7 @@ import { app, BrowserWindow, protocol, session, shell, type WebContents } from '
 import type { StorySpec } from '@studio/contracts';
 import { APP_ORIGIN, registerIpc } from './ipc.ts';
 import { captureReference } from './capture.ts';
+import { StudioMenus } from './menu.ts';
 import { StudioServices } from './services.ts';
 
 // Layout produced by scripts/build.ts:
@@ -138,11 +139,20 @@ app.whenReady().then(async () => {
   }, { capture: captureReference });
   const sample = JSON.parse(await readFile(path.join(resourcesDir, 'story-spec.example.json'), 'utf8')) as StorySpec;
   await services.init(sample);
-  registerIpc(services);
-  createWindow();
+  app.setAboutPanelOptions({
+    applicationName: 'AI Cinematic Studio',
+    applicationVersion: app.getVersion(),
+    copyright: 'Local-first cinematic website studio',
+    credits: 'Built with Electron, React, three.js and React Three Fiber. See bundled license notices.',
+  });
+  const menus = new StudioMenus(services, !app.isPackaged);
+  menus.install();
+  registerIpc(services, menus);
+  const win = createWindow();
+  menus.attach(win.webContents);
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
+    if (BrowserWindow.getAllWindows().length === 0) menus.attach(createWindow().webContents);
   });
 }).catch((err: unknown) => {
   console.error('Failed to start AI Cinematic Studio', err);

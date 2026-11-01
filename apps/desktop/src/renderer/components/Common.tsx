@@ -75,3 +75,8 @@ export function timeAgo(iso: string): string {
   if (abs < 86400) return relative.format(Math.round(seconds / 3600), 'hour');
   return relative.format(Math.round(seconds / 86400), 'day');
 }
+
+/** Keyboard access to context menus: Shift+F10 or the Menu key (not every platform maps these to `contextmenu`). */
+export function isContextMenuKey(event: KeyboardEvent): boolean {
+  return event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10');
+}

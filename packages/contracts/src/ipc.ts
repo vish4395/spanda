@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { IpcChannel } from './ipc-channels.ts';
 import { CreativeBrief, CreativeState, DiscoveryAnswer, StoryboardScene } from './creative.ts';
 
-export { IPC_CHANNELS, type IpcChannel, type IpcEnvelope } from './ipc-channels.ts';
+export { IPC_CHANNELS, MENU_COMMANDS, MENU_COMMAND_CHANNEL, type IpcChannel, type IpcEnvelope, type MenuCommand, type MenuCommandMessage } from './ipc-channels.ts';
 
 // Typed IPC allowlist shared by Electron main, preload and renderer.
 // The renderer never sends file paths or commands — only opaque IDs and enums.
@@ -114,6 +114,26 @@ export const StudioSettings = z.object({
 });
 export type StudioSettings = z.infer<typeof StudioSettings>;
 
+/** What the renderer is showing, so the native menu can enable/check the right items. */
+export const MenuState = z.strictObject({
+  view: z.enum(['project', 'new', 'skills', 'providers', 'empty']),
+  projectId: ProjectId.nullable(),
+  canGenerate: z.boolean(),
+  canSnapshot: z.boolean(),
+  running: z.boolean(),
+  tab: z.enum(['discover', 'brief', 'storyboard', 'build']).nullable(),
+  target: OutputTarget,
+  device: z.enum(['desktop', 'tablet', 'mobile']),
+  hasPreview: z.boolean(),
+});
+export type MenuState = z.infer<typeof MenuState>;
+
+export const ContextMenuRequest = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('project'), projectId: ProjectId }),
+  z.strictObject({ kind: z.literal('version'), projectId: ProjectId, versionId: VersionId, label: z.string().max(200), hash: z.string().regex(/^[0-9a-f]{64}$/), current: z.boolean() }),
+]);
+export type ContextMenuRequest = z.infer<typeof ContextMenuRequest>;
+
 const BriefInput = CreativeBrief.pick({ audience: true, tone: true, directionId: true, motion: true, chapters: true, notes: true }).strict();
 
 export const ipcContract = {
@@ -143,6 +163,8 @@ export const ipcContract = {
   'creative.approveStoryboard': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'references.analyze': { request: z.strictObject({ projectId: ProjectId, url: z.string().max(2048), inspiration: z.string().trim().max(300) }), response: CreativeState },
   'references.remove': { request: z.strictObject({ projectId: ProjectId, referenceId: z.string().uuid() }), response: CreativeState },
+  'ui.menuState': { request: MenuState, response: z.boolean() },
+  'ui.contextMenu': { request: ContextMenuRequest, response: z.boolean() },
 } as const satisfies Record<IpcChannel, { request: z.ZodType; response: z.ZodType }>;
 
 // Compile-time guard: the contract and the channel allowlist list exactly the same channels.
@@ -155,5 +177,7 @@ export type IpcResponse<C extends IpcChannel> = z.output<(typeof ipcContract)[C]
 /** Shape of `window.studio` exposed by the preload script. */
 export interface StudioApi {
   invoke<C extends IpcChannel>(channel: C, ...args: IpcRequest<C> extends void ? [] : [IpcRequest<C>]): Promise<IpcResponse<C>>;
+  /** Subscribe to menu-bar and context-menu commands; returns an unsubscribe function. */
+  onCommand(handler: (message: import('./ipc-channels.ts').MenuCommandMessage) => void): () => void;
   platform: string;
 }

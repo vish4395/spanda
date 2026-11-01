@@ -23,7 +23,7 @@ test('renderer is unprivileged and the bridge is minimal', async () => {
     frozen: Object.isFrozen((window as unknown as { studio: object }).studio),
     origin: location.origin,
   }));
-  expect(probe).toEqual({ require: 'undefined', process: 'undefined', studioKeys: ['invoke', 'platform'], frozen: true, origin: 'app://studio' });
+  expect(probe).toEqual({ require: 'undefined', process: 'undefined', studioKeys: ['invoke', 'onCommand', 'platform'], frozen: true, origin: 'app://studio' });
   // Unknown channels and malformed payloads are rejected.
   await expect(win.evaluate(() => (window as any).studio.invoke('fs.readFile', { path: '/etc/passwd' }))).rejects.toThrow(/Unknown channel/);
   await expect(win.evaluate(() => (window as any).studio.invoke('story.validate', { projectId: '../../etc' }))).rejects.toThrow(/Invalid request/);

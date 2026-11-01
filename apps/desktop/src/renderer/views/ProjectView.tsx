@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CreativeState } from '@studio/contracts';
-import type { JobSnapshot, OutputTarget, ProjectDetail, ProjectVersion } from '@studio/contracts/ipc';
+import type { JobSnapshot, MenuCommandMessage, MenuState, OutputTarget, ProjectDetail, ProjectVersion } from '@studio/contracts/ipc';
 import { call } from '../api';
-import { ErrorBanner, Segmented, StatusChip, timeAgo } from '../components/Common';
+import { ErrorBanner, Segmented, StatusChip, isContextMenuKey, timeAgo } from '../components/Common';
 import { ChevronIcon, PlayIcon, ShieldIcon, SpinnerIcon, StopIcon, TerminalIcon } from '../components/Icons';
 import { DEVICES, PreviewStage, type DeviceId } from '../components/PreviewStage';
 import { BriefTab } from './creative/BriefTab';
@@ -26,13 +26,18 @@ const TARGETS: { id: OutputTarget; label: string; stack: string }[] = [
 
 type Validation = { ok: boolean; issues: { path: string; message: string }[] } | null;
 
+export type ProjectMenuState = Omit<MenuState, 'view' | 'projectId'>;
+
 interface Props {
   projectId: string;
   onJobChange: (job: JobSnapshot | null) => void;
   onProjectsChanged: () => void;
+  onMenuState: (state: ProjectMenuState) => void;
+  command: MenuCommandMessage | null;
+  onCommandHandled: () => void;
 }
 
-export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props) {
+export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuState, command, onCommandHandled }: Props) {
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [validation, setValidation] = useState<Validation>(null);
   const [target, setTarget] = useState<OutputTarget>('html');
@@ -47,6 +52,7 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
   const [tab, setTab] = useState<TabId>('discover');
   const logRef = useRef<HTMLOListElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const [reloadKey, setReloadKey] = useState(0);
 
   const running = job?.status === 'running';
 
@@ -148,6 +154,37 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
       setBusyVersion(null);
     }
   };
+
+  // Report state to the native menu (enabled/checked items).
+  const previewForMenu = previews[target] ?? null;
+  useEffect(() => {
+    onMenuState({ canGenerate: Boolean(validation?.ok), canSnapshot: Boolean(validation?.ok), running, tab, target, device, hasPreview: tab === 'build' && previewForMenu !== null });
+  }, [validation?.ok, running, tab, target, device, previewForMenu, onMenuState]);
+
+  // Menu bar / context-menu commands, run with the same handlers as the on-screen controls.
+  useEffect(() => {
+    if (!command || !detail || validation === null) return;
+    onCommandHandled();
+    const c = command.command;
+    if (c.startsWith('tab.')) setTab(c.slice(4) as TabId);
+    else if (c === 'target.html' || c === 'target.react') {
+      setTab('build');
+      setTarget(c.slice(7) as OutputTarget);
+    } else if (c.startsWith('device.')) {
+      setTab('build');
+      setDevice(c.slice(7) as DeviceId);
+    } else if (c === 'preview.reload') setReloadKey((k) => k + 1);
+    else if (c === 'project.generate' && validation.ok && !running) {
+      setTab('build');
+      void generate();
+    } else if (c === 'project.cancel' && running) void cancel();
+    else if (c === 'project.snapshot' && validation.ok) void saveSnapshot();
+    else if (c === 'version.restore' && command.versionId) {
+      const version = detail.versions.find((v) => v.id === command.versionId);
+      if (version) void restore(version);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once per command
+  }, [command, detail, validation]);
 
   if (!detail) {
     return (
@@ -271,7 +308,7 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
               {previewUrl ? `Isolated preview · ${new URL(previewUrl).host} · ${targetInfo.stack}` : `Preview · ${targetInfo.stack}`}
             </span>
           </div>
-          <PreviewStage url={previewUrl} device={device} title={`${detail.project.name} — ${targetInfo.label} preview`} />
+          <PreviewStage key={`${previewUrl ?? 'none'}-${reloadKey}`} url={previewUrl} device={device} title={`${detail.project.name} — ${targetInfo.label} preview`} />
         </section>
 
         <section className={`activity ${logOpen ? 'activity--open' : ''}`} aria-label="Activity log">
@@ -307,7 +344,21 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged }: Props
         </p>
         <ol className="versions" aria-label="Version history, newest first">
           {detail.versions.map((version) => (
-            <li key={version.id} className="version">
+            <li
+              key={version.id}
+              className="version"
+              tabIndex={0}
+              aria-haspopup="menu"
+              onContextMenu={(event) => {
+                event.preventDefault();
+                void call('ui.contextMenu', { kind: 'version', projectId, versionId: version.id, label: version.label, hash: version.storySpecHash, current: version.id === latestId });
+              }}
+              onKeyDown={(event) => {
+                if (event.target !== event.currentTarget || !isContextMenuKey(event)) return;
+                event.preventDefault();
+                void call('ui.contextMenu', { kind: 'version', projectId, versionId: version.id, label: version.label, hash: version.storySpecHash, current: version.id === latestId });
+              }}
+            >
               <div className="version__text">
                 <span className="version__label">{version.label}</span>
                 <span className="muted small">

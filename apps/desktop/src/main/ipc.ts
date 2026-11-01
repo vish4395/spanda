@@ -1,6 +1,7 @@
-import { ipcMain } from 'electron';
+import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { IPC_CHANNELS, ipcContract, type IpcChannel, type IpcEnvelope } from '@studio/contracts';
 import { isTrustedSender } from './sender.ts';
+import type { StudioMenus } from './menu.ts';
 import type { StudioServices } from './services.ts';
 
 export { APP_ORIGIN } from './sender.ts';
@@ -11,8 +12,16 @@ function describe(err: unknown): string {
   return message.replace(/(?:[A-Za-z]:\\|\/)(?:[^\s'"]+[\\/])+/g, '…/');
 }
 
-export function registerIpc(services: StudioServices): void {
-  const handlers: { [C in IpcChannel]: (req: unknown) => unknown } = {
+export function registerIpc(services: StudioServices, menus: StudioMenus): void {
+  const handlers: { [C in IpcChannel]: (req: unknown, event: IpcMainInvokeEvent) => unknown } = {
+    'ui.menuState': (req) => {
+      menus.update(req as Parameters<StudioMenus['update']>[0]);
+      return true;
+    },
+    'ui.contextMenu': (req, event) => {
+      menus.popup(req as Parameters<StudioMenus['popup']>[0], event.sender);
+      return true;
+    },
     'projects.list': () => services.listProjects(),
     'projects.create': (req) => services.createProject(req as { name: string; goal: string }),
     'projects.open': (req) => services.openProject((req as { projectId: string }).projectId),
@@ -84,7 +93,7 @@ export function registerIpc(services: StudioServices): void {
       const request = contract.request.safeParse(payload);
       if (!request.success) return { ok: false, error: `Invalid request for ${channel}` };
       try {
-        const value = await handlers[channel](request.data);
+        const value = await handlers[channel](request.data, event);
         // Validate outgoing data too, so contract drift fails loudly in development.
         return { ok: true, value: contract.response.parse(value) };
       } catch (err) {

@@ -1,14 +1,18 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { JobSnapshot, ProjectSummary, ProviderStatus } from '@studio/contracts/ipc';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { JobSnapshot, MenuCommandMessage, MenuState, ProjectSummary, ProviderStatus } from '@studio/contracts/ipc';
 import { call } from './api';
-import { ErrorBanner, StatusChip, timeAgo } from './components/Common';
+import { ErrorBanner, StatusChip, isContextMenuKey, timeAgo } from './components/Common';
 import { FolderIcon, LogoMark, PlusIcon, PuzzleIcon, ServerIcon } from './components/Icons';
 import { NewProjectView } from './views/NewProjectView';
-import { ProjectView } from './views/ProjectView';
+import { ProjectView, type ProjectMenuState } from './views/ProjectView';
 import { ProvidersView } from './views/ProvidersView';
 import { SkillsView } from './views/SkillsView';
 
 type View = { kind: 'project'; projectId: string } | { kind: 'new' } | { kind: 'skills' } | { kind: 'providers' } | { kind: 'empty' };
+
+const PROJECT_DEFAULTS: ProjectMenuState = { canGenerate: false, canSnapshot: false, running: false, tab: null, target: 'html', device: 'desktop', hasPreview: false };
+/** Commands handled by the open project view (forwarded, or queued until that project opens). */
+const PROJECT_COMMANDS = new Set<MenuCommandMessage['command']>(['project.generate', 'project.cancel', 'project.snapshot', 'version.restore', 'tab.discover', 'tab.brief', 'tab.storyboard', 'tab.build', 'target.html', 'target.react', 'device.desktop', 'device.tablet', 'device.mobile', 'preview.reload']);
 
 export function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
@@ -17,6 +21,10 @@ export function App() {
   const [providers, setProviders] = useState<ProviderStatus[] | null>(null);
   const [checkingProviders, setCheckingProviders] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [projectMenu, setProjectMenu] = useState<ProjectMenuState>(PROJECT_DEFAULTS);
+  const [command, setCommand] = useState<MenuCommandMessage | null>(null);
+  const viewRef = useRef<View>(view);
+  viewRef.current = view;
 
   const reloadProjects = useCallback(async () => {
     const list = await call('projects.list');
@@ -47,6 +55,45 @@ export function App() {
   const onProjectsChanged = useCallback(() => {
     void reloadProjects();
   }, [reloadProjects]);
+
+  // Menu bar and context-menu commands from the main process.
+  useEffect(
+    () =>
+      window.studio.onCommand((message) => {
+        const current = viewRef.current;
+        switch (message.command) {
+          case 'project.new':
+            setView({ kind: 'new' });
+            return;
+          case 'project.open':
+            if (message.projectId) setView({ kind: 'project', projectId: message.projectId });
+            return;
+          case 'view.providers':
+            setView({ kind: 'providers' });
+            return;
+          case 'view.skills':
+            setView({ kind: 'skills' });
+            return;
+          default:
+            if (!PROJECT_COMMANDS.has(message.command)) return;
+            // A command for another project opens it first; the project view runs it once loaded.
+            if (message.projectId && (current.kind !== 'project' || current.projectId !== message.projectId)) setView({ kind: 'project', projectId: message.projectId });
+            else if (current.kind !== 'project') return;
+            setCommand({ ...message });
+        }
+      }),
+    [],
+  );
+
+  // Keep the native menu's enabled/checked states in sync with what is on screen.
+  useEffect(() => {
+    const state: MenuState = {
+      view: view.kind,
+      projectId: view.kind === 'project' ? view.projectId : null,
+      ...(view.kind === 'project' ? projectMenu : PROJECT_DEFAULTS),
+    };
+    void call('ui.menuState', state).catch(() => undefined);
+  }, [view, projectMenu]);
 
   const selectedId = view.kind === 'project' ? view.projectId : null;
   const selected = projects.find((p) => p.id === selectedId) ?? null;
@@ -98,7 +145,22 @@ export function App() {
           <ul className="project-list">
             {projects.map((project) => (
               <li key={project.id}>
-                <button type="button" className="project-item" aria-current={project.id === selectedId ? 'true' : undefined} onClick={() => setView({ kind: 'project', projectId: project.id })}>
+                <button
+                  type="button"
+                  className="project-item"
+                  aria-current={project.id === selectedId ? 'true' : undefined}
+                  aria-haspopup="menu"
+                  onClick={() => setView({ kind: 'project', projectId: project.id })}
+                  onContextMenu={(event) => {
+                    event.preventDefault();
+                    void call('ui.contextMenu', { kind: 'project', projectId: project.id });
+                  }}
+                  onKeyDown={(event) => {
+                    if (!isContextMenuKey(event)) return;
+                    event.preventDefault();
+                    void call('ui.contextMenu', { kind: 'project', projectId: project.id });
+                  }}
+                >
                   <FolderIcon />
                   <span className="project-item__text">
                     <span className="project-item__name">{project.name}</span>
@@ -127,7 +189,17 @@ export function App() {
 
       <main id="workspace" className="workspace" tabIndex={-1}>
         {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
-        {view.kind === 'project' && <ProjectView key={view.projectId} projectId={view.projectId} onJobChange={setJob} onProjectsChanged={onProjectsChanged} />}
+        {view.kind === 'project' && (
+          <ProjectView
+            key={view.projectId}
+            projectId={view.projectId}
+            onJobChange={setJob}
+            onProjectsChanged={onProjectsChanged}
+            onMenuState={setProjectMenu}
+            command={command && (!command.projectId || command.projectId === view.projectId) ? command : null}
+            onCommandHandled={() => setCommand(null)}
+          />
+        )}
         {view.kind === 'new' && (
           <NewProjectView
             onCreated={(project) => {

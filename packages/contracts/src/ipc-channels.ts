@@ -23,9 +23,43 @@ export const IPC_CHANNELS = [
   'creative.approveStoryboard',
   'references.analyze',
   'references.remove',
+  'ui.menuState',
+  'ui.contextMenu',
 ] as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[number];
 
 /** IPC responses carry errors as data so the renderer can show them honestly. */
 export type IpcEnvelope<T> = { ok: true; value: T } | { ok: false; error: string };
+
+/** Commands the main process may send to the renderer (menu bar, context menus). */
+export const MENU_COMMANDS = [
+  'project.new',
+  'project.open',
+  'project.snapshot',
+  'project.generate',
+  'project.cancel',
+  'version.restore',
+  'tab.discover',
+  'tab.brief',
+  'tab.storyboard',
+  'tab.build',
+  'target.html',
+  'target.react',
+  'device.desktop',
+  'device.tablet',
+  'device.mobile',
+  'preview.reload',
+  'view.providers',
+  'view.skills',
+] as const;
+
+export type MenuCommand = (typeof MENU_COMMANDS)[number];
+
+export interface MenuCommandMessage {
+  command: MenuCommand;
+  projectId?: string;
+  versionId?: string;
+}
+
+export const MENU_COMMAND_CHANNEL = 'menu:command';

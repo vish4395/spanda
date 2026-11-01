@@ -1,0 +1,53 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  m0:
+    name: M0 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # ChromeOS runs the Linux build inside its Linux environment (Crostini); ubuntu covers it.
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm (pinned via packageManager)
+        run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm licenses:check
+      - name: Install Playwright browsers
+        run: pnpm --filter @studio/qa exec playwright install --with-deps chromium firefox webkit
+      - name: Browser suite (Chromium, Firefox, WebKit)
+        run: pnpm test:browsers
+      - name: Download Electron binary
+        run: pnpm --filter @studio/desktop exec install-electron
+      - name: Allow Chromium sandbox user namespaces (Ubuntu 24.04 AppArmor)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Desktop E2E (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum pnpm test:desktop
+      - name: Desktop E2E
+        if: runner.os != 'Linux'
+        run: pnpm test:desktop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: artifacts-${{ matrix.os }}
+          path: |
+            artifacts/screenshots
+            artifacts/playwright-report
+            licenses/inventory.json
+          if-no-files-found: ignore

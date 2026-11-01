@@ -1,0 +1,37 @@
+{
+  "name": "@studio/desktop",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "description": "AI Cinematic Studio desktop shell",
+  "type": "module",
+  "main": "dist/main.mjs",
+  "scripts": {
+    "build": "node scripts/build.ts",
+    "dev": "node scripts/build.ts && electron .",
+    "start": "electron .",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && tsc -p e2e/tsconfig.json",
+    "test:e2e": "node scripts/build.ts && playwright test"
+  },
+  "dependencies": {
+    "@studio/contracts": "workspace:*",
+    "@studio/core": "workspace:*",
+    "@studio/generator-html": "workspace:*",
+    "@studio/generator-react": "workspace:*",
+    "@studio/licensing": "workspace:*",
+    "@studio/preview": "workspace:*",
+    "@studio/providers": "workspace:*",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "electron": "44.9.0",
+    "esbuild": "0.28.2",
+    "vite": "7.3.7"
+  }
+}

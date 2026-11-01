@@ -14,9 +14,31 @@ interface JobRecord {
 
 const MAX_LOG_LINES = 2000;
 
-/** In-memory job registry with cancellation (persisted job events come in M1). */
+/** Optional persistence hooks (the desktop app writes these to SQLite). */
+export interface JobListener {
+  started(job: JobSnapshot): void;
+  logged(jobId: string, line: string): void;
+  finished(job: JobSnapshot): void;
+}
+
+/** Job registry with cancellation; a listener can persist lifecycle events. */
 export class JobManager {
   private readonly jobs = new Map<string, JobRecord>();
+  private readonly listener: JobListener | undefined;
+
+  constructor(listener?: JobListener) {
+    this.listener = listener;
+  }
+
+  private notify(fn: (l: JobListener) => void): void {
+    if (!this.listener) return;
+    try {
+      fn(this.listener);
+    } catch (err) {
+      // Persistence problems must not break the job itself.
+      console.error('Job listener failed', err);
+    }
+  }
 
   start(projectId: string, targets: OutputTarget[], work: (ctx: JobContext) => Promise<void>): JobSnapshot {
     const controller = new AbortController();
@@ -30,9 +52,12 @@ export class JobManager {
       error: null,
     };
     const log = (line: string) => {
+      this.notify((l) => l.logged(snapshot.id, line));
       snapshot.log.push(line);
       if (snapshot.log.length > MAX_LOG_LINES) snapshot.log.splice(0, snapshot.log.length - MAX_LOG_LINES);
     };
+    // Announce before any work runs so persisted log lines always follow the job row.
+    this.notify((l) => l.started(structuredClone(snapshot)));
     const done = (async () => {
       try {
         await work({ signal: controller.signal, log });
@@ -41,6 +66,7 @@ export class JobManager {
         snapshot.status = controller.signal.aborted ? 'cancelled' : 'failed';
         snapshot.error = controller.signal.aborted ? null : (err as Error).message;
       }
+      this.notify((l) => l.finished(structuredClone(snapshot)));
     })();
     this.jobs.set(snapshot.id, { snapshot, controller, done });
     return this.get(snapshot.id);

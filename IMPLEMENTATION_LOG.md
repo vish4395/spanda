@@ -1,5 +1,23 @@
 # Implementation log
 
+## 2026-11-01 — M1 product foundation (T006–T010)
+
+Started at the user's explicit request while M0's Firefox/Windows/Linux verification is still pending CI.
+
+| Ticket | Result |
+|---|---|
+| T006 Project storage | `@studio/storage` on Node's bundled `node:sqlite` (no native modules → same code on macOS/Windows/Linux/ChromeOS), versioned schema with refusal of newer databases; create project from name + idea (`@studio/story-engine` starter spec, safe unique IDs), recent ordering, immutable hash-verified snapshots, restore that first snapshots the current spec |
+| T007 Provider registry/settings | Probe results persisted; Providers screen shows install state/version and states plainly that AI generation is off pending terms review |
+| T008 Skill registry | `@studio/skills`: strict frontmatter subset parser, per-file SHA-256 content hash, `skills/skills.lock.json` pinning, modified skills auto-disabled, scripts disabled until approved, symlinks/oversize rejected, metadata-first selection (≤4 skills); Skills screen |
+| T009 Shell, job/log panel | Navigation (projects, new project, settings), versions inspector, jobs and log lines persisted with interrupted-job recovery after crashes |
+| T010 StorySpec migrations | Migration registry with cycle/version checks; all disk reads go migrate → validate |
+
+Verification: typecheck pass · 101/101 unit tests · license gate passed (102/159/1) · browser suite 30/30 (Chromium, WebKit) · desktop E2E 7/7 including create → generate → restart → persisted log and preview.
+
+Fixes found during M1: job "started" event now precedes any log line (FK ordering); the single-instance lock no longer blocks a development workspace (`STUDIO_WORKSPACE`) from running beside the user's studio.
+
+Notes: the four studio skills were pinned as "repository blueprint (studio-original, markdown only)" — a maintainer should re-pin under their own name after reading them. StorySpec editing UI arrives with M3 (scoped edits), so restore is exercised through unit tests rather than UI edits.
+
 ## 2026-11-01 — M0 technical spike (T001–T005)
 
 ### Scope delivered

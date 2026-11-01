@@ -1,6 +1,6 @@
 # AI Cinematic Studio
 
-> **Implementation status:** Milestone **M0 (technical spike)** is implemented. See `IMPLEMENTATION_LOG.md` for results, evidence and known gaps. Later milestones are not started.
+> **Implementation status:** **M0** (technical spike) and **M1** (product foundation) are implemented; M0's Firefox/Windows/Linux verification is pending its first CI run. See `IMPLEMENTATION_LOG.md` for evidence and gaps.
 
 ## Quick start (M0)
 

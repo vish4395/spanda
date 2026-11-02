@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spanda Brand Board</title>
+<!-- Offline, self-contained: no external fonts, scripts or images. Source of truth: docs/brand-guidelines.md -->
+<style>
+/* Layout: one dark projection-room column; sections stack like scenes, the mark is the only thing that moves. */
+:root {
+  --night: #0E0E11;
+  --panel: #16161B;
+  --raised: #1E1E25;
+  --divider: #2A2A33;
+  --border: #71717A;
+  --moon: #ECECF1;
+  --ash: #A1A1AA;
+  --indigo: #7C3AED;
+  --lilac: #A78BFA;
+  --diya: #E8A25A;
+  --success: #4ADE80;
+  --danger: #F87171;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Ubuntu Mono", "Noto Sans Mono", monospace;
+  --deva: "Kohinoor Devanagari", "Noto Sans Devanagari", "Mangal", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--moon); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 0 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { text-wrap: balance; margin: 0; line-height: 1.15; }
+h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+h3 { font-size: 16px; font-weight: 600; }
+p { margin: 0; }
+.muted { color: var(--ash); }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lilac); }
+.mono { font-family: var(--mono); font-size: 13px; }
+section { display: grid; gap: 24px; padding-block: 64px 0; }
+.section-head { display: grid; gap: 8px; max-width: 65ch; border-top: 1px solid var(--divider); padding-top: 28px; }
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.box { background: var(--panel); border: 1px solid var(--divider); border-radius: 10px; padding: 20px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+
+/* Hero */
+.hero { display: grid; gap: 28px; justify-items: start; padding-block: 72px 24px; position: relative; }
+.hero::before { content: ""; position: absolute; inset: 0 auto auto -10%; width: 520px; max-width: 100%; height: 420px; background: radial-gradient(closest-side, rgb(124 58 237 / 0.22), transparent); pointer-events: none; }
+.lockup { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; position: relative; }
+.lockup .mark { width: 112px; height: 112px; }
+.wordmark { font-family: var(--sans); font-weight: 500; letter-spacing: 0.02em; font-size: clamp(56px, 11vw, 104px); line-height: 1; }
+.tagline { font-size: clamp(22px, 3.4vw, 32px); font-weight: 400; color: var(--moon); position: relative; }
+.hero-meta { display: flex; flex-wrap: wrap; gap: 10px 28px; color: var(--ash); position: relative; }
+.deva { font-family: var(--deva); }
+.status { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--ash); position: relative; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--diya); display: inline-block; }
+
+/* Mark */
+.mark .ring, .mark .arc { fill: none; stroke: currentColor; }
+.mark .bindu { fill: currentColor; }
+.mark .pulse { fill: none; stroke: currentColor; stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.mark { color: var(--lilac); overflow: visible; }
+.animate .pulse { animation: pulse 700ms ease-out 300ms 1; }
+.lockup:hover .pulse { animation: pulse 700ms ease-out 1; }
+@keyframes pulse { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(5); } }
+@media (prefers-reduced-motion: reduce) { .animate .pulse, .lockup:hover .pulse { animation: none; } }
+
+/* Story */
+.story { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.big-quote { font-size: clamp(22px, 3vw, 28px); line-height: 1.35; max-width: 30ch; }
+.big-quote em { font-style: normal; color: var(--lilac); }
+.defn { display: grid; gap: 6px; }
+.defn dt { font-size: 13px; color: var(--ash); }
+.defn dd { margin: 0 0 12px; }
+
+/* Pillars */
+.positioning { font-size: 17px; max-width: 70ch; color: var(--moon); }
+.positioning b { color: var(--lilac); font-weight: 600; }
+.pillar { padding: 24px; gap: 14px; }
+.pillar .word { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+.pillar .promise { font-size: 16px; }
+.pillar ul { margin: 0; padding: 14px 0 0; list-style: none; display: grid; gap: 8px; border-top: 1px solid var(--divider); font-size: 14px; color: var(--ash); }
+.pillar li { display: grid; grid-template-columns: 16px 1fr; gap: 8px; }
+.pillar li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--lilac); margin-top: 8px; }
+
+/* Logo variants */
+.tile { border-radius: 10px; min-height: 160px; display: grid; place-items: center; padding: 20px; border: 1px solid var(--divider); }
+.tile.light { background: var(--moon); color: var(--night); }
+.tile.light .mark { color: var(--night); }
+.tile.dark { background: var(--night); }
+.tile.panel { background: var(--panel); }
+.mini-lockup { display: flex; align-items: center; gap: 10px; font-size: 30px; font-weight: 500; letter-spacing: 0.02em; }
+.mini-lockup .mark { width: 40px; height: 40px; }
+.cap { display: grid; gap: 2px; }
+.cap b { font-weight: 600; font-size: 14px; }
+.cap span { font-size: 13px; color: var(--ash); }
+.app-icon { width: 104px; height: 104px; border-radius: 24px; background: radial-gradient(circle at 50% 50%, rgb(124 58 237 / 0.45), transparent 62%), var(--night); border: 1px solid var(--divider); display: grid; place-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / 0.45); }
+.app-icon .mark { width: 64px; height: 64px; }
+.sizes { display: flex; align-items: end; gap: 22px; flex-wrap: wrap; }
+.sizes figure { margin: 0; display: grid; gap: 6px; justify-items: center; font-size: 12px; color: var(--ash); font-family: var(--mono); }
+.dont .tile { position: relative; }
+.dont .x { position: absolute; top: 10px; left: 10px; display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--danger); }
+.glow .mark { filter: drop-shadow(0 0 10px var(--lilac)) drop-shadow(0 0 22px var(--indigo)); }
+.tilt .mark { transform: rotate(35deg) scaleX(1.3); }
+.on-diya { background: var(--diya) !important; }
+.on-diya .mark { color: var(--lilac); }
+
+/* Color */
+.swatches { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
+.swatch { border: 1px solid var(--divider); border-radius: 10px; overflow: hidden; background: var(--panel); display: grid; text-align: left; color: var(--moon); font: inherit; padding: 0; cursor: pointer; }
+.swatch:focus-visible, button:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; }
+.swatch .chip { height: 88px; border-bottom: 1px solid var(--divider); }
+.swatch .info { padding: 12px; display: grid; gap: 2px; }
+.swatch .info b { font-weight: 600; font-size: 14px; }
+.swatch .info .mono { color: var(--ash); font-size: 12px; }
+.swatch .info small { color: var(--ash); font-size: 12px; }
+.swatch.copied .mono { color: var(--success); }
+.note { border-left: 2px solid var(--diya); padding: 4px 0 4px 14px; color: var(--ash); max-width: 70ch; }
+
+/* Type */
+.type-row { display: grid; grid-template-columns: 72px 1fr; gap: 16px; align-items: baseline; padding: 10px 0; border-bottom: 1px solid var(--divider); }
+.type-row:last-child { border-bottom: 0; }
+.type-row .mono { color: var(--ash); font-size: 12px; }
+.type-row p { min-width: 0; overflow-wrap: anywhere; }
+
+/* Voice */
+.vs { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--divider); border-radius: 10px; overflow: hidden; }
+.vs div { padding: 10px 16px; border-bottom: 1px solid var(--divider); }
+.vs div:nth-last-child(-n+2) { border-bottom: 0; }
+.vs .h { background: var(--raised); font-size: 12px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ash); }
+.vs .no { color: var(--ash); text-decoration: line-through; text-decoration-color: rgb(248 113 113 / 0.6); }
+.say { display: grid; gap: 12px; }
+.say .row { display: grid; grid-template-columns: 130px 1fr; gap: 16px; padding: 14px 16px; background: var(--panel); border: 1px solid var(--divider); border-radius: 10px; }
+.say .row span { font-size: 13px; color: var(--ash); }
+.say .row q { quotes: "\201C" "\201D"; }
+.banned { display: flex; flex-wrap: wrap; gap: 8px; }
+.banned span { border: 1px solid rgb(248 113 113 / 0.5); color: var(--danger); border-radius: 999px; padding: 3px 12px; font-size: 13px; }
+
+/* Heritage */
+.table-wrap { overflow-x: auto; border: 1px solid var(--divider); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 560px; }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+th { background: var(--raised); font-size: 12px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ash); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.not { color: var(--ash); }
+.codenames { display: flex; flex-wrap: wrap; gap: 8px; }
+.codenames span { background: var(--raised); border: 1px solid var(--divider); border-radius: 6px; padding: 4px 10px; font-size: 13px; }
+.codenames span b { font-weight: 600; }
+
+/* Product preview */
+.app { border: 1px solid var(--divider); border-radius: 14px; overflow: hidden; background: var(--night); }
+.app-bar { height: 48px; display: flex; align-items: center; gap: 12px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--divider); flex-wrap: nowrap; overflow: hidden; }
+.app-bar .mark { width: 22px; height: 22px; flex: none; }
+.app-bar .name { font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; }
+.app-bar .proj { color: var(--ash); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.app-bar .sp { flex: 1; }
+.chip-pro { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--lilac); color: var(--lilac); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.chip-ok { display: inline-flex; align-items: center; gap: 5px; color: var(--success); font-size: 12px; white-space: nowrap; }
+.app-body { display: grid; grid-template-columns: 180px 1fr; min-height: 220px; }
+.app-nav { border-right: 1px solid var(--divider); padding: 14px; display: grid; gap: 4px; align-content: start; font-size: 13px; color: var(--ash); }
+.app-nav div { padding: 6px 8px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.app-nav .on { background: var(--raised); color: var(--moon); }
+.app-main { padding: 18px; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.frame { border: 1px solid var(--divider); border-radius: 14px; height: 140px; background:
+  radial-gradient(circle at 70% 60%, rgb(232 162 90 / 0.25), transparent 30%),
+  radial-gradient(circle at 30% 40%, rgb(124 58 237 / 0.35), transparent 45%), var(--raised); position: relative; }
+.frame span { position: absolute; left: 12px; bottom: 10px; font-family: var(--mono); font-size: 11px; color: var(--ash); }
+.btn { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--raised); color: var(--moon); }
+.btn.primary { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* Editions */
+.editions { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.edition { padding: 24px; border-radius: 14px; border: 1px solid var(--divider); background: var(--panel); display: grid; gap: 12px; align-content: start; }
+.edition.pro { border-color: rgb(167 139 250 / 0.5); }
+.edition h3 { font-size: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.edition ul, .promises { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.promises { padding: 0; list-style: none; counter-reset: p; gap: 12px; }
+.promises li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
+.promises li::before { counter-increment: p; content: counter(p); width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--lilac); color: var(--lilac); display: grid; place-items: center; font-size: 13px; font-family: var(--mono); }
+.promises b { font-weight: 600; }
+
+.footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--divider); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; color: var(--ash); font-size: 13px; }
+
+@media (max-width: 640px) {
+  .say .row { grid-template-columns: 1fr; gap: 4px; }
+  .app-body { grid-template-columns: 1fr; }
+  .app-nav { border-right: 0; border-bottom: 1px solid var(--divider); grid-auto-flow: column; overflow-x: auto; }
+  .app-bar .proj { display: none; }
+  .type-row { grid-template-columns: 1fr; gap: 2px; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="spanda-mark" viewBox="0 0 64 64">
+      <circle class="pulse" cx="32" cy="32" r="6"/>
+      <circle class="bindu" cx="32" cy="32" r="6"/>
+      <circle class="ring" cx="32" cy="32" r="14" stroke-width="3.5"/>
+      <circle class="ring" cx="32" cy="32" r="21" stroke-width="2.25"/>
+      <path class="arc" d="M 59.575 27.138 A 28 28 0 1 1 49.998 10.552" stroke-width="1.5" stroke-linecap="round"/>
+    </symbol>
+    <symbol id="spanda-mark-small" viewBox="0 0 16 16">
+      <circle cx="8" cy="8" r="2.4" fill="currentColor"/>
+      <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="status"><i></i>Brand v0.3 · name chosen, trademark search pending</span>
+    <div class="lockup animate">
+      <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Spanda mark">
+        <circle class="pulse" cx="32" cy="32" r="6"/>
+        <circle class="bindu" cx="32" cy="32" r="6"/>
+        <circle class="ring" cx="32" cy="32" r="14" stroke-width="3.5"/>
+        <circle class="ring" cx="32" cy="32" r="21" stroke-width="2.25"/>
+        <path class="arc" d="M 59.575 27.138 A 28 28 0 1 1 49.998 10.552" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+      <h1 class="wordmark">spanda</h1>
+    </div>
+    <p class="tagline">Stillness, set in motion.</p>
+    <div class="hero-meta">
+      <span>Spanda Studio · open-source desktop studio for cinematic scroll-story websites</span>
+      <span><span class="deva" lang="sa">स्पन्द</span> · Designed and built in India</span>
+    </div>
+  </header>
+
+  <section aria-labelledby="s-name">
+    <div class="section-head">
+      <span class="label">The name</span>
+      <h2 id="s-name">A global name with an Indian soul</h2>
+    </div>
+    <div class="story">
+      <p class="big-quote"><em>Spanda</em> is Sanskrit for the subtle pulse that sets stillness in motion. A Spanda website is still until the viewer scrolls, and then it comes alive, scene by scene.</p>
+      <dl class="defn box">
+        <dt>Say it</dt><dd>SPAN-duh, or the Sanskrit SPUN-duh. Both are fine.</dd>
+        <dt>Audience</dt><dd>Western-first and global. Every label, doc and headline is plain English.</dd>
+        <dt>Heritage</dt><dd>Found in the meaning, the mark and the details, never forced on the user.</dd>
+        <dt>Family</dt><dd class="mono">Spanda Studio · Spanda Pro · spanda (CLI) · @spanda/*</dd>
+      </dl>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-pillars">
+    <div class="section-head">
+      <span class="label">Positioning and pillars</span>
+      <h2 id="s-pillars">What Spanda stands for</h2>
+    </div>
+    <p class="positioning">For designers, developers, agencies and creators who want cinematic, scroll-driven 3D websites without generic templates, <b>Spanda</b> is a local-first desktop studio that directs an idea and references into an original story, then builds, tests and exports real HTML or React code you own. There's no lock-in, no backend required, and every export ships with its test results and license report.</p>
+    <div class="grid">
+      <div class="box pillar">
+        <span class="label">Pillar</span>
+        <span class="word">Direction</span>
+        <p class="promise">It asks like a director, not a form.</p>
+        <ul>
+          <li>One visual question at a time, always skippable</li>
+          <li>Two to four original visual directions to choose from</li>
+          <li>You approve the brief and storyboard before anything is built</li>
+        </ul>
+      </div>
+      <div class="box pillar">
+        <span class="label">Pillar</span>
+        <span class="word">Craft</span>
+        <p class="promise">Cinematic and correct.</p>
+        <ul>
+          <li>Screenshots in Chromium, Firefox and WebKit on desktop, tablet and phone</li>
+          <li>Accessibility and performance checks on every build</li>
+          <li>Reduced-motion and no-WebGL fallbacks built in</li>
+        </ul>
+      </div>
+      <div class="box pillar">
+        <span class="label">Pillar</span>
+        <span class="word">Ownership</span>
+        <p class="promise">Your story, your code, your machine.</p>
+        <ul>
+          <li>Runs locally; your projects never need a cloud account</li>
+          <li>Exports plain HTML or React source with no lock-in</li>
+          <li>License and asset provenance report with every export</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-logo">
+    <div class="section-head">
+      <span class="label">Logo</span>
+      <h2 id="s-logo">Bindu and pulse</h2>
+      <p class="muted">A single point (<i>bindu</i>, where everything begins) with rings travelling outward. The outer ring stays open at 2 o'clock because the pulse is still moving. Ring weights thin out toward the edge so the mark never reads as a target or a Wi-Fi icon. Hover the logo at the top to see its one motion.</p>
+    </div>
+    <div class="grid">
+      <div class="box">
+        <div class="tile dark"><div class="mini-lockup"><svg class="mark"><use href="#spanda-mark"/></svg>spanda</div></div>
+        <div class="cap"><b>Primary lockup</b><span>Website header, README, splash</span></div>
+      </div>
+      <div class="box">
+        <div class="tile light"><div class="mini-lockup"><svg class="mark"><use href="#spanda-mark"/></svg>spanda</div></div>
+        <div class="cap"><b>Mono on Moonlight</b><span>Print, single-color contexts</span></div>
+      </div>
+      <div class="box">
+        <div class="tile panel"><div class="mini-lockup deva" lang="sa"><svg class="mark"><use href="#spanda-mark"/></svg>स्पन्द</div></div>
+        <div class="cap"><b>Devanagari lockup</b><span>About page, India launches, merch only</span></div>
+      </div>
+      <div class="box">
+        <div class="tile dark"><div class="app-icon"><svg class="mark"><use href="#spanda-mark"/></svg></div></div>
+        <div class="cap"><b>App icon</b><span>The faint indigo glow is the only gradient in the identity</span></div>
+      </div>
+    </div>
+    <div class="box">
+      <h3>Sizes</h3>
+      <div class="sizes">
+        <figure><svg class="mark" style="width:96px;height:96px"><use href="#spanda-mark"/></svg>96</figure>
+        <figure><svg class="mark" style="width:48px;height:48px"><use href="#spanda-mark"/></svg>48</figure>
+        <figure><svg class="mark" style="width:32px;height:32px"><use href="#spanda-mark"/></svg>32</figure>
+        <figure><svg class="mark" style="width:16px;height:16px;color:var(--lilac)"><use href="#spanda-mark-small"/></svg>16 · simplified</figure>
+      </div>
+      <p class="muted">Clear space on every side: one outer-ring diameter. Minimum lockup width 96px.</p>
+    </div>
+    <div class="grid dont">
+      <div class="box">
+        <div class="tile dark glow"><span class="x">✕ Don't</span><svg class="mark" style="width:72px;height:72px"><use href="#spanda-mark"/></svg></div>
+        <div class="cap"><b>No glows or neon</b><span>Quiet light, not a nightclub</span></div>
+      </div>
+      <div class="box">
+        <div class="tile dark tilt"><span class="x">✕ Don't</span><svg class="mark" style="width:72px;height:72px"><use href="#spanda-mark"/></svg></div>
+        <div class="cap"><b>No rotating or stretching</b><span>The opening always sits at 2 o'clock</span></div>
+      </div>
+      <div class="box">
+        <div class="tile on-diya"><span class="x" style="color:var(--night)">✕ Don't</span><svg class="mark" style="width:72px;height:72px"><use href="#spanda-mark"/></svg></div>
+        <div class="cap"><b>Not on Diya or busy images</b><span>Use a Night scrim behind it</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-color">
+    <div class="section-head">
+      <span class="label">Color</span>
+      <h2 id="s-color">Night, indigo and one lamp</h2>
+      <p class="muted">Taken directly from the studio design system, so the brand and the app read as one. Click a swatch to copy its hex.</p>
+    </div>
+    <div class="swatches" id="swatches"></div>
+    <p class="note"><b style="color:var(--diya)">Diya</b> is the warm glow of an oil lamp. Marketing only, at most one highlight per composition. It never appears in the studio UI, where it would look like the warning state.</p>
+  </section>
+
+  <section aria-labelledby="s-type">
+    <div class="section-head">
+      <span class="label">Typography</span>
+      <h2 id="s-type">System fonts, drawn wordmark</h2>
+      <p class="muted">The studio works offline and ships no font licenses, so text uses each platform's own system font. The wordmark will be drawn as outlined SVG; the version on this page is set in the system font as a placeholder.</p>
+    </div>
+    <div class="box">
+      <div class="type-row"><span class="mono">72 / 600</span><p style="font-size:clamp(40px,7vw,72px);font-weight:600;line-height:1.05;letter-spacing:-0.02em">Every scroll, a scene.</p></div>
+      <div class="type-row"><span class="mono">44 / 600</span><p style="font-size:clamp(30px,5vw,44px);font-weight:600;line-height:1.1">Exported as code you own.</p></div>
+      <div class="type-row"><span class="mono">28 / 600</span><p style="font-size:28px;font-weight:600">Storyboard approved</p></div>
+      <div class="type-row"><span class="mono">16 / 400</span><p style="font-size:16px">Tell me the story in one line. We'll find the look together.</p></div>
+      <div class="type-row"><span class="mono">13 mono</span><p class="mono">pnpm generate:sample → artifacts/sample/html</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-voice">
+    <div class="section-head">
+      <span class="label">Voice</span>
+      <h2 id="s-voice">The calm director</h2>
+      <p class="muted">Knows the craft, explains its choices and hands you the final cut. Quietly proud of where it comes from, never in costume.</p>
+    </div>
+    <div class="story">
+      <div class="vs" role="table" aria-label="We are, we are not">
+        <div class="h" role="columnheader">We are</div><div class="h" role="columnheader">We are not</div>
+        <div>Assured</div><div class="no">Boastful</div>
+        <div>Precise</div><div class="no">Jargon-heavy</div>
+        <div>Warm</div><div class="no">Cute</div>
+        <div>Honest about limits</div><div class="no">Vague or apologetic</div>
+        <div>Proud of our origin</div><div class="no">Exotic or mystical</div>
+      </div>
+      <div class="say">
+        <div class="row"><span>Onboarding</span><q>Tell me the story in one line. We'll find the look together.</q></div>
+        <div class="row"><span>Visual question</span><q>Should the camera feel handheld or on rails?</q></div>
+        <div class="row"><span>Progress</span><q>Rendering scene 3 of 5 in Firefox, tablet.</q></div>
+        <div class="row"><span>Failure</span><q>Claude Code CLI isn't signed in. Open a terminal and run claude to sign in, then retry.</q></div>
+      </div>
+    </div>
+    <div class="box">
+      <h3>Never say</h3>
+      <div class="banned">
+        <span>magic</span><span>one-click</span><span>revolutionary</span><span>ancient wisdom</span><span>mystical</span><span>clone any site</span><span>100% commercially safe</span><span>powered by Claude</span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-heritage">
+    <div class="section-head">
+      <span class="label">Heritage layer</span>
+      <h2 id="s-heritage">Where India shows, and where it doesn't</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Place</th><th>Treatment</th></tr></thead>
+        <tbody>
+          <tr><td>Name</td><td>One line of meaning on About, splash and press kit</td></tr>
+          <tr><td>Logo</td><td>Bindu and pulse, documented but never explained in the UI</td></tr>
+          <tr><td>Origin line</td><td>"Designed and built in India" in the footer, installer and credits</td></tr>
+          <tr><td>AI director</td><td><b>Sutradhar</b>, "holder of the threads", in the credits and internally. The UI says "Director".</td></tr>
+          <tr><td>Release codenames</td><td><div class="codenames"><span><b>Yavanika</b> · curtain</span><span><b>Ranga</b> · stage</span><span><b>Natya</b> · drama</span><span><b>Chhaya</b> · shadow</span><span><b>Darpana</b> · mirror</span></div></td></tr>
+          <tr><td>Not here</td><td class="not">UI labels, docs, errors, onboarding, headlines: plain English only. No saffron and gold, mandalas or deity imagery.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-product">
+    <div class="section-head">
+      <span class="label">In the product</span>
+      <h2 id="s-product">How it looks in the studio</h2>
+      <p class="muted">A sketch of the app chrome using the brand rules: quiet panels, one violet action, status shown with an icon and words, and a Pro chip.</p>
+    </div>
+    <div class="app" aria-label="Studio interface sketch">
+      <div class="app-bar">
+        <svg class="mark"><use href="#spanda-mark"/></svg>
+        <span class="name">Spanda Studio</span>
+        <span class="proj">/ Monsoon Coffee: launch story</span>
+        <span class="sp"></span>
+        <span class="chip-ok"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>Tests passed</span>
+      </div>
+      <div class="app-body">
+        <nav class="app-nav">
+          <div>Brief</div>
+          <div class="on">Storyboard</div>
+          <div>Scenes</div>
+          <div>Test results</div>
+          <div>Scene library <span class="chip-pro"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Pro</span></div>
+        </nav>
+        <div class="app-main">
+          <div class="frame"><span>127.0.0.1:4173 · 1440×900</span></div>
+          <div class="btns"><button class="btn primary" type="button">Approve storyboard</button><button class="btn" type="button">Request changes</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="s-open">
+    <div class="section-head">
+      <span class="label">Open core</span>
+      <h2 id="s-open">Free studio, paid add-ons</h2>
+    </div>
+    <div class="editions">
+      <div class="edition">
+        <h3>Spanda Studio</h3>
+        <p class="mono" style="color:var(--ash)">Free · Apache-2.0 (proposed) · public GitHub</p>
+        <ul>
+          <li>The full idea → storyboard → website → export pipeline</li>
+          <li>HTML and React export, tests, license report</li>
+          <li>Works with the Claude Code or Codex CLI you already use</li>
+        </ul>
+      </div>
+      <div class="edition pro">
+        <h3>Spanda Pro <span class="chip-pro">Add-ons</span></h3>
+        <p class="mono" style="color:var(--ash)">Paid · commercial EULA · separate repo</p>
+        <ul>
+          <li>One paid brand; each add-on gets a plain English name</li>
+          <li>Pro Scene Library, Pro Team Review, and more later</li>
+          <li>Installs into the free studio through a public add-on API</li>
+        </ul>
+      </div>
+    </div>
+    <div class="box">
+      <h3>Our promises</h3>
+      <ol class="promises">
+        <li><span><b>The core stays free.</b> A feature that's free today never moves behind Pro.</span></li>
+        <li><span><b>Your output is yours.</b> Exported sites have no watermark and no attribution requirement, free or Pro.</span></li>
+        <li><span><b>No resold AI access.</b> You bring your own provider. Pro sells features, not tokens.</span></li>
+        <li><span><b>Works offline.</b> Pro license checks run locally.</span></li>
+      </ol>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <span>Spanda brand board · v0.3 · source of truth: docs/brand-guidelines.md</span>
+    <span>Designed and built in India</span>
+  </footer>
+</div>
+
+<script>
+const swatches = [
+  ["Night", "#0E0E11", "Canvas"],
+  ["Panel", "#16161B", "Sidebars, panels"],
+  ["Raised", "#1E1E25", "Cards, inputs"],
+  ["Moonlight", "#ECECF1", "Primary text"],
+  ["Ash", "#A1A1AA", "Secondary text"],
+  ["Indigo Pulse", "#7C3AED", "Primary action, mark field"],
+  ["Lilac", "#A78BFA", "Accent text, focus, mark"],
+  ["Diya", "#E8A25A", "Marketing highlight only"]
+];
+const host = document.getElementById("swatches");
+for (const [name, hex, role] of swatches) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "swatch";
+  b.setAttribute("aria-label", `Copy ${name} ${hex}`);
+  b.innerHTML = `<span class="chip" style="background:${hex}"></span><span class="info"><b>${name}</b><span class="mono">${hex}</span><small>${role}</small></span>`;
+  b.addEventListener("click", () => {
+    const code = b.querySelector(".mono");
+    const done = () => { b.classList.add("copied"); code.textContent = "Copied"; setTimeout(() => { b.classList.remove("copied"); code.textContent = hex; }, 1200); };
+    try {
+      navigator.clipboard.writeText(hex).then(done, () => { selectText(code); });
+    } catch (e) { selectText(code); }
+  });
+  host.appendChild(b);
+}
+function selectText(el) {
+  const r = document.createRange(); r.selectNodeContents(el);
+  const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+</script>
+</body>
+</html>

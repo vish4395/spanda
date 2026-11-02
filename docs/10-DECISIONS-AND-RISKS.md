@@ -30,6 +30,9 @@ Vite 8 depends on `lightningcss` (MPL-2.0), which policy (docs/07) marks review-
 ## ADR-010 Preview isolation — Accepted (M0)
 Generated sites are served by a per-session static server bound to `127.0.0.1` with an unguessable path token, Host-header (DNS-rebinding) check, realpath containment and `nosniff`. The studio frames them in `<iframe sandbox="allow-scripts">` (opaque origin: no access to the studio window, storage or `window.studio`). The renderer itself loads from a custom `app://studio` protocol with a strict CSP; only that top-level frame may call IPC. Not yet done: OS-level sandboxing/network limits for `npm ci`/`vite build` child processes (they run with an allowlisted environment, `--ignore-scripts`, timeouts and cancellation) — see risk register.
 
+## ADR-011 Open core: Apache-2.0 studio, paid Spanda Pro add-ons — Proposed
+The studio is released publicly as open source under Apache-2.0 (permissive, patent grant, no trademark grant under §6). Premium features ship later as **Spanda Pro** add-ons under a commercial EULA from a separate private repository, loaded only through a public versioned add-on API. Generated website code is MIT-0/0BSD so exports carry no obligations. The brand name and logo, not the code, are the protected asset: forks must rebrand (`TRADEMARKS.md`). Contributions use DCO, not a CLA. AGPL was rejected because it deters adoption and contributors and its network clause adds little to a desktop app. Consequences: the core must stay fully functional without Pro; core features are never moved behind Pro; Pro never resells AI provider access; license checks are offline. Becomes Accepted when the trademark search (T031) clears and the license files (T035) land. See `docs/brand-guidelines.md` §8 and roadmap R0–R2.
+
 ## Risk register
 | Risk | Impact | Mitigation |
 |---|---|---|
@@ -39,6 +42,10 @@ Generated sites are served by a per-session static server bound to `127.0.0.1` w
 | WebGL mobile performance | High | Complexity budgets, adaptive quality, 2D fallback |
 | Malicious references/skills | Critical | Sandboxes, SSRF checks, untrusted-data boundaries |
 | License contamination | High | Versioned evidence, SBOM, blocked export |
+| "Spanda" trademark conflict found late | High | T031 search before T034 rename or any public launch; Kinora kept as fallback name |
+| Fork rebrands and competes with Pro | Medium | Trademark policy, fast release cadence, Pro value in curated content and services |
+| Community backlash over the free/Pro line | High | Public promises in README, ADR-011 rules, boundary review gate (T048) |
+| Secrets or internal data exposed when repo goes public | Critical | T037 full-history secret scan before T039 |
 | Electron app too heavy | Medium | Profile startup/memory, lazy load, consider Tauri later |
 | Huge generation cost | High | Skill routing, budgets, checkpoints, scoped edits |
 | Desktop OS differences | Medium | CI matrices and native testing |

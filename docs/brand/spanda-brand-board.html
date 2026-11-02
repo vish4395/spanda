@@ -15,9 +15,10 @@
   --border: #71717A;
   --moon: #ECECF1;
   --ash: #A1A1AA;
-  --indigo: #7C3AED;
-  --lilac: #A78BFA;
-  --diya: #E8A25A;
+  --neel: #4B57E0;
+  --neel-light: #8E9AF7;
+  --neel-deep: #1E2A78;
+  --diya: #E9B04C;
   --success: #4ADE80;
   --danger: #F87171;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
@@ -33,7 +34,7 @@ h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
 h3 { font-size: 16px; font-weight: 600; }
 p { margin: 0; }
 .muted { color: var(--ash); }
-.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lilac); }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--neel-light); }
 .mono { font-family: var(--mono); font-size: 13px; }
 section { display: grid; gap: 24px; padding-block: 64px 0; }
 .section-head { display: grid; gap: 8px; max-width: 65ch; border-top: 1px solid var(--divider); padding-top: 28px; }
@@ -42,7 +43,7 @@ section { display: grid; gap: 24px; padding-block: 64px 0; }
 
 /* Hero */
 .hero { display: grid; gap: 28px; justify-items: start; padding-block: 72px 24px; position: relative; }
-.hero::before { content: ""; position: absolute; inset: 0 auto auto -10%; width: 520px; max-width: 100%; height: 420px; background: radial-gradient(closest-side, rgb(124 58 237 / 0.22), transparent); pointer-events: none; }
+.hero::before { content: ""; position: absolute; inset: 0 auto auto -10%; width: 520px; max-width: 100%; height: 420px; background: radial-gradient(closest-side, rgb(75 87 224 / 0.22), transparent); pointer-events: none; }
 .lockup { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; position: relative; }
 .lockup .mark { width: 112px; height: 112px; }
 .wordmark { font-family: var(--sans); font-weight: 500; letter-spacing: 0.02em; font-size: clamp(56px, 11vw, 104px); line-height: 1; }
@@ -52,38 +53,42 @@ section { display: grid; gap: 24px; padding-block: 64px 0; }
 .status { display: inline-flex; gap: 8px; align-items: center; border: 1px solid var(--border); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--ash); position: relative; }
 .status i { width: 8px; height: 8px; border-radius: 50%; background: var(--diya); display: inline-block; }
 
-/* Mark */
-.mark .ring, .mark .arc { fill: none; stroke: currentColor; }
-.mark .bindu { fill: currentColor; }
-.mark .pulse { fill: none; stroke: currentColor; stroke-width: 2; opacity: 0; transform-box: fill-box; transform-origin: center; }
-.mark { color: var(--lilac); overflow: visible; }
-.animate .pulse { animation: pulse 700ms ease-out 300ms 1; }
-.lockup:hover .pulse { animation: pulse 700ms ease-out 1; }
-@keyframes pulse { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(5); } }
-@media (prefers-reduced-motion: reduce) { .animate .pulse, .lockup:hover .pulse { animation: none; } }
+/* Mark: the Kolam S. The line draws itself, then the two lamps land. */
+.mark { color: var(--neel-light); --dot: var(--diya); overflow: visible; }
+.ln { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 0; }
+.dt { fill: var(--dot, currentColor); transform-box: fill-box; transform-origin: center; }
+.animate .ln { animation: draw 1100ms cubic-bezier(.6,0,.2,1) 200ms both; }
+.animate .dt { animation: land 400ms ease-out 1000ms both; }
+.animate .dt + .dt { animation-delay: 1200ms; }
+.lockup.replay .ln { animation: draw 1100ms cubic-bezier(.6,0,.2,1) both; }
+.lockup.replay .dt { animation: land 400ms ease-out 800ms both; }
+.lockup.replay .dt + .dt { animation-delay: 1000ms; }
+@keyframes draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes land { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) { .animate .ln, .animate .dt, .lockup.replay .ln, .lockup.replay .dt { animation: none; } }
 
 /* Story */
 .story { display: grid; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); align-items: start; }
 .big-quote { font-size: clamp(22px, 3vw, 28px); line-height: 1.35; max-width: 30ch; }
-.big-quote em { font-style: normal; color: var(--lilac); }
+.big-quote em { font-style: normal; color: var(--neel-light); }
 .defn { display: grid; gap: 6px; }
 .defn dt { font-size: 13px; color: var(--ash); }
 .defn dd { margin: 0 0 12px; }
 
 /* Pillars */
 .positioning { font-size: 17px; max-width: 70ch; color: var(--moon); }
-.positioning b { color: var(--lilac); font-weight: 600; }
+.positioning b { color: var(--neel-light); font-weight: 600; }
 .pillar { padding: 24px; gap: 14px; }
 .pillar .word { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
 .pillar .promise { font-size: 16px; }
 .pillar ul { margin: 0; padding: 14px 0 0; list-style: none; display: grid; gap: 8px; border-top: 1px solid var(--divider); font-size: 14px; color: var(--ash); }
 .pillar li { display: grid; grid-template-columns: 16px 1fr; gap: 8px; }
-.pillar li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--lilac); margin-top: 8px; }
+.pillar li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--neel-light); margin-top: 8px; }
 
 /* Logo variants */
 .tile { border-radius: 10px; min-height: 160px; display: grid; place-items: center; padding: 20px; border: 1px solid var(--divider); }
-.tile.light { background: var(--moon); color: var(--night); }
-.tile.light .mark { color: var(--night); }
+.tile.light { background: var(--moon); color: var(--neel-deep); }
+.tile.light .mark { color: var(--neel); --dot: var(--neel-deep); }
 .tile.dark { background: var(--night); }
 .tile.panel { background: var(--panel); }
 .mini-lockup { display: flex; align-items: center; gap: 10px; font-size: 30px; font-weight: 500; letter-spacing: 0.02em; }
@@ -91,21 +96,21 @@ section { display: grid; gap: 24px; padding-block: 64px 0; }
 .cap { display: grid; gap: 2px; }
 .cap b { font-weight: 600; font-size: 14px; }
 .cap span { font-size: 13px; color: var(--ash); }
-.app-icon { width: 104px; height: 104px; border-radius: 24px; background: radial-gradient(circle at 50% 50%, rgb(124 58 237 / 0.45), transparent 62%), var(--night); border: 1px solid var(--divider); display: grid; place-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / 0.45); }
+.app-icon { width: 104px; height: 104px; border-radius: 24px; background: radial-gradient(circle at 50% 50%, rgb(75 87 224 / 0.45), transparent 62%), var(--night); border: 1px solid var(--divider); display: grid; place-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / 0.45); }
 .app-icon .mark { width: 64px; height: 64px; }
 .sizes { display: flex; align-items: end; gap: 22px; flex-wrap: wrap; }
 .sizes figure { margin: 0; display: grid; gap: 6px; justify-items: center; font-size: 12px; color: var(--ash); font-family: var(--mono); }
 .dont .tile { position: relative; }
 .dont .x { position: absolute; top: 10px; left: 10px; display: inline-flex; gap: 6px; align-items: center; font-size: 12px; color: var(--danger); }
-.glow .mark { filter: drop-shadow(0 0 10px var(--lilac)) drop-shadow(0 0 22px var(--indigo)); }
+.glow .mark { filter: drop-shadow(0 0 10px var(--neel-light)) drop-shadow(0 0 22px var(--neel)); }
 .tilt .mark { transform: rotate(35deg) scaleX(1.3); }
 .on-diya { background: var(--diya) !important; }
-.on-diya .mark { color: var(--lilac); }
+.on-diya .mark { color: var(--neel-light); }
 
 /* Color */
 .swatches { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); }
 .swatch { border: 1px solid var(--divider); border-radius: 10px; overflow: hidden; background: var(--panel); display: grid; text-align: left; color: var(--moon); font: inherit; padding: 0; cursor: pointer; }
-.swatch:focus-visible, button:focus-visible { outline: 2px solid var(--lilac); outline-offset: 2px; }
+.swatch:focus-visible, button:focus-visible { outline: 2px solid var(--neel-light); outline-offset: 2px; }
 .swatch .chip { height: 88px; border-bottom: 1px solid var(--divider); }
 .swatch .info { padding: 12px; display: grid; gap: 2px; }
 .swatch .info b { font-weight: 600; font-size: 14px; }
@@ -151,7 +156,7 @@ td.not { color: var(--ash); }
 .app-bar .name { font-weight: 500; letter-spacing: 0.02em; white-space: nowrap; }
 .app-bar .proj { color: var(--ash); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .app-bar .sp { flex: 1; }
-.chip-pro { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--lilac); color: var(--lilac); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.chip-pro { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--neel-light); color: var(--neel-light); border-radius: 999px; padding: 2px 9px; font-size: 12px; font-weight: 500; white-space: nowrap; }
 .chip-ok { display: inline-flex; align-items: center; gap: 5px; color: var(--success); font-size: 12px; white-space: nowrap; }
 .app-body { display: grid; grid-template-columns: 180px 1fr; min-height: 220px; }
 .app-nav { border-right: 1px solid var(--divider); padding: 14px; display: grid; gap: 4px; align-content: start; font-size: 13px; color: var(--ash); }
@@ -160,10 +165,10 @@ td.not { color: var(--ash); }
 .app-main { padding: 18px; display: grid; gap: 14px; align-content: start; min-width: 0; }
 .frame { border: 1px solid var(--divider); border-radius: 14px; height: 140px; background:
   radial-gradient(circle at 70% 60%, rgb(232 162 90 / 0.25), transparent 30%),
-  radial-gradient(circle at 30% 40%, rgb(124 58 237 / 0.35), transparent 45%), var(--raised); position: relative; }
+  radial-gradient(circle at 30% 40%, rgb(75 87 224 / 0.35), transparent 45%), var(--raised); position: relative; }
 .frame span { position: absolute; left: 12px; bottom: 10px; font-family: var(--mono); font-size: 11px; color: var(--ash); }
 .btn { display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 6px; font: inherit; font-size: 13px; font-weight: 500; border: 1px solid var(--border); background: var(--raised); color: var(--moon); }
-.btn.primary { background: var(--indigo); border-color: var(--indigo); color: #fff; }
+.btn.primary { background: var(--neel); border-color: var(--neel); color: #fff; }
 .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
 /* Editions */
@@ -174,7 +179,7 @@ td.not { color: var(--ash); }
 .edition ul, .promises { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
 .promises { padding: 0; list-style: none; counter-reset: p; gap: 12px; }
 .promises li { display: grid; grid-template-columns: 32px 1fr; gap: 12px; align-items: start; }
-.promises li::before { counter-increment: p; content: counter(p); width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--lilac); color: var(--lilac); display: grid; place-items: center; font-size: 13px; font-family: var(--mono); }
+.promises li::before { counter-increment: p; content: counter(p); width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--neel-light); color: var(--neel-light); display: grid; place-items: center; font-size: 13px; font-family: var(--mono); }
 .promises b { font-weight: 600; }
 
 .footer { margin-top: 72px; padding-top: 24px; border-top: 1px solid var(--divider); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; color: var(--ash); font-size: 13px; }
@@ -193,15 +198,14 @@ td.not { color: var(--ash); }
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="spanda-mark" viewBox="0 0 64 64">
-      <circle class="pulse" cx="32" cy="32" r="6"/>
-      <circle class="bindu" cx="32" cy="32" r="6"/>
-      <circle class="ring" cx="32" cy="32" r="14" stroke-width="3.5"/>
-      <circle class="ring" cx="32" cy="32" r="21" stroke-width="2.25"/>
-      <path class="arc" d="M 59.575 27.138 A 28 28 0 1 1 49.998 10.552" stroke-width="1.5" stroke-linecap="round"/>
+      <path class="ln" pathLength="100" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/>
+      <circle class="dt" cx="32" cy="20" r="3.4"/>
+      <circle class="dt" cx="32" cy="42" r="3.4"/>
     </symbol>
     <symbol id="spanda-mark-small" viewBox="0 0 16 16">
-      <circle cx="8" cy="8" r="2.4" fill="currentColor"/>
-      <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10.6 4.1 A2.75 2.75 0 1 0 8 7.75 A2.75 2.75 0 1 1 5.4 11.4"/>
+      <circle cx="8" cy="5" r="1" style="fill:var(--dot, currentColor)"/>
+      <circle cx="8" cy="10.5" r="1" style="fill:var(--dot, currentColor)"/>
     </symbol>
   </defs>
 </svg>
@@ -209,14 +213,12 @@ td.not { color: var(--ash); }
 <div class="wrap">
 
   <header class="hero">
-    <span class="status"><i></i>Brand v0.3 · name chosen, trademark search pending</span>
+    <span class="status"><i></i>Brand v0.5 · name chosen, trademark search pending</span>
     <div class="lockup animate">
       <svg class="mark" viewBox="0 0 64 64" role="img" aria-label="Spanda mark">
-        <circle class="pulse" cx="32" cy="32" r="6"/>
-        <circle class="bindu" cx="32" cy="32" r="6"/>
-        <circle class="ring" cx="32" cy="32" r="14" stroke-width="3.5"/>
-        <circle class="ring" cx="32" cy="32" r="21" stroke-width="2.25"/>
-        <path class="arc" d="M 59.575 27.138 A 28 28 0 1 1 49.998 10.552" stroke-width="1.5" stroke-linecap="round"/>
+        <path class="ln" pathLength="100" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/>
+        <circle class="dt" cx="32" cy="20" r="3.4"/>
+        <circle class="dt" cx="32" cy="42" r="3.4"/>
       </svg>
       <h1 class="wordmark">spanda</h1>
     </div>
@@ -286,8 +288,8 @@ td.not { color: var(--ash); }
   <section aria-labelledby="s-logo">
     <div class="section-head">
       <span class="label">Logo</span>
-      <h2 id="s-logo">Bindu and pulse</h2>
-      <p class="muted">A single point (<i>bindu</i>, where everything begins) with rings travelling outward. The outer ring stays open at 2 o'clock because the pulse is still moving. Ring weights thin out toward the edge so the mark never reads as a target or a Wi-Fi icon. Hover the logo at the top to see its one motion.</p>
+      <h2 id="s-logo">The Kolam S</h2>
+      <p class="muted">One unbroken line loops around two dots and forms an S. In South India a <i>kolam</i> is drawn at the doorstep each morning: a single line weaving around a grid of dots. Here the dots are scenes and the line is the scroll that carries you from one to the next. The dots glow Diya, like lamps placed on a kolam. Western viewers see a clean S monogram; anyone who knows kolam sees the tradition. Hover the logo at the top to replay its one motion.</p>
     </div>
     <div class="grid">
       <div class="box">
@@ -296,7 +298,7 @@ td.not { color: var(--ash); }
       </div>
       <div class="box">
         <div class="tile light"><div class="mini-lockup"><svg class="mark"><use href="#spanda-mark"/></svg>spanda</div></div>
-        <div class="cap"><b>Mono on Moonlight</b><span>Print, single-color contexts</span></div>
+        <div class="cap"><b>On light</b><span>Neel line, Neel Deep dots and wordmark</span></div>
       </div>
       <div class="box">
         <div class="tile panel"><div class="mini-lockup deva" lang="sa"><svg class="mark"><use href="#spanda-mark"/></svg>स्पन्द</div></div>
@@ -313,9 +315,9 @@ td.not { color: var(--ash); }
         <figure><svg class="mark" style="width:96px;height:96px"><use href="#spanda-mark"/></svg>96</figure>
         <figure><svg class="mark" style="width:48px;height:48px"><use href="#spanda-mark"/></svg>48</figure>
         <figure><svg class="mark" style="width:32px;height:32px"><use href="#spanda-mark"/></svg>32</figure>
-        <figure><svg class="mark" style="width:16px;height:16px;color:var(--lilac)"><use href="#spanda-mark-small"/></svg>16 · simplified</figure>
+        <figure><svg class="mark" style="width:16px;height:16px;color:var(--neel-light)"><use href="#spanda-mark-small"/></svg>16 · simplified</figure>
       </div>
-      <p class="muted">Clear space on every side: one outer-ring diameter. Minimum lockup width 96px.</p>
+      <p class="muted">Clear space on every side: the height of one loop of the S. Minimum lockup width 96px.</p>
     </div>
     <div class="grid dont">
       <div class="box">
@@ -324,7 +326,7 @@ td.not { color: var(--ash); }
       </div>
       <div class="box">
         <div class="tile dark tilt"><span class="x">✕ Don't</span><svg class="mark" style="width:72px;height:72px"><use href="#spanda-mark"/></svg></div>
-        <div class="cap"><b>No rotating or stretching</b><span>The opening always sits at 2 o'clock</span></div>
+        <div class="cap"><b>No rotating or stretching</b><span>The S is never rotated, mirrored or distorted</span></div>
       </div>
       <div class="box">
         <div class="tile on-diya"><span class="x" style="color:var(--night)">✕ Don't</span><svg class="mark" style="width:72px;height:72px"><use href="#spanda-mark"/></svg></div>
@@ -336,11 +338,11 @@ td.not { color: var(--ash); }
   <section aria-labelledby="s-color">
     <div class="section-head">
       <span class="label">Color</span>
-      <h2 id="s-color">Night, indigo and one lamp</h2>
-      <p class="muted">Taken directly from the studio design system, so the brand and the app read as one. Click a swatch to copy its hex.</p>
+      <h2 id="s-color">Night, Neel and one lamp</h2>
+      <p class="muted">The accent is Neel. "Indigo" comes from the Greek <i>indikón</i>, "from India", because the dye did, so the color carries the same quiet origin story as the name. The studio uses the same tokens, so the brand and the app read as one. Click a swatch to copy its hex.</p>
     </div>
     <div class="swatches" id="swatches"></div>
-    <p class="note"><b style="color:var(--diya)">Diya</b> is the warm glow of an oil lamp. Marketing only, at most one highlight per composition. It never appears in the studio UI, where it would look like the warning state.</p>
+    <p class="note"><b style="color:var(--diya)">Diya</b> is the warm glow of an oil lamp: the two dots of the logo, plus at most one marketing highlight per composition. It never appears in the studio UI, where it would look like the warning state.</p>
   </section>
 
   <section aria-labelledby="s-type">
@@ -398,7 +400,8 @@ td.not { color: var(--ash); }
         <thead><tr><th>Place</th><th>Treatment</th></tr></thead>
         <tbody>
           <tr><td>Name</td><td>One line of meaning on About, splash and press kit</td></tr>
-          <tr><td>Logo</td><td>Bindu and pulse, documented but never explained in the UI</td></tr>
+          <tr><td>Logo</td><td>Kolam S with lamp-lit dots, documented but never explained in the UI</td></tr>
+          <tr><td>Color</td><td>Neel: "indigo" comes from the Greek <i>indikón</i>, "from India"</td></tr>
           <tr><td>Origin line</td><td>"Designed and built in India" in the footer, installer and credits</td></tr>
           <tr><td>AI director</td><td><b>Sutradhar</b>, "holder of the threads", in the credits and internally. The UI says "Director".</td></tr>
           <tr><td>Release codenames</td><td><div class="codenames"><span><b>Yavanika</b> · curtain</span><span><b>Ranga</b> · stage</span><span><b>Natya</b> · drama</span><span><b>Chhaya</b> · shadow</span><span><b>Darpana</b> · mirror</span></div></td></tr>
@@ -412,7 +415,7 @@ td.not { color: var(--ash); }
     <div class="section-head">
       <span class="label">In the product</span>
       <h2 id="s-product">How it looks in the studio</h2>
-      <p class="muted">A sketch of the app chrome using the brand rules: quiet panels, one violet action, status shown with an icon and words, and a Pro chip.</p>
+      <p class="muted">A sketch of the app chrome using the brand rules: quiet panels, one Neel action, status shown with an icon and words, and a Pro chip.</p>
     </div>
     <div class="app" aria-label="Studio interface sketch">
       <div class="app-bar">
@@ -475,21 +478,28 @@ td.not { color: var(--ash); }
   </section>
 
   <footer class="footer">
-    <span>Spanda brand board · v0.3 · source of truth: docs/brand-guidelines.md</span>
+    <span>Spanda brand board · v0.5 · source of truth: docs/brand-guidelines.md</span>
     <span>Designed and built in India</span>
   </footer>
 </div>
 
 <script>
+const heroLockup = document.querySelector(".lockup.animate");
+heroLockup.addEventListener("mouseenter", () => {
+  heroLockup.classList.remove("animate", "replay");
+  void heroLockup.getBoundingClientRect();
+  heroLockup.classList.add("replay");
+});
 const swatches = [
   ["Night", "#0E0E11", "Canvas"],
   ["Panel", "#16161B", "Sidebars, panels"],
   ["Raised", "#1E1E25", "Cards, inputs"],
   ["Moonlight", "#ECECF1", "Primary text"],
   ["Ash", "#A1A1AA", "Secondary text"],
-  ["Indigo Pulse", "#7C3AED", "Primary action, mark field"],
-  ["Lilac", "#A78BFA", "Accent text, focus, mark"],
-  ["Diya", "#E8A25A", "Marketing highlight only"]
+  ["Neel", "#4B57E0", "Primary action, logo on light"],
+  ["Neel Light", "#8E9AF7", "Logo line, accent text, focus"],
+  ["Neel Deep", "#1E2A78", "Wordmark and dots on light"],
+  ["Diya Gold", "#E9B04C", "Logo dots, one marketing highlight"]
 ];
 const host = document.getElementById("swatches");
 for (const [name, hex, role] of swatches) {

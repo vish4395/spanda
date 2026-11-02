@@ -39,7 +39,7 @@ test('T024: export the generated site as a ZIP with notices, SBOM and metadata',
     expect(names).toContain(required);
   }
   expect(names.some((n) => n.startsWith('react/node_modules/') || n.startsWith('react/dist/'))).toBe(false);
-  expect(files.get('README.md')!.toString()).toMatch(/Exported by AI Cinematic Studio 0\.\d+\.\d+\./); // the studio's version, not Electron's
+  expect(files.get('README.md')!.toString()).toMatch(/Exported by Spanda Studio 0\.\d+\.\d+\./); // the studio's version, not Electron's
   // Real React license texts come from the build, and the SBOM lists the pinned runtime packages.
   expect(files.get('THIRD_PARTY_NOTICES.md')!.toString()).toMatch(/## react \d/);
   const sbom = JSON.parse(files.get('sbom.cdx.json')!.toString()) as { components: { name: string; scope: string }[] };

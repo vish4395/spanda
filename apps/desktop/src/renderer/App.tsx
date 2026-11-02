@@ -120,7 +120,7 @@ export function App() {
       <header className="topbar">
         <div className="topbar__brand">
           <LogoMark />
-          <span>AI Cinematic Studio</span>
+          <span>Spanda Studio</span>
         </div>
         <nav aria-label="Breadcrumb" className="breadcrumb">
           <ol>

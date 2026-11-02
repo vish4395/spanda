@@ -9,10 +9,12 @@ function Icon({ children, size = 16 }: { children: ReactNode; size?: number }) {
   );
 }
 
+/** Spanda's Kolam S: one unbroken line around two lamps (docs/brand/assets/spanda-mark.svg). */
 export const LogoMark = () => (
-  <svg width={22} height={22} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <path d="M12 2.5 20.5 7v10L12 21.5 3.5 17V7z" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinejoin="round" />
-    <path d="M12 7.5 16 9.8v4.4L12 16.5 8 14.2V9.8z" fill="currentColor" />
+  <svg width={24} height={24} viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+    <path d="M42.34 16.24A11 11 0 1 0 32 31a11 11 0 1 1-10.34 14.76" fill="none" stroke="currentColor" strokeWidth={5} strokeLinecap="round" />
+    <circle cx={32} cy={20} r={3.4} fill="var(--brand-gold)" />
+    <circle cx={32} cy={42} r={3.4} fill="var(--brand-gold)" />
   </svg>
 );
 export const FolderIcon = () => <Icon><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z" /></Icon>;

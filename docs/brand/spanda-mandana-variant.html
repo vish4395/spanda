@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spanda Mandana Variant</title>
+<!-- Offline, self-contained: no external fonts, scripts or images. -->
+<style>
+/* Layout: two columns, current mark vs Mandana variant, compared row by row in the same contexts. */
+:root {
+  --night: #0E0E11;
+  --panel: #16161B;
+  --raised: #1E1E25;
+  --divider: #2A2A33;
+  --moon: #ECECF1;
+  --ash: #A1A1AA;
+  --neel: #4B57E0;
+  --neel-light: #8E9AF7;
+  --neel-deep: #1E2A78;
+  --gold: #E9B04C;
+  --geru: #9B2F1E;
+  --haldi: #F2B829;
+  --khadiya: #FFF4E2;
+  --warn: #FBBF24;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Ubuntu Mono", "Noto Sans Mono", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--moon); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 48px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+h1, h2, h3 { margin: 0; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); }
+.muted { color: var(--ash); }
+.intro { display: grid; gap: 12px; max-width: 72ch; }
+.intro h1 { font-size: clamp(30px, 4.5vw, 44px); font-weight: 600; letter-spacing: -0.02em; }
+.intro p { font-size: 16px; color: var(--ash); }
+
+.cols { display: grid; grid-template-columns: 160px 1fr 1fr; gap: 14px; align-items: stretch; }
+.colhead { display: grid; gap: 4px; padding: 0 4px 6px; }
+.colhead h2 { font-size: 20px; font-weight: 600; }
+.colhead span { font-family: var(--mono); font-size: 12px; color: var(--ash); }
+.rowlabel { font-size: 13px; color: var(--ash); padding-top: 12px; }
+.cell { border: 1px solid var(--divider); border-radius: 12px; min-height: 190px; display: grid; place-items: center; padding: 20px; min-width: 0; }
+.cell.dark { background: var(--night); }
+.cell.light { background: var(--moon); }
+.cell.desk { background: radial-gradient(120% 90% at 30% 10%, #23304F 0%, #141826 45%, #0B0C12 100%); align-items: end; min-height: 170px; }
+
+.ln { fill: none; stroke: var(--line); stroke-width: 5; stroke-linecap: round; }
+.dt { fill: var(--dotc); }
+.neel { --line: var(--neel-light); --dotc: var(--gold); }
+.neel.on-light { --line: var(--neel); --dotc: var(--neel-deep); }
+.mandana { --line: var(--haldi); --dotc: var(--khadiya); }
+
+/* Tiles */
+.tile { width: var(--s, 120px); height: var(--s, 120px); border-radius: calc(var(--s, 120px) * 0.225); display: grid; place-items: center; flex: none; position: relative; overflow: hidden; }
+.tile svg { width: 72%; height: 72%; overflow: visible; position: relative; }
+.tile.neel { background: radial-gradient(circle at 50% 45%, rgb(75 87 224 / 0.42), transparent 66%), var(--night); border: 1px solid #2E2E3A; box-shadow: 0 10px 28px rgb(0 0 0 / 0.5); }
+.tile.mandana { background: var(--geru); box-shadow: 0 10px 28px rgb(0 0 0 / 0.5), inset 0 0 0 1px rgb(0 0 0 / 0.15); }
+/* Mandana border: a row of khadiya dots around the edge, as in floor and wall Mandanas */
+.tile.mandana::before { content: ""; position: absolute; inset: 7%; border-radius: inherit; border: calc(var(--s, 120px) * 0.018) dotted rgb(255 244 226 / 0.55); }
+.tile.small::before { display: none; }
+
+.lockup { display: flex; align-items: center; gap: 14px; font-size: 32px; font-weight: 500; letter-spacing: 0.01em; }
+.lockup .tile { --s: 56px; box-shadow: none; }
+.lockup .bare { width: 52px; height: 52px; }
+.cell.light .lockup { color: var(--neel-deep); }
+.cell.light .lockup.m { color: #3A140C; }
+
+.dock { display: flex; gap: 10px; align-items: end; padding: 9px 12px; border-radius: 20px; background: rgb(255 255 255 / 0.08); border: 1px solid rgb(255 255 255 / 0.12); }
+.dock .tile { --s: 54px; box-shadow: 0 4px 10px rgb(0 0 0 / 0.4); }
+.dock .tile::before { inset: 9%; }
+.ph { width: 54px; height: 54px; border-radius: 12px; flex: none; }
+.sizes { display: flex; gap: 18px; align-items: end; }
+
+.verdict { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.vbox { background: var(--panel); border: 1px solid var(--divider); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; align-content: start; }
+.vbox h3 { font-size: 16px; }
+.vbox ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; color: var(--ash); }
+.vbox.con li::marker { color: var(--warn); }
+.rec { background: var(--panel); border: 1px solid var(--divider); border-left: 3px solid var(--gold); border-radius: 12px; padding: 18px 20px; display: grid; gap: 8px; }
+.rec h3 { font-size: 18px; }
+
+@media (max-width: 760px) {
+  .cols { grid-template-columns: 1fr 1fr; }
+  .rowlabel { grid-column: 1 / -1; padding-top: 8px; }
+  .colhead.blank { display: none; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="s" viewBox="0 0 64 64">
+      <path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/>
+      <circle class="dt" cx="32" cy="20" r="3.4"/>
+      <circle class="dt" cx="32" cy="42" r="3.4"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="label">Spanda Studio · logo variant</span>
+    <h1>The Kolam S as a Mandana</h1>
+    <p>Mandana is folk art from Rajasthan and Madhya Pradesh: patterns drawn in white chalk (<i>khadiya</i>) on walls and floors coated in red-ochre clay (<i>geru</i>). Here the S is turmeric yellow and the lamps are chalk white, on a red-ochre square with a dotted chalk border. Shown next to the current mark, Neel with gold dots, in the same places.</p>
+  </header>
+
+  <div class="cols">
+    <div class="colhead blank"></div>
+    <div class="colhead"><h2>Current</h2><span>Neel line · Diya gold dots · Night tile</span></div>
+    <div class="colhead"><h2>Mandana</h2><span>Haldi line · Khadiya dots · Geru tile</span></div>
+
+    <div class="rowlabel">App icon</div>
+    <div class="cell dark"><div class="tile neel"><svg role="img" aria-label="Current app icon"><use href="#s"/></svg></div></div>
+    <div class="cell dark"><div class="tile mandana"><svg role="img" aria-label="Mandana app icon"><use href="#s"/></svg></div></div>
+
+    <div class="rowlabel">Lockup on dark</div>
+    <div class="cell dark"><div class="lockup neel"><svg class="bare" viewBox="0 0 64 64" aria-hidden="true"><use href="#s"/></svg>spanda</div></div>
+    <div class="cell dark"><div class="lockup"><div class="tile mandana small"><svg aria-hidden="true"><use href="#s"/></svg></div>spanda</div></div>
+
+    <div class="rowlabel">Lockup on light</div>
+    <div class="cell light"><div class="lockup neel on-light"><svg class="bare" viewBox="0 0 64 64" aria-hidden="true"><use href="#s"/></svg>spanda</div></div>
+    <div class="cell light"><div class="lockup m"><div class="tile mandana small"><svg aria-hidden="true"><use href="#s"/></svg></div>spanda</div></div>
+
+    <div class="rowlabel">In a dock</div>
+    <div class="cell desk"><div class="dock"><span class="ph" style="background:#3A3F4B"></span><div class="tile neel"><svg aria-hidden="true"><use href="#s"/></svg></div><span class="ph" style="background:#4B4B52"></span></div></div>
+    <div class="cell desk"><div class="dock"><span class="ph" style="background:#3A3F4B"></span><div class="tile mandana"><svg aria-hidden="true"><use href="#s"/></svg></div><span class="ph" style="background:#4B4B52"></span></div></div>
+
+    <div class="rowlabel">48 · 32 · 16px</div>
+    <div class="cell dark"><div class="sizes"><div class="tile neel" style="--s:48px"><svg aria-hidden="true"><use href="#s"/></svg></div><div class="tile neel" style="--s:32px"><svg aria-hidden="true"><use href="#s"/></svg></div><div class="tile neel" style="--s:16px"><svg aria-hidden="true"><use href="#s"/></svg></div></div></div>
+    <div class="cell dark"><div class="sizes"><div class="tile mandana" style="--s:48px"><svg aria-hidden="true"><use href="#s"/></svg></div><div class="tile mandana small" style="--s:32px"><svg aria-hidden="true"><use href="#s"/></svg></div><div class="tile mandana small" style="--s:16px"><svg aria-hidden="true"><use href="#s"/></svg></div></div></div>
+  </div>
+
+  <section class="verdict" aria-label="Expert assessment">
+    <div class="vbox">
+      <h3>What the Mandana version does well</h3>
+      <ul>
+        <li>Rooted in a real art form, with a story you can tell in one line</li>
+        <li>The warmest, most eye-catching icon in a dock full of blue and gray apps</li>
+        <li>Handmade, artistic feel that suits a tool for artistic websites</li>
+        <li>Contrast passes: yellow on red-ochre 4.1:1, white on it 6.8:1</li>
+      </ul>
+    </div>
+    <div class="vbox con">
+      <h3>Where it works against the brief</h3>
+      <ul>
+        <li>Red plus yellow is the most overtly "Indian" palette. For a Western-first audience it reads as a theme, not a hidden touch, and it's close to the saffron-and-gold look we chose to avoid</li>
+        <li>Red and yellow together also suggest fast food and fuel brands in the West</li>
+        <li>It stops matching the studio, whose accent is Neel, so the app icon and the app inside feel like two brands</li>
+        <li>On a dark website header it needs its red square every time; it can't sit as a bare line</li>
+      </ul>
+    </div>
+  </section>
+
+  <aside class="rec">
+    <span class="label">Recommendation</span>
+    <h3>Keep the current mark as the main logo. Use the Mandana version as a special edition.</h3>
+    <p class="muted">The Mandana version is beautiful, but it's loud for a Western-first pro tool and it splits the app from its icon. It works well where heritage should be on show: the About page, India launch material, festival editions (Diwali, Holi), merchandise and stickers. That keeps the main brand calm and consistent, while giving the Mandana art a proud, deliberate place.</p>
+  </aside>
+</div>
+</body>
+</html>

@@ -3,7 +3,8 @@
 You are implementing **AI Cinematic Studio**, to be released as **Spanda Studio** (brand chosen, trademark clearance pending; see `docs/brand-guidelines.md`). Read `README.md`, `docs/01-PRD.md`, `docs/02-ARCHITECTURE.md`, `docs/04-STORY-SPEC.md`, `docs/06-ENGINEERING-QUALITY.md`, and `docs/07-LICENSING-SECURITY.md` before major changes. Read `docs/brand-guidelines.md` before writing user-facing copy, and ADR-011 in `docs/10-DECISIONS-AND-RISKS.md` before touching licensing, packaging or extension points.
 
 ## Naming
-- Until the trademark search clears (roadmap R0, T031), keep code identifiers as they are: `ai-cinematic-studio`, `@studio/*`, app ID and window title. The rename to `spanda` / `@spanda/*` happens in a single dedicated commit (T034), never piecemeal.
+- User-facing text says **Spanda Studio** (window title, top bar, About panel, menus, exported READMEs and `generator` meta tags). Use the Kolam S `LogoMark`, never a new mark.
+- Until the trademark search clears (roadmap R0, T031), keep code identifiers as they are: `ai-cinematic-studio`, `@studio/*`, the `app://studio` origin, the Electron app name/`productName` and app ID, and schema IDs/titles. Changing the Electron app name moves the `userData` directory and would orphan users' projects, so it needs a migration. The identifier rename to `spanda` / `@spanda/*` happens in a single dedicated commit (T034), never piecemeal.
 - User-facing copy follows the brand voice ("the calm director"): plain English labels, no "magic", "one-click", "clone any site", "100% commercially safe" or implied provider partnership.
 
 ## Non-negotiables

@@ -1,5 +1,15 @@
 # Implementation log
 
+## 2026-11-02 — Brand applied to the product (Spanda Studio)
+
+User-facing name is now **Spanda Studio**: window title, renderer `<title>`, top bar, About panel (tagline "Stillness, set in motion. Designed and built in India."), Help menu, exported ZIP README, and the HTML/React generators' `generator` meta tag and READMEs. The top-bar `LogoMark` is the Kolam S (Neel Light line, Diya Gold dots via the logo-only `--brand-gold` token, added to MASTER). Brand sources: `docs/brand/branding.md`, `docs/brand/assets/*.svg`.
+
+Deliberately **not** renamed (AGENTS.md › Naming): package names `@studio/*`, the `app://studio` origin, the Electron app name/`productName` and app ID (changing them moves `userData` and would orphan projects), and the StorySpec schema title. These move together in T034 after the trademark search (T031).
+
+Verification: `pnpm typecheck` pass; `pnpm test` 204/204; `pnpm build` pass; `pnpm test:desktop` 17/18 on the first run, the failure being "generates HTML + React" ending in "Failed" during a cold-cache React build. It passed on rerun (`e2e/app.spec.ts` 5/5), and the export spec asserting "Exported by Spanda Studio" passed. Reviewed `artifacts/screenshots/desktop-preview-html.png`: Spanda Studio and the Kolam S render in the top bar.
+
+Open: studio palette (bright vs muted) is undecided; packaged app icons (macOS/Windows/Linux) are T029/T033.
+
 ## 2026-11-02 — Release readiness R0: T035, T036, T037
 
 | Ticket | Result |

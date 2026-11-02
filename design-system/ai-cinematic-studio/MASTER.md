@@ -3,16 +3,18 @@
 Scope: the **studio app UI** (Electron renderer). It does **not** style generated websites — those take their look from each project's `StorySpec.design`.
 Page-specific overrides go in `pages/<page>.md` and win over this file.
 
-Derived from `docs/03-UX-SCREENS.md` ("premium creative workstation, dark neutral canvas, restrained violet accent") plus ui-ux-pro-max searches. The automated `--design-system` result was rejected in parts: it suggested a landing-page pattern, GSAP (blocked by docs/07 pending license review) and CDN-loaded Google Fonts (the studio must work offline and ship no unreviewed fonts). The palette is adapted from the "Photo Editor & Filters" palette (violet on dark), moved to a neutral gray canvas instead of navy.
+Derived from `docs/03-UX-SCREENS.md` ("premium creative workstation, dark neutral canvas, restrained violet accent"; the accent was moved from violet to Neel indigo by the brand decision in `docs/brand-guidelines.md`) plus ui-ux-pro-max searches. The automated `--design-system` result was rejected in parts: it suggested a landing-page pattern, GSAP (blocked by docs/07 pending license review) and CDN-loaded Google Fonts (the studio must work offline and ship no unreviewed fonts). The palette was adapted from the "Photo Editor & Filters" palette (violet on dark) on a neutral gray canvas; the accent is now Neel indigo (brand v0.4).
 
 ## Principles
 1. **Preview is the hero.** Chrome is quiet and neutral; color is reserved for the accent, state and the user's content.
-2. **One primary action per view** (violet). Everything else is secondary/ghost.
+2. **One primary action per view** (Neel). Everything else is secondary/ghost.
 3. **State never relies on color alone** — every status has an icon + text label.
 4. **Keyboard-first:** full tab order, visible 2px focus ring, reorder buttons instead of drag-only.
 5. **Calm motion:** 120–200ms transitions on opacity/transform only; none under `prefers-reduced-motion`.
 
 ## Color tokens (dark — default)
+The studio uses **muted** tints of the brand colors (about 50% saturation instead of 70–87%), as pro creative tools do: the chrome recedes and the user's website carries the color. Full-strength brand colors appear only in the logo.
+
 | Token | Value | Use | Verified contrast |
 |---|---|---|---|
 | `--bg` | `#0E0E11` | app canvas | — |
@@ -20,9 +22,13 @@ Derived from `docs/03-UX-SCREENS.md` ("premium creative workstation, dark neutra
 | `--raised` | `#1E1E25` | cards, inputs, menus | — |
 | `--fg` | `#ECECF1` | primary text | 16.4 on bg · 14.1 on raised |
 | `--fg-muted` | `#A1A1AA` | secondary text, labels | 7.5 on bg · 6.5 on raised |
-| `--accent` | `#7C3AED` | primary button fill, selected indicator | white text 5.7 |
+| `--accent` | `#5862C4` (muted Neel) | primary button fill, selected indicator | white text 5.3 · 3.6 on bg · 3.4 on panel · 3.1 on raised |
+| `--accent-hover` | `#4C55B0` | primary button hover | white text 6.3 |
 | `--on-accent` | `#FFFFFF` | text on accent | — |
-| `--accent-text` | `#A78BFA` | accent-colored text/links, focus ring | 7.1 on bg · 6.6 on panel |
+| `--accent-text` | `#9AA1DE` (muted Neel Light) | accent-colored text/links, focus ring | 7.8 on bg · 7.3 on panel |
+| `--stage` | `#121212` | background around the preview frame; true neutral (no hue) so users judge their site's colors accurately | — |
+| `--brand-neel` | `#8E9AF7` (Neel Light) | **logo line only** (top-bar Kolam S) | 7.5 on bg |
+| `--brand-gold` | `#E9B04C` (Diya Gold) | **logo dots only** (top-bar Kolam S); never UI state, it would read as warning | 9.9 on bg |
 | `--divider` | `#2A2A33` | **decorative** separators only (panel edges, rules) | 1.4 — never carries information |
 | `--control-border` | `#71717A` | input/button outlines | 3.7 on panel (≥3:1 non-text) |
 | `--success` | `#4ADE80` | passed (with check icon) | 10.4 on panel |
@@ -54,4 +60,4 @@ Top bar 48px · left nav 240px · inspector 320px (collapsible) · bottom panel 
 - Icons: one stroke set (Lucide, ISC — add to license inventory before use), 16/20px, 1.75 stroke; decorative icons `aria-hidden="true"`; icon-only buttons need `aria-label`. No emoji as icons.
 
 ## Avoid
-Pure #000 canvas; using `--divider` for control outlines (use `--control-border`); neon glows; gradients on chrome; more than one violet primary per view; color-only status; hover-only actions; drag-only reordering; CDN assets; GSAP or any unreviewed animation library.
+Pure #000 canvas; using `--divider` for control outlines (use `--control-border`); neon glows; gradients on chrome; more than one Neel primary per view; color-only status; hover-only actions; drag-only reordering; CDN assets; GSAP or any unreviewed animation library.

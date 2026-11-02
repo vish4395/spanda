@@ -8,6 +8,7 @@
   "main": "dist/main.mjs",
   "scripts": {
     "build": "node scripts/build.ts",
+    "icons": "node scripts/icons.ts",
     "dev": "node scripts/build.ts && electron .",
     "start": "electron .",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.renderer.json && tsc -p e2e/tsconfig.json",

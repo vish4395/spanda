@@ -155,7 +155,7 @@ export class StudioMenus {
         submenu: [
           { label: 'Open Workspace Folder', click: () => void shell.openPath(this.services.workspace.root) },
           this.command('view.providers', 'About AI Providers and Privacy'),
-          ...(isMac ? [] : ([{ type: 'separator' }, { label: 'About AI Cinematic Studio', click: () => app.showAboutPanel() }] as MenuItemConstructorOptions[])),
+          ...(isMac ? [] : ([{ type: 'separator' }, { label: 'About Spanda Studio', click: () => app.showAboutPanel() }] as MenuItemConstructorOptions[])),
         ],
       },
     ];

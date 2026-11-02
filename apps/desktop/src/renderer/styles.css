@@ -5,10 +5,13 @@
   --raised: #1e1e25;
   --fg: #ececf1;
   --fg-muted: #a1a1aa;
-  --accent: #7c3aed;
-  --accent-hover: #6d28d9;
+  --accent: #5862c4; /* muted Neel: the studio recedes so the user's website carries the color */
+  --accent-hover: #4c55b0;
   --on-accent: #ffffff;
-  --accent-text: #a78bfa;
+  --accent-text: #9aa1de;
+  --stage: #121212; /* true neutral around the preview, for accurate color judgment */
+  --brand-neel: #8e9af7; /* logo line only */
+  --brand-gold: #e9b04c; /* logo dots only, never UI state */
   --divider: #2a2a33;
   --control-border: #71717a;
   --success: #4ade80;
@@ -122,7 +125,7 @@ button {
   align-items: center;
   gap: 10px;
   font-weight: 600;
-  color: var(--accent-text);
+  color: var(--brand-neel);
 }
 
 .topbar__brand span {
@@ -509,7 +512,7 @@ button {
   min-height: 0;
   background:
     radial-gradient(circle at 1px 1px, rgb(255 255 255 / 0.05) 1px, transparent 0) 0 0 / 20px 20px,
-    var(--bg);
+    var(--stage);
 }
 
 .device {

@@ -196,7 +196,7 @@ export async function buildExport(input: ExportInput): Promise<ExportResult> {
 
 ${input.spec.project.goal}
 
-Exported by AI Cinematic Studio ${input.studioVersion}. Targets: ${targets.map((t) => LABEL[t]).join(' and ')}.
+Exported by Spanda Studio ${input.studioVersion}. Targets: ${targets.map((t) => LABEL[t]).join(' and ')}.
 Each target is a separate, native implementation of the same StorySpec; neither depends on the studio.
 
 ## Run and host

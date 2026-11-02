@@ -1,7 +1,7 @@
 # Desktop UI/UX Specification
 
 ## Visual direction
-Premium creative workstation, not a generic admin dashboard. Dark neutral canvas, carefully restrained violet accent, strong typographic hierarchy, generous whitespace, rich scene previews. Offer light mode later; meet contrast standards.
+Premium creative workstation, not a generic admin dashboard. Dark neutral canvas, carefully restrained indigo (Neel) accent, strong typographic hierarchy, generous whitespace, rich scene previews. Offer light mode later; meet contrast standards.
 
 ## Window layout (desktop)
 - Top bar: app/project name, breadcrumb, run status, provider indicator, preview/export.

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spanda Icon Family</title>
+<!-- Offline, self-contained mockup: no external fonts, scripts or images. -->
+<style>
+/* Layout: the family row first, then the system in real contexts (dock, add-on store, small sizes), then the rejected alternative. */
+:root {
+  --night: #0E0E11;
+  --panel: #16161B;
+  --raised: #1E1E25;
+  --divider: #2A2A33;
+  --border: #71717A;
+  --moon: #ECECF1;
+  --ash: #A1A1AA;
+  --neel: #4B57E0;
+  --neel-light: #8E9AF7;
+  --dot: #E8A25A;
+  --success: #4ADE80;
+  --warn: #FBBF24;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Ubuntu Mono", "Noto Sans Mono", monospace;
+  color-scheme: dark;
+}
+body[data-dot="gold"] { --dot: #E9B04C; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--moon); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 48px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 64px; }
+h1, h2, h3 { margin: 0; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--neel-light); }
+.muted { color: var(--ash); }
+.intro { display: grid; gap: 12px; max-width: 72ch; }
+.intro h1 { font-size: clamp(30px, 4.5vw, 44px); font-weight: 600; letter-spacing: -0.02em; }
+.intro p { font-size: 16px; color: var(--ash); }
+section { display: grid; gap: 20px; }
+.sh { display: grid; gap: 6px; border-top: 1px solid var(--divider); padding-top: 28px; max-width: 75ch; }
+.sh h2 { font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+
+.seg { display: inline-flex; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 3px; justify-self: start; }
+.seg button { font: inherit; font-size: 13px; font-weight: 500; color: var(--ash); background: none; border: 0; border-radius: 6px; padding: 6px 12px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+.seg button i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--moon); box-shadow: inset 0 0 0 1px var(--divider); }
+button:focus-visible { outline: 2px solid var(--neel-light); outline-offset: 2px; }
+
+/* Tile */
+.tile { width: var(--s, 120px); height: var(--s, 120px); border-radius: calc(var(--s, 120px) * 0.225); background: radial-gradient(circle at 50% 45%, rgb(75 87 224 / 0.42), transparent 66%), var(--night); border: 1px solid #2E2E3A; box-shadow: 0 10px 28px rgb(0 0 0 / 0.5); display: grid; place-items: center; flex: none; position: relative; }
+.tile.pro { box-shadow: 0 10px 28px rgb(0 0 0 / 0.5), inset 0 0 0 calc(var(--s, 120px) * 0.018) rgb(142 154 247 / 0.45); }
+.tile svg { width: 72%; height: 72%; overflow: visible; }
+.ln { fill: none; stroke: var(--neel-light); stroke-width: 5; stroke-linecap: round; }
+.dt { fill: var(--dot); }
+
+.family { display: grid; gap: 20px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.member { background: var(--panel); border: 1px solid var(--divider); border-radius: 14px; padding: 24px 20px; display: grid; gap: 14px; justify-items: center; text-align: center; align-content: start; }
+.member h3 { font-size: 16px; font-weight: 600; }
+.member .k { font-size: 13px; color: var(--ash); }
+.member .tagline { font-size: 13px; color: var(--ash); max-width: 26ch; }
+.badge { font-size: 11px; font-weight: 500; border: 1px solid var(--neel-light); color: var(--neel-light); border-radius: 999px; padding: 1px 8px; }
+
+/* Dock */
+.desk { border-radius: 14px; border: 1px solid var(--divider); min-height: 260px; display: grid; align-items: end; justify-items: center; padding: 24px 16px; overflow: hidden;
+  background: radial-gradient(120% 90% at 30% 10%, #23304F 0%, #141826 45%, #0B0C12 100%); }
+.dock { display: flex; gap: 12px; align-items: end; padding: 10px 14px; border-radius: 22px; background: rgb(255 255 255 / 0.08); border: 1px solid rgb(255 255 255 / 0.12); backdrop-filter: blur(8px); max-width: 100%; overflow-x: auto; }
+.dock .tile { --s: 58px; box-shadow: 0 4px 10px rgb(0 0 0 / 0.4); }
+.ph { width: 58px; height: 58px; border-radius: 13px; flex: none; }
+.dock .sep { width: 1px; align-self: stretch; background: rgb(255 255 255 / 0.15); margin: 4px 2px; }
+
+/* Store */
+.store { border: 1px solid var(--divider); border-radius: 14px; overflow: hidden; background: var(--night); }
+.store-bar { height: 48px; display: flex; align-items: center; gap: 10px; padding: 0 16px; background: var(--panel); border-bottom: 1px solid var(--divider); font-weight: 500; }
+.store-bar svg { width: 22px; height: 22px; }
+.store-bar span.muted { font-weight: 400; }
+.store-grid { padding: 16px; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.addon { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: start; padding: 16px; border-radius: 10px; background: var(--panel); border: 1px solid var(--divider); }
+.addon .tile { --s: 52px; box-shadow: none; }
+.addon h3 { font-size: 15px; font-weight: 600; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.addon p { font-size: 13px; color: var(--ash); }
+.addon .row { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 13px; font-weight: 500; height: 30px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--raised); color: var(--moon); }
+.btn.primary { background: var(--neel); border-color: var(--neel); color: #fff; }
+.installed { font-size: 12px; color: var(--success); display: inline-flex; gap: 4px; align-items: center; }
+
+/* Sizes */
+.sizes { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.sizebox { background: var(--panel); border: 1px solid var(--divider); border-radius: 10px; padding: 16px; display: grid; gap: 10px; }
+.sizebox .r { display: flex; gap: 16px; align-items: end; }
+.sizebox .r .tile { box-shadow: none; }
+.sizebox span { font-family: var(--mono); font-size: 11px; color: var(--ash); }
+
+/* Rules + alternative */
+.rules { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.rule { background: var(--panel); border: 1px solid var(--divider); border-radius: 10px; padding: 16px 18px; display: grid; gap: 4px; }
+.rule b { font-weight: 600; }
+.rule p { font-size: 14px; color: var(--ash); }
+.alt { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+.alt .tile { --s: 84px; }
+.alt-note { border-left: 3px solid var(--warn); padding: 4px 0 4px 14px; color: var(--ash); max-width: 75ch; }
+</style>
+</head>
+<body data-dot="amber">
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="s" viewBox="0 0 64 64">
+      <path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/>
+      <circle class="dt" cx="32" cy="20" r="3.4"/>
+      <circle class="dt" cx="32" cy="42" r="3.4"/>
+    </symbol>
+    <!-- Scene Library: a 2x2 grid of extra lamps (a library of scenes) -->
+    <symbol id="lib" viewBox="0 0 64 64">
+      <use href="#s"/>
+      <circle class="dt" cx="48" cy="48" r="2.3"/><circle class="dt" cx="55" cy="48" r="2.3"/>
+      <circle class="dt" cx="48" cy="55" r="2.3"/><circle class="dt" cx="55" cy="55" r="2.3"/>
+    </symbol>
+    <!-- Team Review: two lamps side by side (two people) -->
+    <symbol id="team" viewBox="0 0 64 64">
+      <use href="#s"/>
+      <circle class="dt" cx="10" cy="12" r="2.6"/><circle class="dt" cx="17.5" cy="12" r="2.6"/>
+    </symbol>
+    <!-- Motion Pack: a trail of shrinking lamps leaving the line (motion) -->
+    <symbol id="motion" viewBox="0 0 64 64">
+      <use href="#s"/>
+      <circle class="dt" cx="15" cy="49.5" r="2.3"/><circle class="dt" cx="9.8" cy="52.6" r="1.8"/><circle class="dt" cx="5.4" cy="54.8" r="1.35"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="label">Spanda · icon family mockup</span>
+    <h1>One kolam, a growing family</h1>
+    <p>Every product shares the same tile and the same Kolam S. A Pro add-on is marked by extra lamps placed on the kolam grid, arranged to hint at what it does. A real kolam grows by adding dots, so the family grows the same way.</p>
+    <div class="seg" role="group" aria-label="Dot color">
+      <button type="button" data-d="amber" aria-pressed="true"><i style="background:#E8A25A"></i>Diya amber</button>
+      <button type="button" data-d="gold" aria-pressed="false"><i style="background:#E9B04C"></i>Diya gold</button>
+    </div>
+  </header>
+
+  <section aria-labelledby="h-fam">
+    <div class="sh"><span class="label">The family</span><h2 id="h-fam">Studio and three example add-ons</h2><p class="muted">Add-on names are examples to show the system, not a product plan.</p></div>
+    <div class="family">
+      <div class="member">
+        <div class="tile"><svg role="img" aria-label="Spanda Studio icon"><use href="#s"/></svg></div>
+        <h3>Spanda Studio</h3><span class="k">Free · open source</span>
+        <p class="tagline">Two lamps, the master mark.</p>
+      </div>
+      <div class="member">
+        <div class="tile pro"><svg role="img" aria-label="Pro Scene Library icon"><use href="#lib"/></svg></div>
+        <h3>Scene Library <span class="badge">Pro</span></h3><span class="k">Add-on</span>
+        <p class="tagline">A grid of four lamps: a library of ready scenes.</p>
+      </div>
+      <div class="member">
+        <div class="tile pro"><svg role="img" aria-label="Pro Team Review icon"><use href="#team"/></svg></div>
+        <h3>Team Review <span class="badge">Pro</span></h3><span class="k">Add-on</span>
+        <p class="tagline">Two lamps side by side: people reviewing together.</p>
+      </div>
+      <div class="member">
+        <div class="tile pro"><svg role="img" aria-label="Pro Motion Pack icon"><use href="#motion"/></svg></div>
+        <h3>Motion Pack <span class="badge">Pro</span></h3><span class="k">Add-on</span>
+        <p class="tagline">A trail of lamps leaving the line: motion presets.</p>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-dock">
+    <div class="sh"><span class="label">In context</span><h2 id="h-dock">In a dock</h2><p class="muted">Gray squares stand in for other apps. The family reads as related at a glance, and the Pro ring separates add-ons from the studio.</p></div>
+    <div class="desk">
+      <div class="dock" aria-label="Dock mockup">
+        <span class="ph" style="background:#3A3F4B"></span>
+        <span class="ph" style="background:#4B4B52"></span>
+        <span class="ph" style="background:#2F3A40"></span>
+        <span class="sep"></span>
+        <div class="tile"><svg aria-hidden="true"><use href="#s"/></svg></div>
+        <div class="tile pro"><svg aria-hidden="true"><use href="#lib"/></svg></div>
+        <div class="tile pro"><svg aria-hidden="true"><use href="#motion"/></svg></div>
+        <span class="sep"></span>
+        <span class="ph" style="background:#44403C"></span>
+        <span class="ph" style="background:#363B48"></span>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-store">
+    <div class="sh"><span class="label">In context</span><h2 id="h-store">Inside the studio: the add-ons page</h2></div>
+    <div class="store">
+      <div class="store-bar"><svg viewBox="0 0 64 64" aria-hidden="true"><use href="#s"/></svg>Spanda Studio <span class="muted">/ Add-ons</span></div>
+      <div class="store-grid">
+        <div class="addon">
+          <div class="tile pro"><svg aria-hidden="true"><use href="#lib"/></svg></div>
+          <div><h3>Scene Library <span class="badge">Pro</span></h3><p>Curated, license-checked scene presets you can drop into any storyboard.</p>
+            <div class="row"><span class="installed">✓ Installed</span><button class="btn" type="button">Open</button></div></div>
+        </div>
+        <div class="addon">
+          <div class="tile pro"><svg aria-hidden="true"><use href="#team"/></svg></div>
+          <div><h3>Team Review <span class="badge">Pro</span></h3><p>Share a storyboard with clients and collect comments on each scene.</p>
+            <div class="row"><button class="btn primary" type="button">Get add-on</button><button class="btn" type="button">Learn more</button></div></div>
+        </div>
+        <div class="addon">
+          <div class="tile pro"><svg aria-hidden="true"><use href="#motion"/></svg></div>
+          <div><h3>Motion Pack <span class="badge">Pro</span></h3><p>Camera moves and transitions tuned for smooth scroll storytelling.</p>
+            <div class="row"><button class="btn" type="button">Get add-on</button><button class="btn" type="button">Learn more</button></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-size">
+    <div class="sh"><span class="label">Small sizes</span><h2 id="h-size">32px and 16px</h2><p class="muted">At 32px the extra lamps are still clear. At 16px (favicons, menus) the final artwork should drop the extra lamps and rely on the Pro ring or label, since tiny dots turn to noise.</p></div>
+    <div class="sizes">
+      <div class="sizebox"><div class="r"><div class="tile" style="--s:32px"><svg aria-hidden="true"><use href="#s"/></svg></div><div class="tile" style="--s:16px"><svg aria-hidden="true"><use href="#s"/></svg></div></div><span>Studio · 32 · 16</span></div>
+      <div class="sizebox"><div class="r"><div class="tile pro" style="--s:32px"><svg aria-hidden="true"><use href="#lib"/></svg></div><div class="tile pro" style="--s:16px"><svg aria-hidden="true"><use href="#lib"/></svg></div></div><span>Scene Library · 32 · 16</span></div>
+      <div class="sizebox"><div class="r"><div class="tile pro" style="--s:32px"><svg aria-hidden="true"><use href="#team"/></svg></div><div class="tile pro" style="--s:16px"><svg aria-hidden="true"><use href="#team"/></svg></div></div><span>Team Review · 32 · 16</span></div>
+      <div class="sizebox"><div class="r"><div class="tile pro" style="--s:32px"><svg aria-hidden="true"><use href="#motion"/></svg></div><div class="tile pro" style="--s:16px"><svg aria-hidden="true"><use href="#motion"/></svg></div></div><span>Motion Pack · 32 · 16</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-rules">
+    <div class="sh"><span class="label">System rules</span><h2 id="h-rules">How a new add-on gets its icon</h2></div>
+    <div class="rules">
+      <div class="rule"><b>Same tile, same S</b><p>Night rounded square, faint Neel glow, Neel Light line. Never change the S itself.</p></div>
+      <div class="rule"><b>Extra lamps, one corner</b><p>Each add-on gets two to four extra lamps in one free corner of the grid, arranged to hint at its job. Same Diya color as the main dots.</p></div>
+      <div class="rule"><b>Pro ring</b><p>Add-ons carry a thin Neel Light inner ring on the tile. The free studio never has it.</p></div>
+      <div class="rule"><b>Name in plain English</b><p>The icon hints; the name explains. "Scene Library", never a codename.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-alt">
+    <div class="sh"><span class="label">Considered and rejected</span><h2 id="h-alt">One color per add-on (the Adobe approach)</h2></div>
+    <div class="alt">
+      <div class="tile"><svg aria-hidden="true"><use href="#s"/></svg></div>
+      <div class="tile pro" style="--dot:#5EC8D8"><svg aria-hidden="true"><use href="#s"/></svg></div>
+      <div class="tile pro" style="--dot:#F07FA0"><svg aria-hidden="true"><use href="#s"/></svg></div>
+      <div class="tile pro" style="--dot:#A3E36B"><svg aria-hidden="true"><use href="#s"/></svg></div>
+    </div>
+    <p class="alt-note">It's easy to tell apart, but it breaks the lamp story (lamps aren't pink or green), runs out of good colors quickly, and green and amber clash with the studio's "Passed" and "Review required" status colors. It also drifts closer to Adobe's look.</p>
+  </section>
+</div>
+
+<script>
+for (const b of document.querySelectorAll(".seg button")) {
+  b.addEventListener("click", () => {
+    document.body.dataset.dot = b.dataset.d;
+    for (const x of document.querySelectorAll(".seg button")) x.setAttribute("aria-pressed", String(x === b));
+  });
+}
+</script>
+</body>
+</html>

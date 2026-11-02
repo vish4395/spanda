@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spanda Color Options</title>
+<!-- Offline, self-contained: no external fonts, scripts or images. Contrast ratios computed with the WCAG 2.x formula. -->
+<style>
+/* Layout: one row per color direction; each row shows the mark on dark, on light, as an app icon, and in the UI. */
+:root {
+  --night: #0E0E11;
+  --panel: #16161B;
+  --raised: #1E1E25;
+  --divider: #2A2A33;
+  --border: #71717A;
+  --moon: #ECECF1;
+  --ash: #A1A1AA;
+  --success: #4ADE80;
+  --warn: #FBBF24;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Ubuntu Mono", "Noto Sans Mono", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--moon); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 56px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 64px; }
+h1, h2, h3 { margin: 0; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ash); }
+.muted { color: var(--ash); }
+.intro { display: grid; gap: 14px; max-width: 70ch; }
+.intro h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 600; letter-spacing: -0.02em; }
+.intro p { font-size: 17px; color: var(--ash); }
+
+.option { display: grid; gap: 20px; border-top: 1px solid var(--divider); padding-top: 36px; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; }
+.head h2 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+.pick { border: 1px solid currentColor; border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 500; }
+.story { max-width: 75ch; display: grid; gap: 8px; }
+.story .idea { font-size: 19px; line-height: 1.4; }
+
+.row { display: grid; gap: 14px; grid-template-columns: 1.3fr 1fr 1fr 1.3fr; }
+.tile { border: 1px solid var(--divider); border-radius: 12px; min-height: 200px; display: grid; place-items: center; padding: 20px; position: relative; min-width: 0; }
+.tile .cap { position: absolute; left: 12px; bottom: 8px; font-family: var(--mono); font-size: 11px; color: var(--ash); }
+.tile.dark { background: var(--night); }
+.tile.light { background: var(--moon); color: var(--night); }
+.tile.light .cap { color: #52525B; }
+.lockup { display: flex; align-items: center; gap: 12px; font-size: 32px; font-weight: 500; letter-spacing: 0.01em; }
+.lockup svg { width: 52px; height: 52px; flex: none; }
+.app-icon { width: 104px; height: 104px; border-radius: 24px; display: grid; place-items: center; border: 1px solid var(--divider); box-shadow: 0 8px 24px rgb(0 0 0 / 0.45); }
+.app-icon svg { width: 66px; height: 66px; }
+.ui { display: grid; gap: 12px; justify-items: start; width: 100%; }
+.btn { height: 34px; padding: 0 16px; border-radius: 6px; border: 0; font: inherit; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; }
+.focus { outline: 2px solid; outline-offset: 2px; }
+.link { font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+.ui .sel { width: 100%; display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; background: var(--raised); font-size: 13px; }
+.ui .sel i { width: 3px; height: 18px; border-radius: 2px; display: block; }
+
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.sw { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--divider); border-radius: 10px; padding: 8px 12px 8px 8px; min-width: 0; }
+.sw b { display: block; font-size: 13px; font-weight: 600; }
+.sw span { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--ash); font-variant-numeric: tabular-nums; }
+.sw .c { width: 36px; height: 36px; border-radius: 6px; border: 1px solid rgb(255 255 255 / 0.08); flex: none; }
+.notes { display: grid; gap: 6px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.notes ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.notes h3 { font-size: 12px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ash); font-weight: 500; margin-bottom: 4px; }
+.notes .con li::marker { color: var(--warn); }
+
+.mark .ln { fill: none; stroke: currentColor; stroke-width: 5; stroke-linecap: round; }
+.mark .dt { fill: var(--dot, currentColor); }
+
+.verdict { background: var(--panel); border: 1px solid var(--divider); border-radius: 14px; padding: 24px; display: grid; gap: 10px; max-width: 80ch; }
+.verdict h2 { font-size: 24px; }
+
+@media (max-width: 900px) { .row { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="kolam" viewBox="0 0 64 64">
+      <path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/>
+      <circle class="dt" cx="32" cy="20" r="3.4"/>
+      <circle class="dt" cx="32" cy="42" r="3.4"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+  <header class="intro">
+    <span class="label">Spanda · color exploration</span>
+    <h1>Four ways to color the mark</h1>
+    <p>All four use the Kolam S. Each row shows the mark on dark, on light, as an app icon, and how the color behaves inside the studio (primary button, focus ring, selected item). Every pairing shown passes WCAG contrast for its use.</p>
+  </header>
+
+  <!-- 1. Neel -->
+  <section class="option" aria-labelledby="o1">
+    <div class="head">
+      <span class="label">Option 1</span>
+      <h2 id="o1">Neel (indigo) + Diya</h2>
+      <span class="pick" style="color:#8E9AF7">Recommended</span>
+    </div>
+    <div class="story">
+      <p class="idea">The line is indigo, and the two dots are lamps.</p>
+      <p class="muted">"Indigo" comes from the Greek <i>indikón</i>, "from India": the dye was India's gift to the world's color palette. The dots glow like diyas placed on a kolam. Western users see a confident blue-violet with a warm spark; the story is there for anyone who asks.</p>
+    </div>
+    <div class="row" style="--dot:#E8A25A">
+      <div class="tile dark"><div class="lockup" style="color:#8E9AF7"><svg class="mark"><use href="#kolam"/></svg><span style="color:var(--moon)">spanda</span></div><span class="cap">On dark</span></div>
+      <div class="tile light" style="--dot:#1E2A78"><div class="lockup" style="color:#4B57E0"><svg class="mark"><use href="#kolam"/></svg><span style="color:#1E2A78">spanda</span></div><span class="cap">On light</span></div>
+      <div class="tile dark"><div class="app-icon" style="background:radial-gradient(circle at 50% 45%, rgb(75 87 224 / .55), transparent 65%), var(--night);color:#8E9AF7"><svg class="mark"><use href="#kolam"/></svg></div><span class="cap">App icon</span></div>
+      <div class="tile dark"><div class="ui">
+        <button class="btn" style="background:#4B57E0;color:#fff" type="button">Approve storyboard</button>
+        <button class="btn focus" style="background:var(--raised);color:var(--moon);outline-color:#8E9AF7" type="button">Focused button</button>
+        <span class="link" style="color:#8E9AF7">View test results</span>
+        <div class="sel"><i style="background:#8E9AF7"></i>Scene 2 · Selected</div>
+      </div><span class="cap">In the studio</span></div>
+    </div>
+    <div class="swatches">
+      <div class="sw"><div class="c" style="background:#4B57E0"></div><div><b>Neel</b><span>#4B57E0 · white text 5.6:1</span></div></div>
+      <div class="sw"><div class="c" style="background:#8E9AF7"></div><div><b>Neel Light</b><span>#8E9AF7 · on Night 7.5:1</span></div></div>
+      <div class="sw"><div class="c" style="background:#1E2A78"></div><div><b>Neel Deep</b><span>#1E2A78 · on light 10.8:1</span></div></div>
+      <div class="sw"><div class="c" style="background:#E8A25A"></div><div><b>Diya</b><span>#E8A25A · on Night 9.0:1</span></div></div>
+    </div>
+    <div class="notes">
+      <div><h3>Strengths</h3><ul><li>Hidden Indian meaning in the color itself, not only the name</li><li>Stands apart from the violet used by most AI tools</li><li>Two-color mark is memorable; Diya stays in the logo, not the UI</li></ul></div>
+      <div><h3>Trade-offs</h3><ul class="con"><li>Needs the studio's accent tokens changed from violet to Neel (small, contained change)</li><li>On light backgrounds the dots switch to Neel Deep, since Diya is too faint there</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 2. Violet (current) -->
+  <section class="option" aria-labelledby="o2">
+    <div class="head">
+      <span class="label">Option 2</span>
+      <h2 id="o2">Violet (current)</h2>
+    </div>
+    <div class="story">
+      <p class="idea">Keep today's studio violet for everything.</p>
+      <p class="muted">No changes to the app's design system. The mark is a single color.</p>
+    </div>
+    <div class="row">
+      <div class="tile dark"><div class="lockup" style="color:#A78BFA"><svg class="mark"><use href="#kolam"/></svg><span style="color:var(--moon)">spanda</span></div><span class="cap">On dark</span></div>
+      <div class="tile light"><div class="lockup" style="color:#7C3AED"><svg class="mark"><use href="#kolam"/></svg><span style="color:var(--night)">spanda</span></div><span class="cap">On light</span></div>
+      <div class="tile dark"><div class="app-icon" style="background:radial-gradient(circle at 50% 45%, rgb(124 58 237 / .5), transparent 65%), var(--night);color:#A78BFA"><svg class="mark"><use href="#kolam"/></svg></div><span class="cap">App icon</span></div>
+      <div class="tile dark"><div class="ui">
+        <button class="btn" style="background:#7C3AED;color:#fff" type="button">Approve storyboard</button>
+        <button class="btn focus" style="background:var(--raised);color:var(--moon);outline-color:#A78BFA" type="button">Focused button</button>
+        <span class="link" style="color:#A78BFA">View test results</span>
+        <div class="sel"><i style="background:#A78BFA"></i>Scene 2 · Selected</div>
+      </div><span class="cap">In the studio</span></div>
+    </div>
+    <div class="swatches">
+      <div class="sw"><div class="c" style="background:#7C3AED"></div><div><b>Violet</b><span>#7C3AED · white text 5.7:1</span></div></div>
+      <div class="sw"><div class="c" style="background:#A78BFA"></div><div><b>Lilac</b><span>#A78BFA · on Night 7.1:1</span></div></div>
+    </div>
+    <div class="notes">
+      <div><h3>Strengths</h3><ul><li>Zero design-system changes</li><li>Already verified across the studio UI</li></ul></div>
+      <div><h3>Trade-offs</h3><ul class="con"><li>Violet is the default "AI product" color right now, so it's easy to forget</li><li>No story behind the color</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 3. Haldi -->
+  <section class="option" aria-labelledby="o3">
+    <div class="head">
+      <span class="label">Option 3</span>
+      <h2 id="o3">Haldi (turmeric)</h2>
+    </div>
+    <div class="story">
+      <p class="idea">A single warm turmeric gold on near-black, like light from a projector lamp.</p>
+      <p class="muted">The boldest option. Very cinematic and very different from other AI tools, with a quiet Indian root.</p>
+    </div>
+    <div class="row">
+      <div class="tile dark"><div class="lockup" style="color:#E3A33B"><svg class="mark"><use href="#kolam"/></svg><span style="color:var(--moon)">spanda</span></div><span class="cap">On dark</span></div>
+      <div class="tile light"><div class="lockup" style="color:#7A4A0E"><svg class="mark"><use href="#kolam"/></svg><span style="color:var(--night)">spanda</span></div><span class="cap">On light</span></div>
+      <div class="tile dark"><div class="app-icon" style="background:radial-gradient(circle at 50% 45%, rgb(227 163 59 / .35), transparent 65%), var(--night);color:#E3A33B"><svg class="mark"><use href="#kolam"/></svg></div><span class="cap">App icon</span></div>
+      <div class="tile dark"><div class="ui">
+        <button class="btn" style="background:#E3A33B;color:var(--night)" type="button">Approve storyboard</button>
+        <button class="btn focus" style="background:var(--raised);color:var(--moon);outline-color:#E3A33B" type="button">Focused button</button>
+        <span class="link" style="color:#E3A33B">View test results</span>
+        <div class="sel"><i style="background:var(--warn)"></i>Review required · warning</div>
+      </div><span class="cap">In the studio: clashes with warning</span></div>
+    </div>
+    <div class="swatches">
+      <div class="sw"><div class="c" style="background:#E3A33B"></div><div><b>Haldi</b><span>#E3A33B · on Night 8.8:1 · dark text only</span></div></div>
+      <div class="sw"><div class="c" style="background:#7A4A0E"></div><div><b>Haldi Deep</b><span>#7A4A0E · for light backgrounds</span></div></div>
+    </div>
+    <div class="notes">
+      <div><h3>Strengths</h3><ul><li>Most distinctive in the category</li><li>Warm and cinematic</li></ul></div>
+      <div><h3>Trade-offs</h3><ul class="con"><li>Collides with the studio's amber "warning" state (see the selected row above)</li><li>Buttons need dark text, which feels unusual</li><li>Near-black plus gold drifts toward luxury, or toward the "saffron and gold" cliché we ruled out</li></ul></div>
+    </div>
+  </section>
+
+  <!-- 4. Moonlight -->
+  <section class="option" aria-labelledby="o4">
+    <div class="head">
+      <span class="label">Option 4</span>
+      <h2 id="o4">Moonlight + Diya</h2>
+    </div>
+    <div class="story">
+      <p class="idea">A white line with two lamp-lit dots. Minimal, like a title card.</p>
+      <p class="muted">The logo is almost colorless, so the users' own websites are the color. The studio keeps its existing violet accent for buttons.</p>
+    </div>
+    <div class="row" style="--dot:#E8A25A">
+      <div class="tile dark"><div class="lockup" style="color:var(--moon)"><svg class="mark"><use href="#kolam"/></svg><span>spanda</span></div><span class="cap">On dark</span></div>
+      <div class="tile light" style="--dot:#B4621B"><div class="lockup" style="color:var(--night)"><svg class="mark"><use href="#kolam"/></svg><span>spanda</span></div><span class="cap">On light</span></div>
+      <div class="tile dark"><div class="app-icon" style="background:var(--night);color:var(--moon)"><svg class="mark"><use href="#kolam"/></svg></div><span class="cap">App icon</span></div>
+      <div class="tile dark"><div class="ui">
+        <button class="btn" style="background:#7C3AED;color:#fff" type="button">Approve storyboard</button>
+        <button class="btn focus" style="background:var(--raised);color:var(--moon);outline-color:#A78BFA" type="button">Focused button</button>
+        <span class="link" style="color:#A78BFA">View test results</span>
+        <div class="sel"><i style="background:#A78BFA"></i>Scene 2 · Selected</div>
+      </div><span class="cap">In the studio: unchanged violet</span></div>
+    </div>
+    <div class="swatches">
+      <div class="sw"><div class="c" style="background:#ECECF1"></div><div><b>Moonlight</b><span>#ECECF1 · on Night 16.4:1</span></div></div>
+      <div class="sw"><div class="c" style="background:#E8A25A"></div><div><b>Diya</b><span>#E8A25A · on Night 9.0:1</span></div></div>
+    </div>
+    <div class="notes">
+      <div><h3>Strengths</h3><ul><li>Premium and calm; it lets the product's output shine</li><li>No design-system changes</li></ul></div>
+      <div><h3>Trade-offs</h3><ul class="con"><li>Logo and app accent don't share a color, so the brand feels less unified</li><li>A white app icon is harder to spot in a dock</li></ul></div>
+    </div>
+  </section>
+
+  <aside class="verdict">
+    <span class="label">Recommendation</span>
+    <h2>Go with Option 1: Neel + Diya</h2>
+    <p class="muted">It's the only option where the color carries the same hidden-India idea as the name and the kolam, and it moves Spanda away from the generic AI violet without fighting the studio's status colors. If chosen, the studio's two accent tokens change (violet #7C3AED becomes Neel #4B57E0; lilac #A78BFA becomes Neel Light #8E9AF7). Both keep or improve their contrast.</p>
+  </aside>
+</div>
+</body>
+</html>

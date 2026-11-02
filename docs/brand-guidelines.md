@@ -1,4 +1,4 @@
-# Brand Guidelines v0.2 — Spanda
+# Brand Guidelines v0.6 — Spanda
 
 > **Status: chosen, pending clearance.** The name has had a light web-collision check only. It needs a formal trademark search (classes 9 and 42) and domain/handle availability before any rename of packages, app ID or repo. Until then the codebase keeps `ai-cinematic-studio` / `@studio/*`.
 >
@@ -11,8 +11,9 @@
 | Name | **Spanda** (product: *Spanda Studio*) |
 | Pronunciation | SPAN-duh (Sanskrit: SPUN-duh; both are fine) |
 | Tagline | **Stillness, set in motion.** |
-| Primary Color | #7C3AED |
-| Secondary Color | #A78BFA |
+| Primary Color | #4B57E0 |
+| Secondary Color | #8E9AF7 |
+| Logo | Kolam S: one unbroken Neel line around two Diya dots |
 | Canvas | #0E0E11 |
 | Audience | Western-first, global |
 | Origin | Designed and built in India |
@@ -50,16 +51,22 @@ Rejected: *Kinora* (strong, but no Indian layer), *Yavanika* and *Sutradhar* (to
 
 Colors are inherited from the studio design system, so the brand and the app read as one. Names carry the heritage layer; users only see good color.
 
+**Why indigo:** the word comes from the Greek *indikón*, "from India", because the dye did. The color carries the same hidden-India idea as the name and the kolam, and it moves Spanda away from the violet most AI products use.
+
 ### Primary Colors
 | Name | Hex | Use |
 |---|---|---|
-| Indigo Pulse | #7C3AED | Logo mark, primary CTA, app icon field |
-| Lilac | #A78BFA | Accent text, links, focus, mark on dark |
+| Neel | #4B57E0 | Primary CTA fill, selected indicator, logo line on light backgrounds |
+| Neel Light | #8E9AF7 | Logo line on dark, accent text, links, focus ring |
+| Neel Deep | #1E2A78 | Wordmark and dots on light backgrounds, print |
 
 ### Secondary Colors
 | Name | Hex | Use |
 |---|---|---|
-| Diya | #E8A25A | Warm oil-lamp glow. **Marketing only**, one highlight per composition. Never in studio chrome (it would read as the warning state). |
+| Diya Gold | #E9B04C | The two dots of the logo (lamps on a kolam; gold is also the color of Guru, Jupiter, the planet of growth in Vedic tradition), plus one marketing highlight per composition. Never in studio chrome, where it would read as the warning state. |
+
+### Studio interface: muted
+Inside Spanda Studio the accent is a muted tint of Neel (`#5862C4` buttons, `#9AA1DE` links and focus), and the area around the preview is a true neutral gray (`#121212`). A tool for colorful, cinematic websites must not compete with them or distort how their colors look. Full-strength Neel and Diya Gold are for the logo, the website and marketing. Tokens live in `design-system/ai-cinematic-studio/MASTER.md`.
 
 ### Neutral Palette
 | Name | Hex | Use |
@@ -74,20 +81,38 @@ Colors are inherited from the studio design system, so the brand and the app rea
 Use the MASTER status tokens (`--success`, `--warning`, `--danger`), always with an icon and a label.
 
 ### Accessibility
-Contrast figures are in MASTER. White on Indigo Pulse is 5.7:1, so violet may carry white text. Lilac is a text and focus color on dark surfaces only. Diya on Night is display-size only until it has been verified.
+Contrast figures are in MASTER. White on Neel is 5.6:1, so Neel may carry white text. Neel Light is 7.5:1 on Night and is a text and focus color on dark surfaces only. Neel Deep is 10.8:1 on Moonlight. Diya Gold is 9.9:1 on Night but under 2:1 on light backgrounds, so on light the logo dots switch to Neel Deep.
 
 ## 2. Typography
 
 - **Studio UI:** the MASTER system stacks. No bundled or CDN fonts, because the app works offline with zero font-license surface.
-- **Wordmark:** custom-drawn and shipped as outlined SVG paths, never a live font. Lowercase `spanda`, geometric sans, medium weight, slightly open tracking (+2%). The counter of the `a` echoes the bindu (see Logo).
+- **Wordmark:** custom-drawn and shipped as outlined SVG paths, never a live font. Lowercase `spanda`, geometric sans, medium weight, slightly open tracking (+2%). The stroke weight matches the Kolam S line so mark and wordmark read as one drawing.
 - **Devanagari mark (स्पन्द):** a secondary mark only, for the About page, Indian launches, merchandise and credits. Never in the primary lockup or the UI. It must be drawn by someone fluent in Devanagari type, never as faux-Devanagari Latin.
 - **Marketing site:** system stack by default. Any display font must be OFL-licensed, self-hosted and added to `licenses/inventory.json` first.
 - Type scale for marketing: 14 / 16 / 20 / 28 / 44 / 72px; headings 600 with tight leading (1.1); body 400 at 1.5.
 
 ## 3. Logo Usage
 
-### Concept: bindu and pulse
-A solid dot (*bindu*, the point everything begins from) with two or three concentric rings spreading out from it, the outer ring opening slightly at about 2 o'clock, like a pulse still travelling. To Western eyes it is a clean, modern mark; to those who know the reference, it is rooted. It must not read as a target, a Wi-Fi icon or a play button: keep the rings uneven in weight (thick to thin outward) and keep the opening.
+### Concept: the Kolam S
+One unbroken line loops around two dots and forms an **S**. In South India a *kolam* is drawn at the doorstep each morning: a single continuous line weaving around a grid of dots. In the mark, the dots are scenes and the line is the scroll that carries the viewer from one to the next, in one continuous take. The dots are colored Diya, like oil lamps placed on a kolam. Western viewers see a clean S monogram; anyone who knows kolam sees the tradition.
+
+Drawing rules:
+- The line is one stroke with round caps and constant weight; it never breaks or overlaps.
+- Each dot sits inside a curve of the S, centered in its counter. Never put a dot on the spine or let a vertical stroke cross the S, which would read as a dollar sign.
+- Reference geometry (64-unit grid): two 11-unit arcs of 250° on centers (32,20) and (32,42), stroke 5; dots of radius 3.4 at the arc centers. The final artwork refines optical balance from this.
+
+### Colors of the mark
+| Background | Line | Dots | Wordmark |
+|---|---|---|---|
+| Night / dark | Neel Light #8E9AF7 | Diya #E9B04C | Moonlight #ECECF1 |
+| Moonlight / light | Neel #4B57E0 | Neel Deep #1E2A78 | Neel Deep #1E2A78 |
+| Single color | Moonlight or Night throughout | same | same |
+
+### Files
+SVG sources live in `docs/brand/assets/`: `spanda-logo.svg` (dark backgrounds), `spanda-logo-light.svg`, `spanda-mark.svg`, `spanda-icon.svg`, and `spanda-icon-mandana.svg`. One-page summary: `docs/brand/branding.md`.
+
+### Mandana special edition
+A red-ochre (Geru `#9B2F1E`) tile with a turmeric (Haldi `#F2B829`) S and chalk-white (Khadiya `#FFF4E2`) dots inside a dotted chalk border, after the Mandana folk art of Rajasthan and Madhya Pradesh. Used **only** where heritage should be on show: the About page, India launch material, festival editions (Diwali, Holi), merchandise and stickers. Never as the default app icon or in the studio interface.
 
 ### Variants
 | Variant | Use |
@@ -96,23 +121,25 @@ A solid dot (*bindu*, the point everything begins from) with two or three concen
 | Mark alone | App icon, favicon, avatars |
 | Wordmark alone | Inline in text-heavy contexts |
 | Devanagari lockup (mark + स्पन्द) | About page, India launches, merch |
-| Mono Moonlight (#ECECF1) / mono Night | Single-color contexts |
+| Single color (Moonlight or Night) | Print, embossing, single-color contexts |
 
-**App icon:** Lilac mark on a Night rounded square, with a faint Indigo radial glow behind the bindu (the only gradient allowed in the identity).
+**App icon:** the dark-background mark on a Night rounded square, with a faint Neel radial glow behind the S (the only gradient allowed in the identity).
 
 ### Clear Space
-On every side, at least the diameter of the outer ring.
+On every side, at least the height of one loop of the S.
 
 ### Minimum Size
-Mark 16px (simplified to bindu + one ring); lockup 96px wide.
+Mark 16px (stroke thickened to 2px on the 16-unit grid, dots kept); lockup 96px wide.
 
 ### Don'ts
 - No glows, neon, bevels or ornamental borders
 - No mandalas, paisley, lotus or deity motifs added to or around the mark
+- Don't rotate, mirror or stretch the S
+- Don't move the dots out of the curves or add more dots
 - Don't put the mark on Diya or on busy imagery without a Night scrim
 - Don't recolor outside the palette
 
-**Signature motion:** on launch or hover, a single pulse ripples outward from the bindu over 700ms (ease-out), the only time the brand moves on its own. Disabled under `prefers-reduced-motion`.
+**Signature motion:** on launch or hover, the line draws itself from the top over about 1.1s, then the two dots land, the only time the brand moves on its own. Disabled under `prefers-reduced-motion`, where the finished mark is shown.
 
 ## 4. Voice & Tone
 
@@ -161,8 +188,8 @@ Where the Indian touch lives, and where it does not:
 | Place | Treatment |
 |---|---|
 | Name meaning | One line on the About page, splash screen and press kit |
-| Logo | Bindu and pulse symbolism (documented, never explained in the UI) |
-| Color names | Diya and others, in brand docs and tokens |
+| Logo | Kolam S symbolism and Diya-colored dots (documented, never explained in the UI) |
+| Color | Neel (indigo, from the Greek for "from India") and Diya, in brand docs and tokens |
 | Origin line | "Designed and built in India" in the footer, installer, About and credits |
 | AI director agent | Internal and credits name: **Sutradhar** ("holder of the threads", the director of Sanskrit drama). The UI says "Director". |
 | Release codenames | Terms from classical Indian theatre, in order: *Yavanika* (curtain), *Ranga* (stage), *Natya* (drama), *Chhaya* (shadow), *Darpana* (mirror)… |
@@ -175,7 +202,7 @@ Where the Indian touch lives, and where it does not:
 The hero imagery is always **real Spanda output**, shown in a device frame on Night. No stock photography of people at laptops.
 
 ### Illustrations
-Minimal line diagrams in Ash and Lilac that explain the pipeline (idea → storyboard → scenes → tests → export). No robots, brains, sparkles or ornamental Indian motifs.
+Minimal line diagrams in Ash and Neel Light that explain the pipeline (idea → storyboard → scenes → tests → export). No robots, brains, sparkles or ornamental Indian motifs.
 
 ### Icons
 Lucide at 1.75 stroke, matching the studio (pending license inventory, per MASTER).
@@ -197,7 +224,7 @@ Spanda is **open core**: the studio is free and open source on GitHub, and premi
 
 - There is one paid brand, "Pro", not a new name per add-on. Western buyers should understand what they are buying from the name alone.
 - Add-on names are plain English. Theatre codenames stay internal (see §5).
-- In the UI, paid features carry a small "Pro" text chip (Lilac outline plus a lock or sparkle icon from the Lucide set), never color alone and never Diya.
+- In the UI, paid features carry a small "Pro" text chip (Neel Light outline plus a lock or sparkle icon from the Lucide set), never color alone and never Diya.
 
 ### Promises (public, in the README)
 These protect community trust, which is the asset open core depends on:
@@ -224,21 +251,24 @@ These protect community trust, which is the asset open core depends on:
 ## AI Image Generation
 
 ### Base Prompt Template
-"Dark cinematic product scene, near-black #0E0E11 environment, single soft violet (#7C3AED) key light, one small warm amber oil-lamp accent (#E8A25A), generous negative space, concentric ripple motif, crisp, no text, no logos."
+"Dark cinematic product scene, near-black #0E0E11 environment, single soft indigo (#4B57E0) key light, one small warm amber oil-lamp accent (#E9B04C), generous negative space, one flowing continuous line motif, crisp, no text, no logos."
 
 ### Style Keywords
-pulse, ripple, stillness, depth, layered parallax planes, quiet, precise, editorial
+continuous line, flowing S-curve, stillness, depth, layered parallax planes, quiet, precise, editorial
 
 ### Visual Don'ts
-Neon cyberpunk, glowing brains, circuitry, purple gradient blobs, saffron-and-gold palettes, mandalas, temples, deities, "mystic India" clichés.
+Neon cyberpunk, glowing brains, circuitry, purple gradient blobs, generic AI violet, saffron-and-gold palettes, mandalas, temples, deities, "mystic India" clichés.
 
 ## Next Steps
 1. Trademark knockout search: USPTO, EUIPO, WIPO Global Brand DB, Indian Trade Marks Registry, classes 9 and 42.
 2. Domains (`spanda.studio`, `spanda.app`, `getspanda.com`), GitHub org, npm `@spanda` scope, social handles.
-3. Draw the mark, wordmark and Devanagari mark as SVG and validate them at 16px.
+3. Draw the final Kolam S, wordmark and Devanagari mark as SVG (from the reference geometry in §3) and validate them at 16px.
 4. If cleared: rename `package.json` names, Electron `productName`/`appId`, window title and docs in one commit.
 
 ## Changelog
+- v0.6 (2026-11-02): Studio interface switched to muted Neel tints and a neutral preview surround; full-strength colors kept for the logo and marketing.
+- v0.5 (2026-11-02): Logo dots changed from Diya amber to Diya Gold #E9B04C. Added the Mandana special edition and the SVG asset files.
+- v0.4 (2026-11-02): Logo changed to the Kolam S (replacing bindu and pulse, which read as a target or Wi-Fi icon). Accent changed from violet to Neel indigo with Diya dots; studio tokens updated to match.
 - v0.3 (2026-11-02): Added the open-core model: Spanda Pro add-on architecture, public promises, license and trademark guardrails, and the GitHub launch kit.
 - v0.2 (2026-11-02): Name changed to Spanda. Added the heritage layer and the bindu-and-pulse logo; renamed the colors.
 - v0.1 (2026-11-01): Proposed Kinora, with positioning, voice and identity derived from the studio design system.

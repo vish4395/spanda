@@ -94,7 +94,8 @@ function createWindow(): BrowserWindow {
     minHeight: 700,
     show: false,
     backgroundColor: '#0E0E11',
-    title: 'AI Cinematic Studio',
+    title: 'Spanda Studio',
+    icon: path.join(resourcesDir, 'icons', 'icon.png'), // Windows/Linux; macOS takes the Dock icon below
     webPreferences: {
       preload: path.join(distDir, 'preload.cjs'),
       contextIsolation: true,
@@ -133,6 +134,8 @@ app.on('second-instance', () => {
 });
 
 app.whenReady().then(async () => {
+  // Unpackaged runs would show Electron's icon; a packaged app gets icon.icns from its bundle instead.
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(path.join(resourcesDir, 'icons', 'macos-dock.png'));
   // Deny every permission request (camera, mic, geolocation, notifications…).
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
@@ -149,9 +152,9 @@ app.whenReady().then(async () => {
   const sample = JSON.parse(await readFile(path.join(resourcesDir, 'story-spec.example.json'), 'utf8')) as StorySpec;
   await services.init(sample);
   app.setAboutPanelOptions({
-    applicationName: 'AI Cinematic Studio',
+    applicationName: 'Spanda Studio',
     applicationVersion: app.getVersion(),
-    copyright: 'Local-first cinematic website studio',
+    copyright: 'Stillness, set in motion. Designed and built in India.',
     credits: 'Built with Electron, React, three.js and React Three Fiber. See bundled license notices.',
   });
   const menus = new StudioMenus(services, !app.isPackaged);
@@ -168,7 +171,7 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) open();
   });
 }).catch((err: unknown) => {
-  console.error('Failed to start AI Cinematic Studio', err);
+  console.error('Failed to start Spanda Studio', err);
   app.exit(1);
 });
 

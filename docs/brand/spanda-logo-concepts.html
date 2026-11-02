@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spanda Logo Concepts</title>
+<!-- Offline, self-contained: no external fonts, scripts or images. -->
+<style>
+/* Layout: three concept "reels" stacked; each shows the mark large, then in use, then at small sizes. */
+:root {
+  --night: #0E0E11;
+  --panel: #16161B;
+  --raised: #1E1E25;
+  --divider: #2A2A33;
+  --border: #71717A;
+  --moon: #ECECF1;
+  --ash: #A1A1AA;
+  --indigo: #7C3AED;
+  --lilac: #A78BFA;
+  --diya: #E8A25A;
+  --success: #4ADE80;
+  --danger: #F87171;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Ubuntu Mono", "Noto Sans Mono", monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--night); color: var(--moon); font-family: var(--sans); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 56px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 72px; }
+h1, h2, h3 { margin: 0; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--lilac); }
+.muted { color: var(--ash); }
+.intro { display: grid; gap: 14px; max-width: 70ch; }
+.intro h1 { font-size: clamp(32px, 5vw, 48px); font-weight: 600; letter-spacing: -0.02em; }
+.intro p { font-size: 17px; color: var(--ash); }
+
+.concept { display: grid; gap: 24px; border-top: 1px solid var(--divider); padding-top: 40px; }
+.concept-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px; }
+.concept-head h2 { font-size: 30px; font-weight: 600; letter-spacing: -0.01em; }
+.pick { border: 1px solid var(--lilac); color: var(--lilac); border-radius: 999px; padding: 2px 12px; font-size: 13px; font-weight: 500; }
+.hero-row { display: grid; gap: 16px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.stage { background: radial-gradient(closest-side, rgb(124 58 237 / 0.18), transparent), var(--panel); border: 1px solid var(--divider); border-radius: 14px; min-height: 340px; display: grid; place-items: center; cursor: pointer; }
+.stage svg { width: 200px; height: 200px; color: var(--lilac); overflow: visible; }
+.stage-hint { font-family: var(--mono); font-size: 11px; color: var(--ash); margin-top: -36px; }
+.story { display: grid; gap: 16px; align-content: start; }
+.story .idea { font-size: 21px; line-height: 1.35; }
+.story h3 { font-size: 13px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ash); font-weight: 500; }
+.story ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.watch li::marker { color: var(--diya); }
+
+.uses { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); }
+.use { border: 1px solid var(--divider); border-radius: 10px; min-height: 150px; display: grid; place-items: center; padding: 20px; position: relative; }
+.use .cap { position: absolute; left: 12px; bottom: 8px; font-family: var(--mono); font-size: 11px; color: var(--ash); }
+.use.dark { background: var(--night); }
+.use.light { background: var(--moon); color: var(--night); }
+.use.light .cap { color: #52525B; }
+.use.light svg { color: var(--night); }
+.lockup { display: flex; align-items: center; gap: 12px; font-size: 34px; font-weight: 500; letter-spacing: 0.01em; }
+.lockup svg { width: 46px; height: 46px; color: var(--lilac); }
+.app-icon { width: 96px; height: 96px; border-radius: 22px; display: grid; place-items: center; background: radial-gradient(circle at 50% 45%, rgb(124 58 237 / 0.5), transparent 65%), var(--night); border: 1px solid var(--divider); box-shadow: 0 8px 24px rgb(0 0 0 / 0.45); }
+.app-icon svg { width: 60px; height: 60px; color: var(--lilac); }
+.sizes { display: flex; gap: 20px; align-items: end; }
+.sizes svg { color: var(--lilac); }
+
+.compare-wrap { overflow-x: auto; border: 1px solid var(--divider); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; }
+th, td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+th { background: var(--raised); font-size: 12px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ash); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.good { color: var(--success); }
+td.mid { color: var(--diya); }
+
+/* Shared mark parts */
+.ln { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+.dot { fill: currentColor; }
+
+/* A: Kolam S — the line draws itself, then the dots land */
+.kolam .ln { stroke-dasharray: 100; stroke-dashoffset: 0; }
+.kolam.play .ln { animation: draw 1100ms cubic-bezier(.6,0,.2,1) both; }
+.kolam.play .dot { animation: land 400ms ease-out both; }
+.kolam.play .dot.d1 { animation-delay: 700ms; }
+.kolam.play .dot.d2 { animation-delay: 950ms; }
+@keyframes draw { from { stroke-dashoffset: 100; } to { stroke-dashoffset: 0; } }
+@keyframes land { from { opacity: 0; transform: scale(0); } to { opacity: 1; transform: scale(1); } }
+.dot { transform-box: fill-box; transform-origin: center; }
+
+/* B: Scene planes — planes slide into depth */
+.planes rect { transform-box: fill-box; }
+.planes.play .p1 { animation: slide 900ms cubic-bezier(.2,.7,.2,1) both; --dx: 14px; }
+.planes.play .p2 { animation: slide 900ms cubic-bezier(.2,.7,.2,1) 80ms both; --dx: 8px; }
+.planes.play .p3 { animation: slide 900ms cubic-bezier(.2,.7,.2,1) 160ms both; --dx: 3px; }
+@keyframes slide { from { transform: translate(var(--dx), var(--dx)); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* C: Still-to-wave — the wave leaves the still point */
+.wave .ln { stroke-dasharray: 100; }
+.wave.play .ln { animation: draw 1000ms ease-out 200ms both; }
+.wave.play .dot { animation: land 350ms ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .play .ln, .play .dot, .play rect { animation: none !important; }
+}
+@media (max-width: 760px) {
+  .hero-row { grid-template-columns: 1fr; }
+  .stage { min-height: 260px; }
+  .stage svg { width: 150px; height: 150px; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- A: Kolam S. One unbroken line looping around two dots. -->
+    <symbol id="m-kolam" viewBox="0 0 64 64">
+      <path class="ln" pathLength="100" stroke-width="5" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/>
+      <circle class="dot d1" cx="32" cy="20" r="3.4"/>
+      <circle class="dot d2" cx="32" cy="42" r="3.4"/>
+    </symbol>
+    <symbol id="m-kolam-16" viewBox="0 0 16 16">
+      <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M10.6 4.1 A2.75 2.75 0 1 0 8 7.75 A2.75 2.75 0 1 1 5.4 11.4"/>
+      <circle cx="8" cy="5" r="1" fill="currentColor"/>
+      <circle cx="8" cy="10.5" r="1" fill="currentColor"/>
+    </symbol>
+    <!-- B: Scene planes. Three scenes in depth. -->
+    <symbol id="m-planes" viewBox="0 0 64 64">
+      <rect class="p1" x="8" y="8" width="30" height="30" rx="6" fill="currentColor" opacity="0.28"/>
+      <rect class="p2" x="17" y="17" width="30" height="30" rx="6" fill="currentColor" opacity="0.58"/>
+      <rect class="p3" x="26" y="26" width="30" height="30" rx="6" fill="currentColor"/>
+    </symbol>
+    <!-- C: Still-to-wave. A still point, then motion. -->
+    <symbol id="m-wave" viewBox="0 0 64 64">
+      <circle class="dot" cx="10" cy="32" r="5"/>
+      <path class="ln" pathLength="100" stroke-width="5" d="M20 32 C27 32 27 14 34 14 C41 14 41 50 48 50 C53 50 54 40 56 36"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+  <header class="intro">
+    <span class="label">Spanda · logo exploration v2</span>
+    <h1>Three new directions for the mark</h1>
+    <p>The first mark (a dot with rings) read as a target or a Wi-Fi icon, so I dropped it. Each concept below starts from what Spanda means: a still thing that comes alive when you move. Click any large mark to replay its motion.</p>
+  </header>
+
+  <!-- A -->
+  <section class="concept" aria-labelledby="c-a">
+    <div class="concept-head">
+      <span class="label">Concept A</span>
+      <h2 id="c-a">The Kolam S</h2>
+      <span class="pick">Recommended</span>
+    </div>
+    <div class="hero-row">
+      <div class="stage" data-replay>
+        <svg class="kolam play" role="img" aria-label="Kolam S mark"><use href="#m-kolam"/></svg>
+      </div>
+      <div class="story">
+        <p class="idea">A single unbroken line loops around two dots and becomes an S.</p>
+        <p class="muted">In South India, a <i>kolam</i> is drawn at the doorstep every morning: one continuous line weaving around a grid of dots. Here the dots are scenes and the line is the scroll that carries you from one to the next, in one continuous take. Western viewers see a clean S monogram. Anyone who knows kolam sees the tradition.</p>
+        <h3>Why it works</h3>
+        <ul>
+          <li>It's the S of Spanda, so the mark and the name reinforce each other</li>
+          <li>The heritage is real but hidden, which is exactly the brief</li>
+          <li>The motion is built in: the line draws itself, then the scenes land</li>
+          <li>Holds up at 16px as a simple S with two dots</li>
+        </ul>
+        <h3>Watch out</h3>
+        <ul class="watch">
+          <li>Needs a careful final drawing so it never reads as a dollar sign (keep the dots inside the curves, never on a vertical stroke)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="uses">
+      <div class="use dark"><div class="lockup"><svg><use href="#m-kolam"/></svg>spanda</div><span class="cap">Primary lockup</span></div>
+      <div class="use light"><div class="lockup"><svg style="color:var(--night)"><use href="#m-kolam"/></svg>spanda</div><span class="cap">Mono on light</span></div>
+      <div class="use dark"><div class="app-icon"><svg><use href="#m-kolam"/></svg></div><span class="cap">App icon</span></div>
+      <div class="use dark"><div class="sizes"><svg width="48" height="48"><use href="#m-kolam"/></svg><svg width="32" height="32"><use href="#m-kolam"/></svg><svg width="16" height="16"><use href="#m-kolam-16"/></svg></div><span class="cap">48 · 32 · 16</span></div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="concept" aria-labelledby="c-b">
+    <div class="concept-head">
+      <span class="label">Concept B</span>
+      <h2 id="c-b">Scene Planes</h2>
+    </div>
+    <div class="hero-row">
+      <div class="stage" data-replay>
+        <svg class="planes play" role="img" aria-label="Scene planes mark"><use href="#m-planes"/></svg>
+      </div>
+      <div class="story">
+        <p class="idea">Three scenes stacked in depth, sliding toward you.</p>
+        <p class="muted">Every Spanda site is a sequence of scenes moving in 3D space as you scroll. The mark shows that directly: layered planes, back to front, the way parallax works.</p>
+        <h3>Why it works</h3>
+        <ul>
+          <li>Instantly says "3D, depth, scenes"</li>
+          <li>Very simple to draw, animate and scale</li>
+        </ul>
+        <h3>Watch out</h3>
+        <ul class="watch">
+          <li>Close to the generic "layers" icon used by many design tools, so it's hard to own</li>
+          <li>No connection to the name or the Indian story</li>
+        </ul>
+      </div>
+    </div>
+    <div class="uses">
+      <div class="use dark"><div class="lockup"><svg><use href="#m-planes"/></svg>spanda</div><span class="cap">Primary lockup</span></div>
+      <div class="use light"><div class="lockup"><svg style="color:var(--night)"><use href="#m-planes"/></svg>spanda</div><span class="cap">Mono on light</span></div>
+      <div class="use dark"><div class="app-icon"><svg><use href="#m-planes"/></svg></div><span class="cap">App icon</span></div>
+      <div class="use dark"><div class="sizes"><svg width="48" height="48"><use href="#m-planes"/></svg><svg width="32" height="32"><use href="#m-planes"/></svg><svg width="16" height="16"><use href="#m-planes"/></svg></div><span class="cap">48 · 32 · 16</span></div>
+    </div>
+  </section>
+
+  <!-- C -->
+  <section class="concept" aria-labelledby="c-c">
+    <div class="concept-head">
+      <span class="label">Concept C</span>
+      <h2 id="c-c">Still to Wave</h2>
+    </div>
+    <div class="hero-row">
+      <div class="stage" data-replay>
+        <svg class="wave play" role="img" aria-label="Still to wave mark"><use href="#m-wave"/></svg>
+      </div>
+      <div class="story">
+        <p class="idea">A still point, and a wave leaving it.</p>
+        <p class="muted">The most literal reading of the name: the dot is stillness, the wave is the pulse that sets it in motion. It works like a tagline you can see: "Stillness, set in motion."</p>
+        <h3>Why it works</h3>
+        <ul>
+          <li>Tells the name's meaning at a glance</li>
+          <li>Works well as an animated loader inside the app</li>
+        </ul>
+        <h3>Watch out</h3>
+        <ul class="watch">
+          <li>Wave lines are common in audio, health and fintech logos and can read as a heartbeat</li>
+          <li>Wide shape, so it fills a square app icon awkwardly</li>
+        </ul>
+      </div>
+    </div>
+    <div class="uses">
+      <div class="use dark"><div class="lockup"><svg><use href="#m-wave"/></svg>spanda</div><span class="cap">Primary lockup</span></div>
+      <div class="use light"><div class="lockup"><svg style="color:var(--night)"><use href="#m-wave"/></svg>spanda</div><span class="cap">Mono on light</span></div>
+      <div class="use dark"><div class="app-icon"><svg><use href="#m-wave"/></svg></div><span class="cap">App icon</span></div>
+      <div class="use dark"><div class="sizes"><svg width="48" height="48"><use href="#m-wave"/></svg><svg width="32" height="32"><use href="#m-wave"/></svg><svg width="16" height="16"><use href="#m-wave"/></svg></div><span class="cap">48 · 32 · 16</span></div>
+    </div>
+  </section>
+
+  <section class="concept" aria-labelledby="c-cmp">
+    <div class="concept-head">
+      <span class="label">Side by side</span>
+      <h2 id="c-cmp">How they compare</h2>
+    </div>
+    <div class="compare-wrap">
+      <table>
+        <thead><tr><th>Test</th><th>A · Kolam S</th><th>B · Scene Planes</th><th>C · Still to Wave</th></tr></thead>
+        <tbody>
+          <tr><td>Ownable, not generic</td><td class="good">Strong</td><td class="mid">Weak: looks like "layers"</td><td class="mid">Medium</td></tr>
+          <tr><td>Connects to the name</td><td class="good">S monogram plus the meaning</td><td class="mid">No</td><td class="good">Literal meaning</td></tr>
+          <tr><td>Hidden Indian touch</td><td class="good">Kolam tradition</td><td class="mid">None</td><td class="mid">Only through the word</td></tr>
+          <tr><td>Says "cinematic scroll"</td><td class="good">Line carries you through scenes</td><td class="good">Depth and scenes</td><td class="mid">Motion, not scenes</td></tr>
+          <tr><td>16px favicon</td><td class="good">Clear</td><td class="good">Clear</td><td class="mid">Thin and wide</td></tr>
+          <tr><td>Built-in motion</td><td class="good">Line draws itself</td><td class="good">Planes slide in</td><td class="good">Wave travels</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="muted">These are concept sketches, not final artwork. The chosen direction still needs a proper drawing (stroke contrast, optical balance, a custom wordmark) before it goes into the app.</p>
+  </section>
+
+</div>
+
+<script>
+// Inline the large marks so the motion CSS can reach their parts (it can't cross a <use> boundary).
+for (const svg of document.querySelectorAll("[data-replay] svg")) {
+  const use = svg.querySelector("use");
+  const symbol = document.querySelector(use.getAttribute("href"));
+  svg.setAttribute("viewBox", symbol.getAttribute("viewBox"));
+  use.replaceWith(...[...symbol.children].map((el) => el.cloneNode(true)));
+}
+for (const stage of document.querySelectorAll("[data-replay]")) {
+  stage.addEventListener("click", () => {
+    const svg = stage.querySelector("svg");
+    svg.classList.remove("play");
+    void svg.getBoundingClientRect();
+    svg.classList.add("play");
+  });
+}
+</script>
+</body>
+</html>

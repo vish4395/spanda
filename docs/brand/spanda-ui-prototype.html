@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spanda Studio Prototype</title>
+<!-- Offline, self-contained prototype: no external fonts, scripts or images. -->
+<style>
+/* Layout: a full studio window (top bar, nav, preview stage, inspector, job panel) with a palette switch above it, then logo growth variants. */
+:root {
+  --bg: #0E0E11;
+  --panel: #16161B;
+  --raised: #1E1E25;
+  --divider: #2A2A33;
+  --control-border: #71717A;
+  --fg: #ECECF1;
+  --fg-muted: #A1A1AA;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --danger: #F87171;
+  --diya: #E8A25A;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", "Ubuntu Mono", "Noto Sans Mono", monospace;
+  /* Palette under test: vivid (current) by default */
+  --accent: #4B57E0;
+  --accent-hover: #3F4BC9;
+  --accent-text: #8E9AF7;
+  --stage: #0E0E11;
+  color-scheme: dark;
+}
+body[data-palette="muted"] {
+  --accent: #5059B8;
+  --accent-hover: #454EA6;
+  --accent-text: #9AA1DE;
+  --stage: #121212;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1360px; margin: 0 auto; padding-block: 40px 96px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 28px; }
+h1, h2, h3 { margin: 0; line-height: 1.15; text-wrap: balance; }
+p { margin: 0; }
+.label { font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--fg-muted); }
+.muted { color: var(--fg-muted); }
+.intro { display: grid; gap: 10px; max-width: 75ch; }
+.intro h1 { font-size: clamp(28px, 4vw, 40px); font-weight: 600; letter-spacing: -0.02em; }
+.intro p { font-size: 16px; color: var(--fg-muted); }
+
+/* Palette switch */
+.switchbar { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.seg { display: inline-flex; background: var(--panel); border: 1px solid var(--control-border); border-radius: 8px; padding: 3px; }
+.seg button { font: inherit; font-size: 14px; font-weight: 500; color: var(--fg-muted); background: none; border: 0; border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--fg); box-shadow: inset 0 0 0 1px var(--divider); }
+.seg button:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.readout { font-family: var(--mono); font-size: 12px; color: var(--fg-muted); display: flex; flex-wrap: wrap; gap: 6px 16px; font-variant-numeric: tabular-nums; }
+.readout i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+
+/* Studio window */
+.studio { border: 1px solid var(--divider); border-radius: 14px; overflow: hidden; background: var(--bg); box-shadow: 0 24px 60px rgb(0 0 0 / 0.5); }
+.topbar { height: 48px; display: flex; align-items: center; gap: 14px; padding: 0 14px; background: var(--panel); border-bottom: 1px solid var(--divider); min-width: 0; }
+.topbar .logo { display: flex; align-items: center; gap: 8px; font-weight: 500; letter-spacing: 0.01em; white-space: nowrap; }
+.topbar .logo svg { width: 22px; height: 22px; }
+.crumb { color: var(--fg-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sp { flex: 1; }
+.tabs { display: flex; gap: 4px; }
+.tab { font: inherit; font-size: 13px; background: none; border: 0; color: var(--fg-muted); padding: 13px 10px 11px; border-bottom: 2px solid transparent; cursor: pointer; }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent-text); }
+.btn { font: inherit; font-size: 13px; font-weight: 500; height: 32px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--control-border); background: var(--raised); color: var(--fg); cursor: pointer; white-space: nowrap; transition: background 150ms; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.ghost { border-color: transparent; background: none; color: var(--fg-muted); }
+
+.body { display: grid; grid-template-columns: 220px minmax(0, 1fr) 280px; min-height: 560px; }
+.nav { background: var(--panel); border-right: 1px solid var(--divider); padding: 14px 10px; display: grid; gap: 14px; align-content: start; }
+.nav h3 { font-size: 11px; font-family: var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--fg-muted); font-weight: 500; padding: 0 8px; }
+.scenes { display: grid; gap: 2px; }
+.scene { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 6px; color: var(--fg-muted); position: relative; cursor: pointer; }
+.scene .th { width: 34px; height: 22px; border-radius: 4px; }
+.scene.sel { background: var(--raised); color: var(--fg); }
+.scene.sel::before { content: ""; position: absolute; left: -10px; top: 6px; bottom: 6px; width: 3px; border-radius: 2px; background: var(--accent); }
+.scene small { display: block; font-size: 11px; color: var(--fg-muted); }
+.navlink { color: var(--accent-text); font-size: 13px; padding: 0 8px; text-decoration: underline; text-underline-offset: 3px; }
+
+.stage { background: var(--stage); display: grid; grid-template-rows: auto 1fr auto; gap: 12px; padding: 14px; min-width: 0; }
+.stagebar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.dev { font: inherit; font-size: 12px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--control-border); background: none; color: var(--fg-muted); cursor: pointer; }
+.dev[aria-pressed="true"] { color: var(--fg); border-color: var(--accent-text); }
+.origin { margin-left: auto; font-family: var(--mono); font-size: 11px; color: var(--fg-muted); }
+
+/* The user's vibrant website inside the preview frame */
+.frame { border-radius: 14px; overflow: hidden; position: relative; min-height: 360px; border: 1px solid var(--divider);
+  background: linear-gradient(180deg, #0B3B4A 0%, #1D6B6E 34%, #E07A3F 70%, #F5B05A 100%); }
+.frame .sun { position: absolute; width: 140px; height: 140px; border-radius: 50%; left: 58%; top: 34%; background: radial-gradient(circle, #FFE3A3 0%, #F6A04D 60%, transparent 72%); }
+.frame .hill { position: absolute; left: 0; right: 0; bottom: 0; }
+.frame .h1 { height: 46%; background: #2E5546; clip-path: polygon(0 55%, 18% 30%, 34% 48%, 52% 18%, 70% 42%, 86% 26%, 100% 40%, 100% 100%, 0 100%); opacity: .85; }
+.frame .h2 { height: 34%; background: #1B3A2F; clip-path: polygon(0 40%, 14% 58%, 30% 30%, 46% 52%, 64% 34%, 80% 60%, 100% 36%, 100% 100%, 0 100%); }
+.frame .h3 { height: 18%; background: #0F241C; clip-path: polygon(0 50%, 25% 30%, 50% 55%, 75% 25%, 100% 45%, 100% 100%, 0 100%); }
+.frame .copy { position: absolute; left: 7%; top: 14%; max-width: 46%; color: #FFF7EA; display: grid; gap: 10px; }
+.frame .copy b { font-size: clamp(22px, 3.2vw, 40px); line-height: 1.05; font-weight: 700; letter-spacing: -0.02em; text-shadow: 0 2px 20px rgb(0 0 0 / .25); }
+.frame .copy span { font-size: 13px; opacity: .9; }
+.frame .cta { justify-self: start; background: #FFF7EA; color: #3A1E0B; font-weight: 600; font-size: 12px; border-radius: 999px; padding: 6px 14px; }
+.frame .scrollhint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font-size: 11px; color: #FFF7EA; opacity: .8; letter-spacing: .1em; text-transform: uppercase; }
+
+.stagefoot { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.progress { flex: 1; min-width: 160px; height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; }
+.progress i { display: block; height: 100%; width: 62%; background: var(--accent); }
+
+.inspector { background: var(--panel); border-left: 1px solid var(--divider); padding: 14px; display: grid; gap: 16px; align-content: start; }
+.field { display: grid; gap: 6px; }
+.field label, .field .lab { font-size: 12px; color: var(--fg-muted); }
+.input { font: inherit; font-size: 13px; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--control-border); background: var(--raised); color: var(--fg); width: 100%; }
+.input.focused { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: linear-gradient(90deg, var(--accent) 0 64%, var(--raised) 64% 100%); }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--fg); border: 0; }
+.range::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: var(--fg); border: 0; }
+.toggle { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; }
+.sw { width: 34px; height: 20px; border-radius: 999px; background: var(--accent); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; }
+.sw.off { background: var(--raised); box-shadow: inset 0 0 0 1px var(--control-border); }
+.sw.off::after { left: 3px; right: auto; background: var(--fg-muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--control-border); color: var(--fg-muted); }
+.chip.on { border-color: var(--accent-text); color: var(--accent-text); }
+.pro { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--accent-text); color: var(--accent-text); border-radius: 999px; padding: 1px 8px; font-size: 11px; font-weight: 500; }
+
+.jobs { grid-column: 1 / -1; border-top: 1px solid var(--divider); background: var(--panel); padding: 10px 14px; display: grid; gap: 6px; font-family: var(--mono); font-size: 12px; }
+.job { display: flex; gap: 10px; align-items: center; color: var(--fg-muted); flex-wrap: wrap; }
+.job .st { display: inline-flex; align-items: center; gap: 5px; min-width: 150px; }
+.ok { color: var(--success); } .warn { color: var(--warning); } .run { color: var(--accent-text); }
+
+/* Growth colors */
+.growth { display: grid; gap: 20px; border-top: 1px solid var(--divider); padding-top: 40px; margin-top: 24px; }
+.growth h2 { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+.gcards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.gcard { background: var(--panel); border: 1px solid var(--divider); border-radius: 14px; padding: 20px; display: grid; gap: 12px; align-content: start; }
+.gcard.rec { border-color: rgb(233 176 76 / 0.6); }
+.gcard .stagebox { background: var(--bg); border: 1px solid var(--divider); border-radius: 10px; height: 170px; display: grid; place-items: center; }
+.gcard .lock { display: flex; align-items: center; gap: 10px; font-size: 28px; font-weight: 500; letter-spacing: .01em; }
+.gcard .lock svg { width: 46px; height: 46px; }
+.gcard h3 { font-size: 18px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.gcard .hex { font-family: var(--mono); font-size: 12px; color: var(--fg-muted); }
+.tag { font-size: 12px; font-weight: 500; border: 1px solid #E9B04C; color: #E9B04C; border-radius: 999px; padding: 1px 10px; }
+.ln { fill: none; stroke: #8E9AF7; stroke-width: 5; stroke-linecap: round; }
+.truth { background: var(--panel); border: 1px solid var(--divider); border-left: 3px solid var(--fg-muted); border-radius: 10px; padding: 18px 20px; display: grid; gap: 8px; max-width: 85ch; }
+.truth h3 { font-size: 16px; }
+
+@media (max-width: 1080px) {
+  .body { grid-template-columns: 190px minmax(0, 1fr); }
+  .inspector { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--divider); grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+}
+@media (max-width: 700px) {
+  .body { grid-template-columns: 1fr; }
+  .nav { border-right: 0; border-bottom: 1px solid var(--divider); }
+  .tabs, .crumb { display: none; }
+  .frame .copy { max-width: 80%; }
+}
+</style>
+</head>
+<body data-palette="vivid">
+<div class="wrap">
+
+  <header class="intro">
+    <span class="label">Spanda Studio · interactive prototype</span>
+    <h1>Bright or muted: see it in the studio</h1>
+    <p>The website in the middle is a sample of what a user would build: warm, colorful, cinematic. Switch between the two palettes and watch which one lets that website stand out. Everything else in the window stays the same.</p>
+  </header>
+
+  <div class="switchbar">
+    <div class="seg" role="group" aria-label="Studio palette">
+      <button type="button" id="p-vivid" aria-pressed="true" data-p="vivid">Bright (current)</button>
+      <button type="button" id="p-muted" aria-pressed="false" data-p="muted">Muted (proposed)</button>
+    </div>
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <div class="studio" aria-label="Studio window prototype">
+    <div class="topbar">
+      <span class="logo">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/><circle cx="32" cy="20" r="3.4" fill="#E8A25A"/><circle cx="32" cy="42" r="3.4" fill="#E8A25A"/></svg>
+        Spanda Studio
+      </span>
+      <span class="crumb">/ Monsoon Coffee: launch story</span>
+      <span class="sp"></span>
+      <div class="tabs" role="tablist" aria-label="Project views">
+        <button class="tab" role="tab" aria-selected="false" type="button">Brief</button>
+        <button class="tab" role="tab" aria-selected="true" type="button">Storyboard</button>
+        <button class="tab" role="tab" aria-selected="false" type="button">Test results</button>
+      </div>
+      <button class="btn primary" type="button">Approve storyboard</button>
+    </div>
+
+    <div class="body">
+      <nav class="nav" aria-label="Scenes">
+        <h3>Scenes</h3>
+        <div class="scenes">
+          <div class="scene sel"><span class="th" style="background:linear-gradient(180deg,#0B3B4A,#E07A3F)"></span><span>Dawn over the estate<small>Hero · 0–20%</small></span></div>
+          <div class="scene"><span class="th" style="background:linear-gradient(180deg,#2E5546,#0F241C)"></span><span>Into the hills<small>Chapter · 20–45%</small></span></div>
+          <div class="scene"><span class="th" style="background:linear-gradient(180deg,#5A2E1A,#C8743A)"></span><span>The roast<small>Reveal · 45–70%</small></span></div>
+          <div class="scene"><span class="th" style="background:linear-gradient(180deg,#F5B05A,#FFF1D6)"></span><span>First cup<small>CTA · 70–100%</small></span></div>
+        </div>
+        <span class="navlink">Add scene</span>
+      </nav>
+
+      <section class="stage" aria-label="Preview">
+        <div class="stagebar">
+          <button class="dev" type="button" aria-pressed="true">Desktop</button>
+          <button class="dev" type="button" aria-pressed="false">Tablet</button>
+          <button class="dev" type="button" aria-pressed="false">Phone</button>
+          <span class="origin">127.0.0.1:4173 · 1440×900</span>
+        </div>
+        <div class="frame" role="img" aria-label="Sample user website: Monsoon Coffee hero at dawn">
+          <div class="sun"></div>
+          <div class="hill h1"></div>
+          <div class="hill h2"></div>
+          <div class="hill h3"></div>
+          <div class="copy">
+            <b>Grown in the mist of the Western Ghats.</b>
+            <span>Scroll to follow a coffee cherry from the hills to your cup.</span>
+            <span class="cta">Begin the journey</span>
+          </div>
+          <span class="scrollhint">Scroll</span>
+        </div>
+        <div class="stagefoot">
+          <span class="muted" style="font-size:12px">Building React export</span>
+          <div class="progress" aria-hidden="true"><i></i></div>
+          <button class="btn ghost" type="button">Cancel</button>
+        </div>
+      </section>
+
+      <aside class="inspector" aria-label="Scene inspector">
+        <div class="field">
+          <label for="scene-title">Scene title</label>
+          <input class="input focused" id="scene-title" value="Dawn over the estate">
+        </div>
+        <div class="field">
+          <span class="lab">Camera feel</span>
+          <div class="chips"><span class="chip">Handheld</span><span class="chip on">On rails</span><span class="chip">Drone</span></div>
+        </div>
+        <div class="field">
+          <label for="parallax">Parallax depth</label>
+          <input class="range" id="parallax" type="range" min="0" max="100" value="64">
+        </div>
+        <div class="field">
+          <div class="toggle"><span>Reduced-motion fallback</span><span class="sw" aria-hidden="true"></span></div>
+          <div class="toggle"><span>Film grain</span><span class="sw off" aria-hidden="true"></span></div>
+        </div>
+        <div class="field">
+          <span class="lab">Scene library <span class="pro">Pro</span></span>
+          <button class="btn" type="button">Browse presets</button>
+        </div>
+      </aside>
+
+      <div class="jobs" aria-label="Job log">
+        <div class="job"><span class="st ok">✓ Passed</span>HTML export · Chromium, Firefox, WebKit · 3 devices</div>
+        <div class="job"><span class="st warn">! Review required</span>Hero image license: provenance missing</div>
+        <div class="job"><span class="st run">● Running</span>React export · vite build · 62%</div>
+      </div>
+    </div>
+  </div>
+
+  <section class="growth" aria-labelledby="g-h">
+    <span class="label">Logo · colors for growth</span>
+    <h2 id="g-h">Which dot color brings growth?</h2>
+    <p class="muted" style="max-width:80ch">The line stays Neel. Only the two dots change. Each option is shown with what the color traditionally means in Indian practice, so you can choose with the story in mind.</p>
+    <div class="gcards">
+      <div class="gcard">
+        <div class="stagebox"><div class="lock"><svg viewBox="0 0 64 64" aria-hidden="true"><path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/><circle cx="32" cy="20" r="3.4" fill="#E8A25A"/><circle cx="32" cy="42" r="3.4" fill="#E8A25A"/></svg>spanda</div></div>
+        <h3>Diya amber</h3><span class="hex">#E8A25A · current</span>
+        <p class="muted">The flame of a diya: Lakshmi's lamp, lit at Diwali to invite prosperity and new beginnings. Warm and welcoming.</p>
+      </div>
+      <div class="gcard rec">
+        <div class="stagebox"><div class="lock"><svg viewBox="0 0 64 64" aria-hidden="true"><path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/><circle cx="32" cy="20" r="3.4" fill="#E9B04C"/><circle cx="32" cy="42" r="3.4" fill="#E9B04C"/></svg>spanda</div></div>
+        <h3>Diya gold <span class="tag">Recommended</span></h3><span class="hex">#E9B04C · on Night 9.9:1</span>
+        <p class="muted">Still a lamp flame, nudged toward gold, the color of Guru (Jupiter), the planet of growth, expansion and wisdom in Vedic tradition. It keeps the Lakshmi story and adds the growth one.</p>
+      </div>
+      <div class="gcard">
+        <div class="stagebox"><div class="lock"><svg viewBox="0 0 64 64" aria-hidden="true"><path class="ln" d="M42.34 16.24 A11 11 0 1 0 32 31 A11 11 0 1 1 21.66 45.76"/><circle cx="32" cy="20" r="3.4" fill="#34C38F"/><circle cx="32" cy="42" r="3.4" fill="#34C38F"/></svg>spanda</div></div>
+        <h3>Emerald</h3><span class="hex">#34C38F · on Night 8.6:1</span>
+        <p class="muted">Green is Budh (Mercury), linked to business, trade and intellect, and it means growth almost everywhere. But it loses the lamp story, and in the app it looks like the "Passed" status.</p>
+      </div>
+    </div>
+    <div class="truth">
+      <h3>The honest expert view</h3>
+      <p class="muted">No color has a measurable effect on luck. What reliably grows a brand is being <b style="color:var(--fg)">distinctive</b> (people can tell it apart instantly) and <b style="color:var(--fg)">consistent</b> (the same colors, used the same way, for years). Choosing a color with a meaningful story helps you stay consistent, because you'll believe in it. If the traditional view matters to you, the usual route is a reading for the founder or a launch muhurat; that's personal and outside what I can judge.</p>
+    </div>
+  </section>
+</div>
+
+<script>
+const palettes = {
+  vivid: [["Button", "#4B57E0", "71% sat"], ["Accent text", "#8E9AF7", "87% sat"], ["Preview surround", "#0E0E11", "slight blue tint"]],
+  muted: [["Button", "#5059B8", "42% sat"], ["Accent text", "#9AA1DE", "51% sat"], ["Preview surround", "#121212", "true neutral"]]
+};
+const readout = document.getElementById("readout");
+function setPalette(p) {
+  document.body.dataset.palette = p;
+  for (const b of document.querySelectorAll(".seg button")) b.setAttribute("aria-pressed", String(b.dataset.p === p));
+  readout.innerHTML = palettes[p].map(([n, hex, note]) => `<span><i style="background:${hex}"></i>${n} ${hex} · ${note}</span>`).join("");
+}
+for (const b of document.querySelectorAll(".seg button")) b.addEventListener("click", () => setPalette(b.dataset.p));
+setPalette("vivid");
+</script>
+</body>
+</html>

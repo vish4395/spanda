@@ -10,7 +10,9 @@ export function useReveal<T extends Element>(enabled: boolean, reducedMotion: bo
       setVisible(true);
       return;
     }
-    const el = ref.current;
+    // Observe the parent: a 'mask' reveal clips the element itself to zero area, and a
+    // fully clipped element never reports as intersecting.
+    const el = ref.current?.parentElement ?? ref.current;
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -19,7 +21,7 @@ export function useReveal<T extends Element>(enabled: boolean, reducedMotion: bo
           observer.disconnect();
         }
       },
-      { threshold: 0.15 },
+      { threshold: 0, rootMargin: '0px 0px -15% 0px' },
     );
     observer.observe(el);
     return () => observer.disconnect();

@@ -77,8 +77,15 @@ describe('M3 primitives (html-three)', () => {
     expect(html.match(/<h1\b/g)).toHaveLength(1);
     expect(html).toContain('<ol class="reveal-steps">');
     expect(html).toContain('data-scene3d="showcase" data-object="vessel" data-camera="orbit"');
-    expect(html).toContain('class="gallery__track" tabindex="0"');
-    expect(html).toContain('aria-label="Next items"');
+    const gallery = bench.pages[0]!.scenes[4]!;
+    gallery.visual.variant = 'carousel';
+    const carousel = renderIndexHtml(prepareSpec(bench));
+    expect(carousel).toContain('class="gallery__track" tabindex="0"');
+    expect(carousel).toContain('aria-label="Next items"');
+    gallery.visual.variant = 'grid';
+    const grid = renderIndexHtml(prepareSpec(bench));
+    expect(grid).toContain('data-variant="grid"');
+    expect(grid).not.toContain('aria-label="Next items"'); // no carousel controls on a grid
     expect(html).toContain('href="#hero-01"');
     expect(html).not.toContain('<img src=x');
     expect(html).not.toMatch(/ style="/); // strict CSP: no inline style attributes

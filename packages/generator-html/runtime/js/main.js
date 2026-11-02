@@ -19,18 +19,25 @@ function revealAll() {
 if (reducedMotion.matches || !('IntersectionObserver' in window)) {
   revealAll();
 } else {
+  // Watch each target's parent, not the target: a 'mask' reveal clips the target to zero
+  // area, and a fully clipped element never reports as intersecting.
+  const byParent = new Map();
+  for (const el of revealTargets) {
+    const parent = el.parentElement ?? el;
+    byParent.set(parent, [...(byParent.get(parent) ?? []), el]);
+  }
   const observer = new IntersectionObserver(
     (entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
+          for (const el of byParent.get(entry.target) ?? []) el.classList.add('is-visible');
           observer.unobserve(entry.target);
         }
       }
     },
-    { threshold: 0.15 },
+    { threshold: 0, rootMargin: '0px 0px -15% 0px' },
   );
-  for (const el of revealTargets) observer.observe(el);
+  for (const parent of byParent.keys()) observer.observe(parent);
 }
 
 function webglAvailable() {
@@ -50,7 +57,7 @@ function markReady(state) {
 const canvases = Array.from(document.querySelectorAll('canvas[data-scene3d]'));
 
 if (canvases.length === 0) {
-  markReady('off');
+  markReady('none'); // no 3D in this design: nothing failed, so no fallback captions
 } else if (!webglAvailable()) {
   markReady('off');
 } else {
@@ -61,6 +68,8 @@ if (canvases.length === 0) {
         canvases.map((canvas) =>
           mountScene(canvas, {
             variant: canvas.dataset.scene3d,
+            art: canvas.dataset.art,
+            composition: canvas.dataset.variant,
             object: canvas.dataset.object,
             camera: canvas.dataset.camera,
             reducedMotion,

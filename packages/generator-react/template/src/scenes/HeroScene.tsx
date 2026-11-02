@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT-0
 import { Component, Suspense, lazy, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { Scene } from '../types';
+import { variantOf, type Scene } from '../types';
 import type { WebGLState } from '../hooks/useWebGL';
 import { SceneCopy } from './SceneCopy';
 
@@ -25,9 +25,10 @@ interface Props {
   headingLevel: 1 | 2;
   reducedMotion: boolean;
   webgl: { state: WebGLState; ready: () => void; fail: () => void };
+  art: 'faceted' | 'rings' | 'particles' | 'ribbons' | 'terrain' | 'none';
 }
 
-export function HeroScene({ scene, headingLevel, reducedMotion, webgl }: Props) {
+export function HeroScene({ scene, headingLevel, reducedMotion, webgl, art }: Props) {
   const sectionRef = useRef<HTMLElement>(null);
   const [onScreen, setOnScreen] = useState(true);
   useEffect(() => {
@@ -45,13 +46,14 @@ export function HeroScene({ scene, headingLevel, reducedMotion, webgl }: Props) 
       className="scene scene--hero"
       aria-labelledby={`${scene.id}-title`}
       data-background={scene.visual.background}
+      data-variant={variantOf(scene)}
       data-mobile={scene.responsive.mobile}
       data-scene-label={scene.accessibility.label}
     >
-      {webgl.state !== 'off' && (
+      {webgl.state !== 'off' && art !== 'none' && (
         <CanvasBoundary onError={webgl.fail}>
           <Suspense fallback={null}>
-            <SceneCanvas animate={onScreen && !reducedMotion} onFirstFrame={webgl.ready} onContextLost={webgl.fail} />
+            <SceneCanvas art={art} composition={variantOf(scene)} animate={onScreen && !reducedMotion} onFirstFrame={webgl.ready} onContextLost={webgl.fail} />
           </Suspense>
         </CanvasBoundary>
       )}

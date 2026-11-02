@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT-0
 import { useCallback, useEffect, useState } from 'react';
 
-export type WebGLState = 'loading' | 'on' | 'off';
+export type WebGLState = 'loading' | 'on' | 'off' | 'none';
 
 function webglAvailable(): boolean {
   try {
@@ -14,7 +14,8 @@ function webglAvailable(): boolean {
 
 /** Tracks whether the decorative 3D layer is usable and mirrors it onto <html data-webgl>. */
 export function useWebGL(hasScenes: boolean) {
-  const [state, setState] = useState<WebGLState>(() => (hasScenes && webglAvailable() ? 'loading' : 'off'));
+  // 'none': the design has no 3D, so nothing failed and no fallback captions are shown.
+  const [state, setState] = useState<WebGLState>(() => (!hasScenes ? 'none' : webglAvailable() ? 'loading' : 'off'));
   useEffect(() => {
     const root = document.documentElement;
     root.dataset.webgl = state;

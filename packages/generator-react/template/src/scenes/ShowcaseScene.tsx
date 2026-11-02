@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT-0
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import type { Scene } from '../types';
+import { variantOf, type Scene } from '../types';
 import type { WebGLState } from '../hooks/useWebGL';
 import { CanvasBoundary } from './HeroScene';
 import { SceneCopy } from './SceneCopy';
@@ -26,7 +26,7 @@ export function ShowcaseScene({ scene, headingLevel, reducedMotion, webgl }: Pro
   }, []);
   const object = scene.visual.object ?? 'orb';
   return (
-    <section id={scene.id} className="scene scene--model-showcase" aria-labelledby={`${scene.id}-title`} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
+    <section id={scene.id} className="scene scene--model-showcase" aria-labelledby={`${scene.id}-title`} data-variant={variantOf(scene)} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
       <div className="scene__inner">
         <SceneCopy scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} />
         <div ref={stageRef} className="showcase-stage" data-object={object}>

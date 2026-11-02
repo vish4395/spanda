@@ -4,7 +4,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   InvalidSpecError,
+  SCENE_VARIANTS,
   UnsupportedSceneError,
+  designRootAttributes,
+  renderDesignTokensCss,
   findUnsupportedScenes,
   validateStorySpec,
   type Scene,
@@ -49,6 +52,17 @@ export function prepareSpec(input: unknown): StorySpec {
   return result.spec;
 }
 
+/** The scene's composition variant, defaulting to the first one its type allows. */
+export function variantOf(scene: Scene): string | undefined {
+  const variants: readonly string[] = SCENE_VARIANTS[scene.type];
+  return scene.visual.variant ?? variants[0];
+}
+
+/** The 3D hero art for this spec, or null when the direction asks for none. */
+function heroArt(spec: StorySpec): string | null {
+  return spec.design.style.heroArt === 'none' ? null : spec.design.style.heroArt;
+}
+
 function sceneAttributes(scene: Scene): string {
   const attrs: Record<string, string | undefined> = {
     id: scene.id,
@@ -56,6 +70,7 @@ function sceneAttributes(scene: Scene): string {
     'aria-labelledby': `${scene.id}-title`,
     'data-background': scene.visual.background,
     'data-layout': scene.visual.layout ?? (scene.type === 'chapter' ? 'split' : undefined),
+    'data-variant': variantOf(scene),
     'data-mobile': scene.responsive.mobile,
   };
   return Object.entries(attrs)
@@ -81,14 +96,13 @@ function sceneCopy(scene: Scene, headingLevel: 1 | 2): string {
     .join('\n');
 }
 
-function renderScene(scene: Scene, index: number): string {
+function renderScene(spec: StorySpec, scene: Scene, index: number): string {
   const heading = index === 0 ? 1 : 2;
   const label = `data-scene-label="${escapeHtml(scene.accessibility.label)}"`;
   switch (scene.type) {
     case 'hero':
       return `<section ${sceneAttributes(scene)} ${label}>
-<canvas class="scene__canvas" data-scene3d="hero" aria-hidden="true"></canvas>
-<div class="scene__inner">
+${heroArt(spec) ? `<canvas class="scene__canvas" data-scene3d="hero" data-art="${escapeHtml(heroArt(spec)!)}" data-variant="${escapeHtml(variantOf(scene)!)}" aria-hidden="true"></canvas>\n` : ''}<div class="scene__inner">
 ${sceneCopy(scene, heading)}
 </div>
 </section>`;
@@ -130,13 +144,19 @@ ${sceneCopy(scene, heading)}
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
 <div class="gallery" data-gallery>
-<ul class="gallery__track" tabindex="0" aria-label="${escapeHtml(scene.content.heading)} — scroll horizontally or use the buttons">
+${
+  variantOf(scene) === 'carousel'
+    ? `<ul class="gallery__track" tabindex="0" aria-label="${escapeHtml(scene.content.heading)} — scroll horizontally or use the buttons">
 ${items}
 </ul>
 <div class="gallery__controls">
 <button type="button" class="gallery__button" data-gallery-prev aria-label="Previous items">‹</button>
 <button type="button" class="gallery__button" data-gallery-next aria-label="Next items">›</button>
-</div>
+</div>`
+    : `<ul class="gallery__track">
+${items}
+</ul>`
+}
 </div>
 </div>
 </section>`;
@@ -154,16 +174,7 @@ ${sceneCopy(scene, heading)}
 }
 
 export function renderTokensCss(spec: StorySpec): string {
-  const { colors, typography } = spec.design;
-  return `:root {
-  --color-bg: ${colors.background};
-  --color-fg: ${colors.foreground};
-  --color-accent: ${colors.accent};
-  --color-fg-muted: color-mix(in srgb, var(--color-fg) 80%, var(--color-bg));
-  --font-heading: ${typography.heading};
-  --font-body: ${typography.body};
-}
-`;
+  return renderDesignTokensCss(spec);
 }
 
 export function renderIndexHtml(spec: StorySpec): string {
@@ -179,7 +190,7 @@ export function renderIndexHtml(spec: StorySpec): string {
     "form-action 'none'",
   ].join('; ');
   return `<!doctype html>
-<html lang="en" data-webgl="off">
+<html lang="en" data-webgl="off" ${Object.entries(designRootAttributes(spec)).map(([k, v]) => `${k}="${escapeHtml(v)}"`).join(' ')}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -195,7 +206,7 @@ export function renderIndexHtml(spec: StorySpec): string {
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header"><span class="brand">${escapeHtml(spec.project.name)}</span></header>
 <main id="main">
-${page.scenes.map(renderScene).join('\n')}
+${page.scenes.map((scene, i) => renderScene(spec, scene, i)).join('\n')}
 </main>
 <footer class="site-footer"><p>${escapeHtml(spec.project.name)}</p></footer>
 </body>

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT-0
-import type { SceneItem, Scene } from '../types';
+import { variantOf, type SceneItem, type Scene } from '../types';
 import { useReveal } from '../hooks/useReveal';
 import { SceneCopy } from './SceneCopy';
 
@@ -19,7 +19,7 @@ function Step({ item, index, enabled, reducedMotion }: { item: SceneItem; index:
 export function RevealScene({ scene, headingLevel, reducedMotion }: { scene: Scene; headingLevel: 1 | 2; reducedMotion: boolean }) {
   const enabled = scene.motion.type !== 'none';
   return (
-    <section id={scene.id} className="scene scene--scroll-reveal" aria-labelledby={`${scene.id}-title`} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
+    <section id={scene.id} className="scene scene--scroll-reveal" aria-labelledby={`${scene.id}-title`} data-variant={variantOf(scene)} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
       <div className="scene__inner">
         <SceneCopy scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} />
         <ol className="reveal-steps">

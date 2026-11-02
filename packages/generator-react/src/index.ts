@@ -4,6 +4,8 @@ import { fileURLToPath } from 'node:url';
 import {
   InvalidSpecError,
   UnsupportedSceneError,
+  designRootAttributes,
+  renderDesignTokensCss,
   findUnsupportedScenes,
   validateStorySpec,
   type SceneType,
@@ -54,16 +56,7 @@ async function listTemplateFiles(dir: string, prefix = ''): Promise<string[]> {
 }
 
 export function renderTokensCss(spec: StorySpec): string {
-  const { colors, typography } = spec.design;
-  return `:root {
-  --color-bg: ${colors.background};
-  --color-fg: ${colors.foreground};
-  --color-accent: ${colors.accent};
-  --color-fg-muted: color-mix(in srgb, var(--color-fg) 80%, var(--color-bg));
-  --font-heading: ${typography.heading};
-  --font-body: ${typography.body};
-}
-`;
+  return renderDesignTokensCss(spec);
 }
 
 /** Static copy of the content for visitors without JavaScript (and for crawlers). */
@@ -83,9 +76,10 @@ export function renderIndexHtml(template: string, spec: StorySpec): string {
     '%STUDIO_TITLE%': escapeHtml(spec.project.name),
     '%STUDIO_DESCRIPTION%': escapeHtml(spec.project.goal),
     '%STUDIO_NOSCRIPT%': `<main>${renderNoscript(spec)}</main>`,
+    '%STUDIO_HTML_ATTRS%': Object.entries(designRootAttributes(spec)).map(([k, v]) => `${k}="${escapeHtml(v)}"`).join(' '),
   };
   // Function replacer: `$` sequences in user text are never interpreted.
-  return template.replace(/%STUDIO_[A-Z]+%/g, (token) => {
+  return template.replace(/%STUDIO_[A-Z_]+%/g, (token) => {
     const value = values[token];
     if (value === undefined) throw new Error(`Unknown template token ${token}`);
     return value;

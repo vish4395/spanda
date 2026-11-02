@@ -15,13 +15,14 @@ const story = storyJson as StorySpec;
 export function App() {
   const scenes = story.pages[0]?.scenes ?? [];
   const reducedMotion = useReducedMotion();
-  const webgl = useWebGL(scenes.some((s) => s.type === 'hero' || s.type === 'model-showcase'));
+  const art = story.design.style.heroArt;
+  const webgl = useWebGL(scenes.some((s) => (s.type === 'hero' && art !== 'none') || s.type === 'model-showcase'));
 
   const renderScene = (scene: Scene, index: number) => {
     const headingLevel = index === 0 ? 1 : 2;
     switch (scene.type) {
       case 'hero':
-        return <HeroScene key={scene.id} scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} webgl={webgl} />;
+        return <HeroScene key={scene.id} scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} webgl={webgl} art={art} />;
       case 'chapter':
         return <ChapterScene key={scene.id} scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} />;
       case 'scroll-reveal':

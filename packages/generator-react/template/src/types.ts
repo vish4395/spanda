@@ -19,7 +19,8 @@ export interface Scene {
   content: SceneContent;
   visual: {
     background?: 'gradient' | 'solid' | 'procedural-3d';
-    layout?: 'split' | 'centered';
+    layout?: 'split' | 'split-reverse' | 'centered' | 'full-bleed' | 'editorial' | 'asymmetric' | 'stacked';
+    variant?: string;
     modelAssetId?: string | null;
     object?: 'monolith' | 'vessel' | 'orb';
     camera?: 'orbit' | 'front' | 'low';
@@ -31,5 +32,19 @@ export interface Scene {
 
 export interface StorySpec {
   project: { id: string; name: string; goal: string };
+  design: { style: { heroArt: 'faceted' | 'rings' | 'particles' | 'ribbons' | 'terrain' | 'none' } };
   pages: { id: string; path: string; scenes: Scene[] }[];
+}
+
+/** Default composition per scene type (the first variant the StorySpec allows). */
+const DEFAULT_VARIANT: Partial<Record<Scene['type'], string>> = {
+  hero: 'bottom-left',
+  'scroll-reveal': 'cards',
+  'model-showcase': 'split',
+  gallery: 'carousel',
+  cta: 'card',
+};
+
+export function variantOf(scene: Scene): string | undefined {
+  return scene.visual.variant ?? DEFAULT_VARIANT[scene.type];
 }

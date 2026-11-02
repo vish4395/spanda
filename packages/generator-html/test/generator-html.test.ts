@@ -51,7 +51,7 @@ describe('html-three generator', () => {
     const out = path.join(await mkdtemp(path.join(tmpdir(), 'studio-html-')), 'html');
     const files = await generateHtmlSite(example, out);
     expect(files).toEqual(
-      expect.arrayContaining(['index.html', 'tokens.css', 'styles.css', 'js/main.js', 'js/scene3d.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/LICENSE', 'THIRD_PARTY_NOTICES.md', 'README.md', 'story-spec.json']),
+      expect.arrayContaining(['index.html', 'tokens.css', 'styles.css', 'js/main.js', 'js/scene3d.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/LICENSE', 'vendor/three/package.json', 'THIRD_PARTY_NOTICES.md', 'README.md', 'story-spec.json']),
     );
     const notices = await readFile(path.join(out, 'THIRD_PARTY_NOTICES.md'), 'utf8');
     expect(notices).toContain('MIT');

@@ -1,4 +1,6 @@
-import { ipcMain, type IpcMainInvokeEvent } from 'electron';
+import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { IPC_CHANNELS, ipcContract, type IpcChannel, type IpcEnvelope } from '@studio/contracts';
 import { isTrustedSender } from './sender.ts';
 import type { StudioMenus } from './menu.ts';
@@ -6,6 +8,8 @@ import type { PreviewInspector } from './preview-inspector.ts';
 import type { StudioServices } from './services.ts';
 
 export { APP_ORIGIN } from './sender.ts';
+
+declare const __STUDIO_VERSION__: string;
 
 function describe(err: unknown): string {
   const message = err instanceof Error ? err.message : String(err);
@@ -54,6 +58,18 @@ export function registerIpc(services: StudioServices, menus: StudioMenus, inspec
     'preview.start': (req) => {
       const { projectId, target } = req as { projectId: string; target: 'html' | 'react' };
       return services.startPreview(projectId, target);
+    },
+    'export.create': async (req, event) => {
+      const { projectId, targets } = req as { projectId: string; targets: ('html' | 'react')[] };
+      // Build first so a refusal (stale output, blocked license) is reported before asking where to save.
+      const result = await services.buildExport(projectId, targets, __STUDIO_VERSION__);
+      const owner = BrowserWindow.fromWebContents(event.sender);
+      const options = { title: 'Export website', defaultPath: path.join(app.getPath('downloads'), result.suggestedName), filters: [{ name: 'ZIP archive', extensions: ['zip'] }] };
+      const choice = owner ? await dialog.showSaveDialog(owner, options) : await dialog.showSaveDialog(options);
+      if (choice.canceled || !choice.filePath) return { status: 'canceled' };
+      const file = choice.filePath.toLowerCase().endsWith('.zip') ? choice.filePath : `${choice.filePath}.zip`;
+      await writeFile(file, result.zip);
+      return { status: 'saved', fileName: path.basename(file), files: result.files, bytes: result.bytes, licenses: result.licenses, rights: result.rights };
     },
     'preview.setMotion': (req, event) => inspector(event).setMotion((req as { motion: 'full' | 'reduce' }).motion),
     'preview.issues': (req, event) => inspector(event).diagnostics((req as { url: string }).url),

@@ -241,8 +241,11 @@ export async function renderHtmlSite(input: unknown, resources: HtmlResources = 
   files.set('vendor/three/three.module.js', await readFile(path.join(threeDir, 'build/three.module.js')));
   files.set('vendor/three/three.core.js', await readFile(path.join(threeDir, 'build/three.core.js')));
   const threeLicense = await readFile(path.join(threeDir, 'LICENSE'), 'utf8');
-  const threeVersion = (JSON.parse(await readFile(path.join(threeDir, 'package.json'), 'utf8')) as { version: string }).version;
+  const threeManifest = JSON.parse(await readFile(path.join(threeDir, 'package.json'), 'utf8')) as { version: string; license: string };
+  const threeVersion = threeManifest.version;
   files.set('vendor/three/LICENSE', threeLicense);
+  // Machine-readable record of the vendored package, for license checks and the export SBOM.
+  files.set('vendor/three/package.json', `${JSON.stringify({ name: 'three', version: threeVersion, license: threeManifest.license }, null, 2)}\n`);
   files.set(
     'THIRD_PARTY_NOTICES.md',
     `# Third-party notices\n\n## three ${threeVersion} (MIT)\nhttps://github.com/mrdoob/three.js — files in \`vendor/three/\`.\n\n\`\`\`\n${threeLicense.trim()}\n\`\`\`\n`,

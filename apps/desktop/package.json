@@ -16,6 +16,7 @@
   "dependencies": {
     "@studio/contracts": "workspace:*",
     "@studio/core": "workspace:*",
+    "@studio/export": "workspace:*",
     "@studio/generator-html": "workspace:*",
     "@studio/generator-react": "workspace:*",
     "@studio/licensing": "workspace:*",

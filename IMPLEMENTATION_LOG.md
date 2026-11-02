@@ -1,5 +1,11 @@
 # Implementation log
 
+## 2026-11-02 — T024 export ZIP
+
+Export… in the project header (and **File → Export Website…**, ⌘E) packages HTML, React or both into a ZIP chosen with the native save dialog; the renderer never sees host paths. New package `@studio/export`: a dependency-free, deterministic ZIP writer on Node's `zlib`, and an export builder that refuses stale/missing/unbuilt outputs, blocked dependency licenses and blocked asset rights, and writes README, LICENSES.md (generated code MIT-0), THIRD_PARTY_NOTICES.md (full texts from the React build plus three.js), ASSET_CREDITS.md, CycloneDX 1.5 SBOM and metadata. React is exported as source plus lockfile. The HTML generator now records `vendor/three/package.json` for the SBOM.
+
+Verification: 15 export unit tests (round trip with CRC checks, reproducible bytes, unsafe paths, symlinks/dotfiles/node_modules excluded, refusals, system `unzip -t`); desktop E2E exports through the real app, checks contents, an HTML-only export from the menu, and that a stale build cannot be exported (UI and IPC). The exported React project was extracted and built with `npm ci && npm run build`: bundle hashes identical to the studio's build. 201/201 unit · 18/18 desktop E2E · 116/116 export suite (Chromium, WebKit).
+
 ## 2026-11-02 — M3 exit check: benchmark briefs
 
 Exit criterion (roadmap M3): *benchmark briefs export both targets, each builds and runs.*

@@ -60,6 +60,9 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   // The last build stays visible after edits, clearly marked until the next successful generation.
   const [stale, setStale] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
+  const [exportTargets, setExportTargets] = useState<'both' | OutputTarget>('both');
+  const [exporting, setExporting] = useState(false);
+  const [exportNote, setExportNote] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<PreviewDiagnostics | null>(null);
   // Issues already seen when the user dismissed the panel; new ones bring it back.
   const [dismissedAt, setDismissedAt] = useState<string | null>(null);
@@ -166,6 +169,27 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
     if (job) setJob(await call('generation.cancel', { jobId: job.id }));
   };
 
+  const generated = Boolean(previews.html || previews.react);
+  const canExport = generated && !stale && !running && !exporting;
+  const exportSite = async () => {
+    setError(null);
+    setExportNote(null);
+    setExporting(true);
+    try {
+      const targets: OutputTarget[] = exportTargets === 'both' ? ['html', 'react'] : [exportTargets];
+      const result = await call('export.create', { projectId, targets });
+      if (result.status === 'saved') {
+        const review = [result.licenses !== 'passed' && 'dependency licenses', result.rights !== 'passed' && 'asset rights'].filter(Boolean);
+        const note = `Exported ${result.fileName} · ${result.files} files · ${(result.bytes / 1024 / 1024).toFixed(1)} MB · ${review.length ? `Needs review: ${review.join(' and ')}` : 'License check passed'}`;
+        setExportNote(note); // shown in a role="status" line, which also announces it
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const saveSnapshot = async () => {
     setBusyVersion('snapshot');
     try {
@@ -197,8 +221,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   // Report state to the native menu (enabled/checked items).
   const previewForMenu = previews[target] ?? null;
   useEffect(() => {
-    onMenuState({ canGenerate: Boolean(validation?.ok), canSnapshot: Boolean(validation?.ok), running, tab, target, device, reducedMotion, hasPreview: tab === 'build' && previewForMenu !== null });
-  }, [validation?.ok, running, tab, target, device, reducedMotion, previewForMenu, onMenuState]);
+    onMenuState({ canGenerate: Boolean(validation?.ok), canSnapshot: Boolean(validation?.ok), canExport, running, tab, target, device, reducedMotion, hasPreview: tab === 'build' && previewForMenu !== null });
+  }, [validation?.ok, canExport, running, tab, target, device, reducedMotion, previewForMenu, onMenuState]);
 
   // Menu bar / context-menu commands, run with the same handlers as the on-screen controls.
   useEffect(() => {
@@ -222,6 +246,10 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
       void generate();
     } else if (c === 'project.cancel' && running) void cancel();
     else if (c === 'project.snapshot' && validation.ok) void saveSnapshot();
+    else if (c === 'project.export' && canExport) {
+      setTab('build');
+      void exportSite();
+    }
     else if (c === 'version.restore' && command.versionId) {
       const version = detail.versions.find((v) => v.id === command.versionId);
       if (version) void restore(version);
@@ -251,14 +279,30 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
             <h1>{detail.project.name}</h1>
             <p className="muted">{detail.project.goal}</p>
           </div>
-          {validation === null ? (
-            <StatusChip tone="busy">Validating…</StatusChip>
-          ) : validation.ok ? (
-            <StatusChip tone="ok">StorySpec valid</StatusChip>
-          ) : (
-            <StatusChip tone="error">{`${validation.issues.length} StorySpec issue${validation.issues.length === 1 ? '' : 's'}`}</StatusChip>
-          )}
+          <div className="add-scene">
+            {validation === null ? (
+              <StatusChip tone="busy">Validating…</StatusChip>
+            ) : validation.ok ? (
+              <StatusChip tone="ok">StorySpec valid</StatusChip>
+            ) : (
+              <StatusChip tone="error">{`${validation.issues.length} StorySpec issue${validation.issues.length === 1 ? '' : 's'}`}</StatusChip>
+            )}
+            <select aria-label="Targets to export" value={exportTargets} onChange={(e) => setExportTargets(e.target.value as 'both' | OutputTarget)} disabled={exporting}>
+              <option value="both">HTML + React</option>
+              <option value="html">HTML only</option>
+              <option value="react">React only</option>
+            </select>
+            <button type="button" className="btn btn--secondary" onClick={() => void exportSite()} disabled={!canExport} aria-busy={exporting} title={stale ? 'Generate again to export the latest edits' : !generated ? 'Generate the project first' : undefined}>
+              {exporting && <SpinnerIcon />}
+              Export…
+            </button>
+          </div>
         </div>
+        {exportNote && (
+          <p className="muted small" role="status">
+            {exportNote}
+          </p>
+        )}
 
         {validation && !validation.ok && (
           <ul className="issues" aria-label="StorySpec issues">

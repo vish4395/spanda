@@ -1,5 +1,5 @@
 // Build the desktop app into dist/: main (ESM), preload (CJS, sandboxed), renderer (Vite), resources.
-import { cp, mkdir, rm } from 'node:fs/promises';
+import { cp, mkdir, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,8 @@ const repoRoot = path.resolve(appDir, '../..');
 const dist = path.join(appDir, 'dist');
 
 await rm(dist, { recursive: true, force: true });
+// The studio's own version (app.getVersion() reports Electron's when launched from a script path).
+const studioVersion = (JSON.parse(await readFile(path.join(appDir, 'package.json'), 'utf8')) as { version: string }).version;
 
 await esbuild({
   entryPoints: [path.join(appDir, 'src/main/index.ts')],
@@ -22,6 +24,7 @@ await esbuild({
   target: 'node22',
   external: ['electron'],
   sourcemap: 'linked',
+  define: { __STUDIO_VERSION__: JSON.stringify(studioVersion) },
   // Some CJS dependencies call require() for Node built-ins.
   banner: { js: "import { createRequire as __studioCreateRequire } from 'node:module'; const require = __studioCreateRequire(import.meta.url);" },
   logLevel: 'warning',

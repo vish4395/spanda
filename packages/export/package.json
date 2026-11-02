@@ -1,0 +1,22 @@
+{
+  "name": "@studio/export",
+  "version": "0.0.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@studio/contracts": "workspace:*",
+    "@studio/licensing": "workspace:*"
+  },
+  "devDependencies": {
+    "@studio/generator-html": "workspace:*",
+    "@studio/generator-react": "workspace:*"
+  }
+}

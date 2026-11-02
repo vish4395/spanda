@@ -16,6 +16,7 @@ const INITIAL_STATE: MenuState = {
   projectId: null,
   canGenerate: false,
   canSnapshot: false,
+  canExport: false,
   running: false,
   tab: null,
   target: 'html',
@@ -77,6 +78,7 @@ export class StudioMenus {
           this.command('project.new', 'New Project…', { accelerator: 'CmdOrCtrl+N' }),
           { type: 'separator' },
           this.command('project.snapshot', 'Save Snapshot', { accelerator: 'CmdOrCtrl+S', enabled: inProject && s.canSnapshot }),
+          this.command('project.export', 'Export Website…', { accelerator: 'CmdOrCtrl+E', enabled: inProject && s.canExport }),
           {
             id: 'project.reveal',
             label: revealLabel,

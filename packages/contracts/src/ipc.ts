@@ -69,6 +69,20 @@ export const PreviewSession = z.object({
 });
 export type PreviewSession = z.infer<typeof PreviewSession>;
 
+/** Result of an export (T024). Paths stay in the main process; only the file name is reported. */
+export const ExportResult = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('canceled') }),
+  z.object({
+    status: z.literal('saved'),
+    fileName: z.string().max(260),
+    files: z.number().int().nonnegative(),
+    bytes: z.number().int().nonnegative(),
+    licenses: z.enum(['passed', 'review_required']),
+    rights: z.enum(['passed', 'review_required']),
+  }),
+]);
+export type ExportResult = z.infer<typeof ExportResult>;
+
 export const PreviewMotion = z.enum(['full', 'reduce']);
 export type PreviewMotion = z.infer<typeof PreviewMotion>;
 
@@ -144,6 +158,7 @@ export const MenuState = z.strictObject({
   projectId: ProjectId.nullable(),
   canGenerate: z.boolean(),
   canSnapshot: z.boolean(),
+  canExport: z.boolean(),
   running: z.boolean(),
   tab: z.enum(['discover', 'brief', 'storyboard', 'build']).nullable(),
   target: OutputTarget,
@@ -176,6 +191,7 @@ export const ipcContract = {
   'generation.cancel': { request: z.strictObject({ jobId: JobId }), response: JobSnapshot },
   'preview.start': { request: z.strictObject({ projectId: ProjectId, target: OutputTarget }), response: PreviewSession },
   'preview.setMotion': { request: z.strictObject({ motion: PreviewMotion }), response: PreviewMotion },
+  'export.create': { request: z.strictObject({ projectId: ProjectId, targets: z.array(OutputTarget).min(1).max(2) }), response: ExportResult },
   'preview.issues': { request: z.strictObject({ url: z.string().url().max(2048) }), response: PreviewDiagnostics },
   'providers.probe': { request: z.void(), response: z.array(ProviderStatus) },
   'skills.list': { request: z.void(), response: z.array(SkillManifest) },

@@ -10,6 +10,7 @@ import {
   type StorySpec,
 } from '@studio/contracts';
 import { JobManager, ProjectWorkspace, throwIfCancelled } from '@studio/core';
+import { buildExport, type ExportResult } from '@studio/export';
 import { generateHtmlSite } from '@studio/generator-html';
 import { generateReactProject } from '@studio/generator-react';
 import { buildReactExport, startStaticServer, type StaticServer } from '@studio/preview';
@@ -171,6 +172,17 @@ export class StudioServices {
     await this.creativeService.syncScenes(projectId, [result.spec.pages.find((p) => p.id === page.id)!.scenes[index]!]);
     for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
     return this.snapshot(projectId, `Edited “${scene.accessibility.label}”`);
+  }
+
+  /** Package the generated outputs for download (T024); refuses stale or blocked exports. */
+  async buildExport(projectId: string, targets: OutputTarget[], studioVersion: string): Promise<ExportResult & { suggestedName: string }> {
+    this.requireProject(projectId);
+    const current = await this.workspace.readSpec(projectId);
+    if (!current.ok) throw new Error('Fix the StorySpec issues before exporting.');
+    const outputs = Object.fromEntries([...new Set(targets)].map((t) => [t, this.workspace.outputDir(projectId, t)]));
+    const result = await buildExport({ spec: current.spec, outputs, studioVersion });
+    const suffix = targets.length === 1 ? `-${targets[0]}` : '';
+    return { ...result, suggestedName: `${projectId}${suffix}-export.zip` };
   }
 
   // Generation ---------------------------------------------------------------

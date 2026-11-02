@@ -34,15 +34,18 @@ All IPC payloads runtime-validated with Zod. IDs opaque UUIDs. File paths never 
 
 ## Export shape
 ```
-export/
-  html/                 # self-contained static site source
-  react/                # Vite/TS React project source
+<project>-export.zip
+  html/                 # self-contained static site (no build step)
+  react/                # Vite/TS React project source + package-lock.json (no node_modules, no dist)
   metadata/
     story-spec.json
     licenses.json
     asset-provenance.json
+  README.md             # run, build and host instructions; license and rights status
+  LICENSES.md           # generated code under MIT-0; third-party code keeps its own licenses
   THIRD_PARTY_NOTICES.md
   ASSET_CREDITS.md
-  README.md
+  sbom.cdx.json         # CycloneDX 1.5
 ```
+The archive is deterministic (sorted entries, fixed timestamps): the same outputs export to the same bytes. Export is refused when a selected output is missing or out of date with the StorySpec, when the React build has not succeeded, when any dependency license is blocked, or when an asset's rights are blocked; unknown asset rights are reported as needing review.
 Only selected target directories included; exported site does not depend on studio APIs.

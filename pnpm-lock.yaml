@@ -187,6 +187,9 @@ importers:
       '@studio/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@studio/export':
+        specifier: workspace:*
+        version: link:../../packages/export
       '@studio/generator-html':
         specifier: workspace:*
         version: link:../../packages/generator-html
@@ -257,6 +260,22 @@ importers:
       '@studio/contracts':
         specifier: workspace:*
         version: link:../contracts
+
+  packages/export:
+    dependencies:
+      '@studio/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@studio/licensing':
+        specifier: workspace:*
+        version: link:../licensing
+    devDependencies:
+      '@studio/generator-html':
+        specifier: workspace:*
+        version: link:../generator-html
+      '@studio/generator-react':
+        specifier: workspace:*
+        version: link:../generator-react
 
   packages/generator-html:
     dependencies:

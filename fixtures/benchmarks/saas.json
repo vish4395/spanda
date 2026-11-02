@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "bench-saas",
+    "name": "Ledgerline",
+    "goal": "Explain a fictional bookkeeping app for small creative studios"
+  },
+  "design": {
+    "theme": "night ledger",
+    "colors": {
+      "background": "#0d1220",
+      "foreground": "#e8ecf6",
+      "accent": "#8fb3ff"
+    },
+    "typography": {
+      "heading": "Inter, system-ui, sans-serif",
+      "body": "Inter, system-ui, sans-serif"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "scenes": [
+        {
+          "id": "hero-01",
+          "type": "hero",
+          "content": {
+            "heading": "Ledgerline",
+            "body": "Calm bookkeeping for small creative studios."
+          },
+          "visual": {
+            "background": "solid",
+            "modelAssetId": null
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "static-hero"
+          },
+          "accessibility": {
+            "label": "Ledgerline",
+            "fallbackText": "Decorative artwork in deep blue."
+          }
+        },
+        {
+          "id": "reveal-02",
+          "type": "scroll-reveal",
+          "content": {
+            "eyebrow": "Getting started",
+            "heading": "From receipts to a clean month",
+            "items": [
+              {
+                "title": "Connect",
+                "text": "Link your bank account with read-only access."
+              },
+              {
+                "title": "Sort",
+                "text": "Transactions are grouped by client and project."
+              },
+              {
+                "title": "Check",
+                "text": "You confirm anything the app is unsure about."
+              },
+              {
+                "title": "Close",
+                "text": "The month is locked and a summary is ready."
+              },
+              {
+                "title": "Share",
+                "text": "Send the summary to your accountant in one file."
+              }
+            ]
+          },
+          "visual": {},
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "From receipts to a clean month",
+            "fallbackText": "Five steps of a month in Ledgerline."
+          }
+        },
+        {
+          "id": "showcase-03",
+          "type": "model-showcase",
+          "content": {
+            "heading": "Everything in one place",
+            "body": "Clients, projects and invoices sit around the same centre: your studio."
+          },
+          "visual": {
+            "object": "orb",
+            "camera": "orbit"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Everything in one place",
+            "fallbackText": "A glowing sphere shown as decorative 3D art."
+          }
+        },
+        {
+          "id": "chapter-04",
+          "type": "chapter",
+          "content": {
+            "eyebrow": "Privacy",
+            "heading": "Your numbers stay yours",
+            "body": "Ledgerline never sells data and lets you export everything at any time."
+          },
+          "visual": {
+            "layout": "split"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Your numbers stay yours",
+            "fallbackText": "Abstract decorative artwork of a closed ledger."
+          }
+        },
+        {
+          "id": "gallery-05",
+          "type": "gallery",
+          "content": {
+            "heading": "What you get",
+            "items": [
+              {
+                "title": "Project view",
+                "text": "See what each job earned and cost."
+              },
+              {
+                "title": "Invoice drafts",
+                "text": "Prepared from tracked time and expenses."
+              },
+              {
+                "title": "Month summary",
+                "text": "A one-page overview for your accountant."
+              }
+            ]
+          },
+          "visual": {},
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "What you get",
+            "fallbackText": "Three decorative cards for app features."
+          }
+        },
+        {
+          "id": "cta-06",
+          "type": "cta",
+          "content": {
+            "heading": "Try it with last month",
+            "body": "Import one month of statements and see how it reads.",
+            "cta": {
+              "label": "Start a trial",
+              "href": "https://example.com/ledgerline"
+            }
+          },
+          "visual": {},
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {},
+          "accessibility": {
+            "label": "Try it with last month",
+            "fallbackText": "Invitation to start a trial."
+          }
+        }
+      ]
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "reducedMotion": true,
+    "webglFallback": true,
+    "targetBrowsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ]
+  }
+}

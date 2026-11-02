@@ -1,5 +1,23 @@
 # Implementation log
 
+## 2026-11-02 — M3 exit check: benchmark briefs
+
+Exit criterion (roadmap M3): *benchmark briefs export both targets, each builds and runs.*
+
+| Brief (docs/05) | Fixture | Stresses |
+|---|---|---|
+| Heritage | `schemas/story-spec.example.json` | baseline sample |
+| Product launch | `fixtures/benchmarks/product-launch.json` | light theme, monolith showcase (low camera), `https:` CTA |
+| Portfolio | `fixtures/benchmarks/portfolio.json` | six-card gallery, `mailto:` CTA, no showcase |
+| SaaS | `fixtures/benchmarks/saas.json` | solid hero, five-step reveal (max), orb showcase |
+| Educational | `fixtures/benchmarks/educational.json` | long body copy, alternating layouts, in-page CTA |
+
+All content is original and fictional; links use `example.com`. Contract tests check every fixture validates and meets 4.5:1 contrast for text and accent. `packages/qa/tests/benchmarks.spec.ts` generates and builds each brief in both targets, then per target checks desktop and mobile render (every scene and heading present, CTA hrefs, no horizontal scroll, no console/page/network errors, full-page screenshot), reduced motion with WebGL disabled, and HTML/React content parity.
+
+Result: **M3 exit met on Chromium and WebKit** — benchmark suite 70/70, full export suite 116/116, 186/186 unit tests, license gate passed. Screenshots reviewed (light-theme product launch, mobile educational). Firefox, Windows and Linux pending CI.
+
+Notes: the hero's star particles read as specks on the light theme (cosmetic, P1). The docs/05 rubric items (performance, originality, provider/model and artifact hashes) belong to the M5 evaluation harness (T026).
+
 ## 2026-11-02 — T020 scoped scene edits and checkpoint rollback
 
 | Area | Result |

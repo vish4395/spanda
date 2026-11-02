@@ -18,7 +18,15 @@ export interface SampleManifest {
 export const SAMPLES = {
   heritage: 'schemas/story-spec.example.json',
   primitives: 'fixtures/benchmarks/all-primitives.json',
+  'product-launch': 'fixtures/benchmarks/product-launch.json',
+  portfolio: 'fixtures/benchmarks/portfolio.json',
+  saas: 'fixtures/benchmarks/saas.json',
+  educational: 'fixtures/benchmarks/educational.json',
 } as const;
+
+/** The benchmark briefs from docs/05 (M3 exit: each exports, builds and runs in both targets). */
+export const BENCHMARKS = ['heritage', 'product-launch', 'portfolio', 'saas', 'educational'] as const satisfies readonly (keyof typeof SAMPLES)[];
+export type Benchmark = (typeof BENCHMARKS)[number];
 
 /** Generate both targets from a sample spec and build the React one. */
 export async function generateSample(log: (line: string) => void = console.log, sample: keyof typeof SAMPLES = 'heritage'): Promise<SampleManifest> {

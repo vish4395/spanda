@@ -1,0 +1,191 @@
+{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "bench-product-launch",
+    "name": "Halden One",
+    "goal": "Launch a fictional desk lamp with a calm, light product story"
+  },
+  "design": {
+    "theme": "warm paper",
+    "colors": {
+      "background": "#f6f2ea",
+      "foreground": "#1d1b18",
+      "accent": "#9a3f1c"
+    },
+    "typography": {
+      "heading": "Georgia, serif",
+      "body": "system-ui, sans-serif"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "scenes": [
+        {
+          "id": "hero-01",
+          "type": "hero",
+          "content": {
+            "heading": "Halden One",
+            "body": "A desk lamp that follows the day, not the clock."
+          },
+          "visual": {
+            "background": "procedural-3d",
+            "modelAssetId": null
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "static-hero"
+          },
+          "accessibility": {
+            "label": "Halden One",
+            "fallbackText": "Decorative 3D artwork of a slim standing form."
+          }
+        },
+        {
+          "id": "showcase-02",
+          "type": "model-showcase",
+          "content": {
+            "heading": "One piece of folded steel",
+            "body": "Turn it slowly: the arm, the shade and the base are cut from a single sheet."
+          },
+          "visual": {
+            "object": "monolith",
+            "camera": "low"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "One piece of folded steel",
+            "fallbackText": "A tall folded-steel form shown as decorative 3D art."
+          }
+        },
+        {
+          "id": "reveal-03",
+          "type": "scroll-reveal",
+          "content": {
+            "eyebrow": "How it works",
+            "heading": "Light that changes with you",
+            "items": [
+              {
+                "title": "Morning",
+                "text": "Cool, bright light for reading and planning."
+              },
+              {
+                "title": "Afternoon",
+                "text": "A softer white that stays easy on the eyes."
+              },
+              {
+                "title": "Evening",
+                "text": "Warm, low light that winds the room down."
+              }
+            ]
+          },
+          "visual": {},
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Light that changes with you",
+            "fallbackText": "Three lighting modes through the day."
+          }
+        },
+        {
+          "id": "gallery-04",
+          "type": "gallery",
+          "content": {
+            "eyebrow": "Finishes",
+            "heading": "Three finishes",
+            "items": [
+              {
+                "title": "Chalk",
+                "text": "Matte white with a pale oak switch."
+              },
+              {
+                "title": "Rust",
+                "text": "Burnt orange with a walnut switch."
+              },
+              {
+                "title": "Graphite",
+                "text": "Dark grey with a black switch."
+              }
+            ]
+          },
+          "visual": {},
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Three finishes",
+            "fallbackText": "Three decorative cards for the lamp finishes."
+          }
+        },
+        {
+          "id": "chapter-05",
+          "type": "chapter",
+          "content": {
+            "eyebrow": "Made to last",
+            "heading": "Every part can be replaced",
+            "body": "The bulb, the cable and the switch are standard parts held by screws, not glue."
+          },
+          "visual": {
+            "layout": "centered"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Every part can be replaced",
+            "fallbackText": "Abstract decorative artwork in warm paper tones."
+          }
+        },
+        {
+          "id": "cta-06",
+          "type": "cta",
+          "content": {
+            "heading": "Be first in line",
+            "body": "Join the list and hear when Halden One is ready.",
+            "cta": {
+              "label": "Join the list",
+              "href": "https://example.com/halden"
+            }
+          },
+          "visual": {},
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {},
+          "accessibility": {
+            "label": "Be first in line",
+            "fallbackText": "Invitation to join the launch list."
+          }
+        }
+      ]
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "reducedMotion": true,
+    "webglFallback": true,
+    "targetBrowsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ]
+  }
+}

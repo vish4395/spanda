@@ -1,0 +1,170 @@
+{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "bench-portfolio",
+    "name": "Studio Marrow",
+    "goal": "A portfolio for a fictional set and exhibition design studio"
+  },
+  "design": {
+    "theme": "gallery dark",
+    "colors": {
+      "background": "#121010",
+      "foreground": "#f2ece4",
+      "accent": "#e0a96d"
+    },
+    "typography": {
+      "heading": "Didot, Georgia, serif",
+      "body": "Helvetica Neue, Arial, sans-serif"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "scenes": [
+        {
+          "id": "hero-01",
+          "type": "hero",
+          "content": {
+            "heading": "Studio Marrow",
+            "body": "Sets and exhibitions that people walk through, not past."
+          },
+          "visual": {
+            "background": "gradient",
+            "modelAssetId": null
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "static-hero"
+          },
+          "accessibility": {
+            "label": "Studio Marrow",
+            "fallbackText": "Decorative 3D artwork in warm amber light."
+          }
+        },
+        {
+          "id": "chapter-02",
+          "type": "chapter",
+          "content": {
+            "eyebrow": "About",
+            "heading": "Rooms that tell one story",
+            "body": "We design theatre sets, museum rooms and travelling exhibitions, usually starting from a single object."
+          },
+          "visual": {
+            "layout": "split"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Rooms that tell one story",
+            "fallbackText": "Abstract decorative artwork of layered stage flats."
+          }
+        },
+        {
+          "id": "gallery-03",
+          "type": "gallery",
+          "content": {
+            "eyebrow": "Work",
+            "heading": "Selected work",
+            "items": [
+              {
+                "title": "The Salt Archive",
+                "text": "A travelling exhibition built from shipping crates."
+              },
+              {
+                "title": "Night Ferry",
+                "text": "A stage set that rotates between deck and cabin."
+              },
+              {
+                "title": "Paper Weather",
+                "text": "An installation of hanging paper clouds."
+              },
+              {
+                "title": "The Quiet Room",
+                "text": "A gallery space lit only from the floor."
+              },
+              {
+                "title": "Orchard",
+                "text": "A play staged inside a grid of potted trees."
+              },
+              {
+                "title": "Signal",
+                "text": "A museum room about early radio."
+              }
+            ]
+          },
+          "visual": {},
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Selected work",
+            "fallbackText": "Six decorative cards for selected projects."
+          }
+        },
+        {
+          "id": "chapter-04",
+          "type": "chapter",
+          "content": {
+            "eyebrow": "Process",
+            "heading": "Model first, then full size",
+            "body": "Every project starts as a cardboard model on the studio table before anything is built."
+          },
+          "visual": {
+            "layout": "centered"
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Model first, then full size",
+            "fallbackText": "Abstract decorative artwork of a cardboard model."
+          }
+        },
+        {
+          "id": "cta-05",
+          "type": "cta",
+          "content": {
+            "heading": "Start a project",
+            "body": "Tell us about the space and the story you want it to hold.",
+            "cta": {
+              "label": "Write to the studio",
+              "href": "mailto:studio@example.com"
+            }
+          },
+          "visual": {},
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {},
+          "accessibility": {
+            "label": "Start a project",
+            "fallbackText": "Invitation to contact the studio."
+          }
+        }
+      ]
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "reducedMotion": true,
+    "webglFallback": true,
+    "targetBrowsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ]
+  }
+}

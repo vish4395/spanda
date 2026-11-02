@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { findUnsupportedScenes, validateStorySpec, type StorySpec } from '../src/index.ts';
@@ -90,5 +90,30 @@ describe('M3 primitives', () => {
     scenes[3]!.content.items = [{ title: 'x', text: 'y' }];
     const paths = validateStorySpec(spec).issues.map((i) => i.path).sort();
     expect(paths).toEqual(['pages.0.scenes.2.visual.object', 'pages.0.scenes.3.content.items', 'pages.0.scenes.4.content.items', 'pages.0.scenes.5.content.cta']);
+  });
+});
+
+describe('benchmark briefs (M3 exit)', () => {
+  const lum = (hex: string) => {
+    const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0]! + 0.7152 * c[1]! + 0.0722 * c[2]!;
+  };
+  const contrast = (a: string, b: string) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+    return (hi! + 0.05) / (lo! + 0.05);
+  };
+  const files = readdirSync(`${root}fixtures/benchmarks`).filter((f) => f.endsWith('.json'));
+
+  it('covers the docs/05 briefs (heritage is schemas/story-spec.example.json) plus all-primitives', () => {
+    expect(files.sort()).toEqual(['all-primitives.json', 'educational.json', 'portfolio.json', 'product-launch.json', 'saas.json']);
+  });
+
+  it.each(files)('%s is a valid StorySpec with AA contrast for text and accent', (file) => {
+    const spec = JSON.parse(readFileSync(`${root}fixtures/benchmarks/${file}`, 'utf8')) as StorySpec;
+    expect(validateStorySpec(spec).issues).toEqual([]);
+    const { background, foreground, accent } = spec.design.colors;
+    expect(contrast(foreground, background)).toBeGreaterThanOrEqual(4.5);
+    // Accent is used for small eyebrow text and as the button fill behind background-coloured text.
+    expect(contrast(accent, background)).toBeGreaterThanOrEqual(4.5);
   });
 });

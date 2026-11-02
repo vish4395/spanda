@@ -1,0 +1,184 @@
+{
+  "schemaVersion": "0.1.0",
+  "project": {
+    "id": "bench-educational",
+    "name": "How Tides Work",
+    "goal": "An educational scroll story explaining ocean tides"
+  },
+  "design": {
+    "theme": "deep water",
+    "colors": {
+      "background": "#06141f",
+      "foreground": "#e6f1f7",
+      "accent": "#5fd3e6"
+    },
+    "typography": {
+      "heading": "Georgia, serif",
+      "body": "system-ui, sans-serif"
+    }
+  },
+  "pages": [
+    {
+      "id": "home",
+      "path": "/",
+      "scenes": [
+        {
+          "id": "hero-01",
+          "type": "hero",
+          "content": {
+            "heading": "How Tides Work",
+            "body": "Twice a day the sea rises and falls. Here is why."
+          },
+          "visual": {
+            "background": "procedural-3d",
+            "modelAssetId": null
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "static-hero"
+          },
+          "accessibility": {
+            "label": "How Tides Work",
+            "fallbackText": "Decorative 3D artwork of a moon over dark water."
+          }
+        },
+        {
+          "id": "chapter-02",
+          "type": "chapter",
+          "content": {
+            "eyebrow": "Chapter one",
+            "heading": "The Moon pulls on the ocean",
+            "body": "The Moon's gravity pulls hardest on the side of Earth facing it, raising a bulge of water there."
+          },
+          "visual": {
+            "layout": "split"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "The Moon pulls on the ocean",
+            "fallbackText": "Abstract decorative artwork of a curved ocean surface."
+          }
+        },
+        {
+          "id": "chapter-03",
+          "type": "chapter",
+          "content": {
+            "eyebrow": "Chapter two",
+            "heading": "A second bulge on the far side",
+            "body": "On the opposite side, the ocean is pulled less than the planet itself, so a second bulge forms. That is why most coasts see two high tides a day."
+          },
+          "visual": {
+            "layout": "centered"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "A second bulge on the far side",
+            "fallbackText": "Abstract decorative artwork of two ocean bulges."
+          }
+        },
+        {
+          "id": "showcase-04",
+          "type": "model-showcase",
+          "content": {
+            "heading": "Earth turns beneath the bulges",
+            "body": "As Earth rotates, a coastline passes through both bulges, about every 12 hours and 25 minutes."
+          },
+          "visual": {
+            "object": "orb",
+            "camera": "front"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Earth turns beneath the bulges",
+            "fallbackText": "A slowly turning sphere shown as decorative 3D art."
+          }
+        },
+        {
+          "id": "reveal-05",
+          "type": "scroll-reveal",
+          "content": {
+            "eyebrow": "The lunar month",
+            "heading": "Spring and neap tides",
+            "items": [
+              {
+                "title": "New moon",
+                "text": "Sun and Moon line up and their pulls add together: spring tides, with the biggest range."
+              },
+              {
+                "title": "First quarter",
+                "text": "They pull at right angles: neap tides, with the smallest range."
+              },
+              {
+                "title": "Full moon",
+                "text": "They line up again on opposite sides: spring tides return."
+              },
+              {
+                "title": "Last quarter",
+                "text": "Right angles again, and another neap tide."
+              }
+            ]
+          },
+          "visual": {},
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Spring and neap tides",
+            "fallbackText": "Four phases of the Moon and their tides."
+          }
+        },
+        {
+          "id": "cta-06",
+          "type": "cta",
+          "content": {
+            "heading": "Watch it yourself",
+            "body": "Check a local tide table for a week and compare it with the phase of the Moon.",
+            "cta": {
+              "label": "Back to the start",
+              "href": "#hero-01"
+            }
+          },
+          "visual": {},
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {},
+          "accessibility": {
+            "label": "Watch it yourself",
+            "fallbackText": "Invitation to explore tides."
+          }
+        }
+      ]
+    }
+  ],
+  "assets": [],
+  "quality": {
+    "reducedMotion": true,
+    "webglFallback": true,
+    "targetBrowsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ]
+  }
+}

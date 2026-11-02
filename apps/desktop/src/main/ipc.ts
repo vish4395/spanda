@@ -2,6 +2,7 @@ import { ipcMain, type IpcMainInvokeEvent } from 'electron';
 import { IPC_CHANNELS, ipcContract, type IpcChannel, type IpcEnvelope } from '@studio/contracts';
 import { isTrustedSender } from './sender.ts';
 import type { StudioMenus } from './menu.ts';
+import type { PreviewInspector } from './preview-inspector.ts';
 import type { StudioServices } from './services.ts';
 
 export { APP_ORIGIN } from './sender.ts';
@@ -12,8 +13,18 @@ function describe(err: unknown): string {
   return message.replace(/(?:[A-Za-z]:\\|\/)(?:[^\s'"]+[\\/])+/g, '…/');
 }
 
-export function registerIpc(services: StudioServices, menus: StudioMenus): void {
+export function registerIpc(services: StudioServices, menus: StudioMenus, inspectorFor: (contents: IpcMainInvokeEvent['sender']) => PreviewInspector | undefined): void {
+  const inspector = (event: IpcMainInvokeEvent) => {
+    const found = inspectorFor(event.sender);
+    if (!found) throw new Error('Preview inspector is not available for this window');
+    return found;
+  };
   const handlers: { [C in IpcChannel]: (req: unknown, event: IpcMainInvokeEvent) => unknown } = {
+    'story.get': (req) => services.getSpec((req as { projectId: string }).projectId),
+    'story.updateScene': (req) => {
+      const { projectId, sceneId, content, visual, accessibility } = req as { projectId: string; sceneId: string; content: unknown; visual?: unknown; accessibility?: unknown };
+      return services.updateScene(projectId, sceneId, { content, ...(visual !== undefined ? { visual } : {}), ...(accessibility !== undefined ? { accessibility } : {}) });
+    },
     'ui.menuState': (req) => {
       menus.update(req as Parameters<StudioMenus['update']>[0]);
       return true;
@@ -44,6 +55,8 @@ export function registerIpc(services: StudioServices, menus: StudioMenus): void 
       const { projectId, target } = req as { projectId: string; target: 'html' | 'react' };
       return services.startPreview(projectId, target);
     },
+    'preview.setMotion': (req, event) => inspector(event).setMotion((req as { motion: 'full' | 'reduce' }).motion),
+    'preview.issues': (req, event) => inspector(event).diagnostics((req as { url: string }).url),
     'providers.probe': () => services.probeProviders(),
     'skills.list': () => services.listSkills(),
     'settings.get': () => services.settings().settings(),

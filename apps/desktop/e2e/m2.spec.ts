@@ -60,9 +60,10 @@ test('M2: idea → discovery → brief → storyboard → approved StorySpec →
   await expect(win.locator('.topbar__status')).toContainText('Ready', { timeout: 200_000 });
   const frame = win.frameLocator('iframe');
   await expect(frame.locator('h1')).toHaveText('Lantern Festival', { timeout: 30_000 });
-  await expect(frame.locator('#chapter-03 h2')).toHaveText('Lanterns on the water');
+  // Reordering keeps scene IDs stable: the edited scene keeps chapter-02 at its new position.
+  await expect(frame.locator('#chapter-02 h2')).toHaveText('Lanterns on the water');
   await win.getByRole('radio', { name: 'React' }).click();
-  await expect(win.frameLocator('iframe').locator('#chapter-03 h2')).toHaveText('Lanterns on the water', { timeout: 30_000 });
+  await expect(win.frameLocator('iframe').locator('#chapter-02 h2')).toHaveText('Lanterns on the water', { timeout: 30_000 });
   await win.waitForTimeout(1200);
   await win.screenshot({ path: path.join(screenshots, 'desktop-m2-preview.png') });
   await app.close();

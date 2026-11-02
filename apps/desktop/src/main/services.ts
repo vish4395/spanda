@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import {
+  validateStorySpec,
   type IpcResponse,
   type OutputTarget,
   type PreviewSession,
@@ -105,6 +106,12 @@ export class StudioServices {
     return { project, versions: this.store.listVersions(projectId), jobs: this.store.listJobs(projectId, 5) };
   }
 
+  async getSpec(projectId: string): Promise<StorySpec | null> {
+    this.requireProject(projectId);
+    const result = await this.workspace.readSpec(projectId);
+    return result.ok ? result.spec : null;
+  }
+
   async validate(projectId: string): Promise<IpcResponse<'story.validate'>> {
     const result = await this.workspace.readSpec(projectId);
     return { ok: result.ok, issues: result.issues };
@@ -136,9 +143,34 @@ export class StudioServices {
     const current = await this.workspace.readSpec(projectId);
     if (current.ok) await this.snapshot(projectId, 'Before restore');
     await this.workspace.writeSpec(projectId, spec);
+    // Rolling back text must not come back on the next storyboard approval (scene structure is not reshaped).
+    await this.creativeService.syncScenes(projectId, spec.pages.flatMap((p) => p.scenes));
     const restored = await this.recordVersion(projectId, spec, `Restored “${target.label}”`, target.id);
     for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
     return restored;
+  }
+
+  /**
+   * Scoped edit (T020): replace one scene's content/visual/accessibility. Every
+   * other scene is kept byte-for-byte; the whole spec is re-validated and a
+   * version is recorded so the edit can be rolled back.
+   */
+  async updateScene(projectId: string, sceneId: string, patch: { content: unknown; visual?: unknown; accessibility?: unknown }): Promise<ProjectVersion> {
+    this.requireProject(projectId);
+    const current = await this.workspace.readSpec(projectId);
+    if (!current.ok) throw new Error('Fix the StorySpec issues before editing scenes.');
+    const spec = structuredClone(current.spec);
+    const page = spec.pages.find((p) => p.scenes.some((s) => s.id === sceneId));
+    if (!page) throw new Error(`Scene "${sceneId}" was not found.`);
+    const index = page.scenes.findIndex((s) => s.id === sceneId);
+    const scene = page.scenes[index]!;
+    page.scenes[index] = { ...scene, content: patch.content, visual: patch.visual ?? scene.visual, accessibility: patch.accessibility ?? scene.accessibility } as typeof scene;
+    const result = validateStorySpec(spec);
+    if (!result.ok) throw new Error(result.issues.map((i) => `${i.path.replace(/^pages\.\d+\.scenes\.\d+\./, '')}: ${i.message}`).join('\n'));
+    await this.workspace.writeSpec(projectId, result.spec);
+    await this.creativeService.syncScenes(projectId, [result.spec.pages.find((p) => p.id === page.id)!.scenes[index]!]);
+    for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
+    return this.snapshot(projectId, `Edited “${scene.accessibility.label}”`);
   }
 
   // Generation ---------------------------------------------------------------

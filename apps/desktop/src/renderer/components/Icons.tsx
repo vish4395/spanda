@@ -35,3 +35,4 @@ export const ChevronIcon = ({ open }: { open: boolean }) => <Icon><path d={open 
 export const PlusIcon = () => <Icon><path d="M12 5v14M5 12h14" /></Icon>;
 export const PuzzleIcon = () => <Icon><path d="M9 4.5a2 2 0 1 1 4 0V6h4v4h-1.5a2 2 0 1 0 0 4H17v4h-4v-1.5a2 2 0 1 0-4 0V18H5v-4h1.5a2 2 0 1 0 0-4H5V6h4z" /></Icon>;
 export const ServerIcon = () => <Icon><rect x="4" y="4" width="16" height="7" rx="1.5" /><rect x="4" y="13" width="16" height="7" rx="1.5" /><path d="M8 7.5h.01M8 16.5h.01" /></Icon>;
+export const MotionIcon = () => <Icon><path d="M3 12h4l2.5-6 5 12 2.5-6h4" /></Icon>;

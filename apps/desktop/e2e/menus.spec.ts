@@ -76,6 +76,13 @@ test('View menu switches tabs, preview target and device, with live checks', asy
   await expect.poll(async () => (await menuItem('device.mobile'))?.checked).toBe(true);
   await clickMenu('device.desktop');
   await clickMenu('target.html');
+  // T019: the reduced-motion checkbox mirrors the toolbar toggle both ways.
+  const motion = win.getByRole('button', { name: 'Reduced motion' });
+  await clickMenu('preview.reducedMotion');
+  await expect(motion).toHaveAttribute('aria-pressed', 'true');
+  await expect.poll(async () => (await menuItem('preview.reducedMotion'))?.checked).toBe(true);
+  await motion.click();
+  await expect.poll(async () => (await menuItem('preview.reducedMotion'))?.checked).toBe(false);
 });
 
 test('Project menu generates, cancels and reloads the preview; enabled states follow', async () => {

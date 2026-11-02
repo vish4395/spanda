@@ -1,5 +1,34 @@
 # Implementation log
 
+## 2026-11-02 — T020 scoped scene edits and checkpoint rollback
+
+| Area | Result |
+|---|---|
+| Scoped edit | Build & preview → Scenes: edit one scene (heading, body, eyebrow, items, CTA, 3D object, text alternative). Only that scene changes (other scenes byte-identical), the whole StorySpec is re-validated, and an "Edited …" version is recorded |
+| Rollback | Restore any version from the Versions list; the current spec is snapshotted first, so the edit stays in history |
+| Storyboard stays in step | Edits and restores are synced into the storyboard by scene ID, so approving the storyboard again can no longer silently revert a scoped edit or resurrect a rolled-back one. Storyboard `body`/`visualNote` limits raised to the StorySpec's (4000/1000) so the sync is lossless |
+| Storyboard scene types | Storyboards can add scroll-reveal, model-showcase, gallery and CTA scenes; reordering keeps scene IDs stable |
+
+Verification: 180/180 unit tests (approve → edit → re-approve → restore covered in the creative integration test; round-trip test in story-engine) · desktop E2E 17/17, M3 spec now also rolls back through the UI and checks the storyboard.
+
+Limits: restoring a version with a different scene structure (added/removed/reordered scenes) syncs text by ID but does not reshape the storyboard.
+
+## 2026-11-02 — T019 live preview: reduced motion and runtime errors
+
+Already in place before this slice: device presets (desktop/tablet/mobile with scale-to-fit), build-failure overlay with retry, scroll-to-scene, out-of-date marker.
+
+| Added | Result |
+|---|---|
+| Reduced-motion preview | Toolbar toggle + **View → Preview with Reduced Motion** checkbox. Real media emulation of the preview frame from the main process (ADR-010 addendum), applied live without reload and before page scripts on reload; works for both HTML and React exports, which are not modified |
+| Runtime error overlay | Uncaught exceptions, `console.error`, failed loads (HTTP ≥ 400, network errors, ORB-blocked missing files) and the export's own CSP violations are shown in a dismissible panel docked over the stage; the page stays usable. Cleared on reload, filtered to the visible preview, capped at 50 with a dropped count |
+| Contracts | `preview.setMotion`, `preview.issues`, `MenuState.reducedMotion`, menu command `preview.reducedMotion` |
+
+Verification (macOS arm64, Node 23.7 — Node 24 not installed on this machine): typecheck pass · 179/179 unit tests (11 new for `PreviewInspector`) · license gate passed · desktop E2E 17/17 including the new T019 spec (emulation checked via `matchMedia` and the HTML runtime's `data-motion` in both targets; a broken script and missing image injected into the HTML output surface in the panel) · export browser suite 46/46 (Chromium, WebKit).
+
+Findings while building: OOPIF targets attach with an empty URL, so URLs are learned from `Target.targetInfoChanged`; resuming a paused OOPIF without `Runtime.enable` leaves it blank; Chromium sends failed loads only through the `Network` domain, not `Log`; the HTML export's CSP correctly blocked an injected inline script. The committed M2 E2E still expected positional scene IDs after reorder, which the (earlier, uncommitted) stable-ID storyboard change replaced; assertion updated to `#chapter-02`.
+
+Not done / limits: Firefox and Windows/Linux not run locally; no element picking in the preview ("click element → source", S08) yet; issues are not linked to scenes; workers inside the preview are not inspected (no nested auto-attach).
+
 ## 2026-11-02 — M2 creative workflow (T011–T015)
 
 | Ticket | Result |

@@ -76,8 +76,56 @@ export function storyboardPrompt(input: { name: string; idea: string; brief: Cre
 }
 
 /** Map an approved storyboard + brief onto a StorySpec, preserving the project id. */
+/** Sensible, valid defaults when a storyboard scene of a given type is added. */
+export function defaultSceneOf(type: StoryboardScene['type'], id: string): StoryboardScene {
+  const base = { id, type, heading: 'New scene', body: '', visualNote: '' };
+  switch (type) {
+    case 'scroll-reveal':
+      return { ...base, heading: 'How it unfolds', items: [{ title: 'First', text: 'Starter text — first step.' }, { title: 'Then', text: 'Starter text — second step.' }, { title: 'Finally', text: 'Starter text — third step.' }] };
+    case 'gallery':
+      return { ...base, heading: 'Highlights', items: [{ title: 'One', text: 'Starter text.' }, { title: 'Two', text: 'Starter text.' }, { title: 'Three', text: 'Starter text.' }] };
+    case 'model-showcase':
+      return { ...base, heading: 'A closer look', body: 'Starter text — describe the object.', object: 'orb' };
+    case 'cta':
+      return { ...base, heading: 'Join us', body: 'Starter text — the invitation.', cta: { label: 'Get in touch', href: '#hero-01' } };
+    case 'chapter':
+      return { ...base, eyebrow: 'Chapter', heading: 'New chapter', body: 'Starter text — replace with this chapter’s story.', layout: 'split' };
+    default:
+      return base;
+  }
+}
+
+type SpecScene = StorySpec['pages'][number]['scenes'][number];
+
+const fallbackFor = (scene: StoryboardScene) => (scene.visualNote || `Decorative artwork for ${scene.heading}`).slice(0, 1000);
+
+/**
+ * Mirror a scoped StorySpec scene edit (T020) into its storyboard scene, so approving the
+ * storyboard again rebuilds the edited text instead of silently reverting it. Scenes that
+ * are not in the storyboard (e.g. imported specs) leave it unchanged.
+ */
+export function syncStoryboardScene(storyboard: Storyboard, scene: SpecScene): Storyboard {
+  const index = storyboard.scenes.findIndex((s) => s.id === scene.id);
+  if (index === -1) return storyboard;
+  const previous = storyboard.scenes[index]!;
+  const { eyebrow: _eyebrow, items: _items, cta: _cta, ...rest } = previous;
+  const next: StoryboardScene = {
+    ...rest,
+    ...(previous.type !== 'hero' && scene.content.eyebrow ? { eyebrow: scene.content.eyebrow } : {}),
+    heading: scene.content.heading,
+    body: scene.content.body ?? '',
+    // Keep the note when the text alternative is still the one it produced.
+    visualNote: scene.accessibility.fallbackText === fallbackFor(previous) ? previous.visualNote : scene.accessibility.fallbackText,
+    ...(scene.content.items ? { items: scene.content.items } : {}),
+    ...(scene.content.cta ? { cta: scene.content.cta } : {}),
+    ...(previous.type === 'model-showcase' && scene.visual.object ? { object: scene.visual.object } : {}),
+  };
+  return { ...storyboard, scenes: storyboard.scenes.map((s, i) => (i === index ? next : s)) };
+}
+
 export function storyboardToSpec(base: StorySpec, brief: CreativeBrief, direction: CreativeDirection, storyboard: Storyboard): StorySpec {
   const chapterMotion = brief.motion === 'calm' ? 'subtle-reveal' : 'scroll-reveal';
+  const fallback = fallbackFor;
   const spec: StorySpec = {
     schemaVersion: STORY_SPEC_VERSION,
     project: base.project,
@@ -86,27 +134,23 @@ export function storyboardToSpec(base: StorySpec, brief: CreativeBrief, directio
       {
         id: 'home',
         path: '/',
-        scenes: storyboard.scenes.map((scene) =>
-          scene.type === 'hero'
-            ? {
-                id: scene.id,
-                type: 'hero' as const,
-                content: { heading: scene.heading, ...(scene.body ? { body: scene.body } : {}) },
-                visual: { background: brief.motion === 'bold' ? ('procedural-3d' as const) : ('gradient' as const), modelAssetId: null },
-                motion: { type: 'subtle-reveal' as const },
-                responsive: { mobile: 'static-hero' as const },
-                accessibility: { label: scene.heading.slice(0, 120), fallbackText: (scene.visualNote || `Decorative artwork for ${scene.heading}`).slice(0, 1000) },
-              }
-            : {
-                id: scene.id,
-                type: 'chapter' as const,
-                content: { ...(scene.eyebrow ? { eyebrow: scene.eyebrow } : {}), heading: scene.heading, ...(scene.body ? { body: scene.body } : {}) },
-                visual: { layout: scene.layout ?? 'split' },
-                motion: { type: chapterMotion },
-                responsive: { mobile: 'stacked' as const },
-                accessibility: { label: scene.heading.slice(0, 120), fallbackText: (scene.visualNote || `Decorative artwork for ${scene.heading}`).slice(0, 1000) },
-              },
-        ),
+        scenes: storyboard.scenes.map((scene): StorySpec['pages'][number]['scenes'][number] => {
+          const accessibility = { label: scene.heading.slice(0, 120), fallbackText: fallback(scene) };
+          const text = { ...(scene.eyebrow ? { eyebrow: scene.eyebrow } : {}), heading: scene.heading, ...(scene.body ? { body: scene.body } : {}) };
+          switch (scene.type) {
+            case 'hero':
+              return { id: scene.id, type: 'hero', content: { heading: scene.heading, ...(scene.body ? { body: scene.body } : {}) }, visual: { background: brief.motion === 'bold' ? 'procedural-3d' : 'gradient', modelAssetId: null }, motion: { type: 'subtle-reveal' }, responsive: { mobile: 'static-hero' }, accessibility };
+            case 'chapter':
+              return { id: scene.id, type: 'chapter', content: text, visual: { layout: scene.layout ?? 'split' }, motion: { type: chapterMotion }, responsive: { mobile: 'stacked' }, accessibility };
+            case 'scroll-reveal':
+            case 'gallery':
+              return { id: scene.id, type: scene.type, content: { ...text, items: scene.items ?? [] }, visual: {}, motion: { type: chapterMotion }, responsive: { mobile: 'stacked' }, accessibility };
+            case 'model-showcase':
+              return { id: scene.id, type: 'model-showcase', content: text, visual: { object: scene.object ?? 'orb', camera: 'orbit' }, motion: { type: chapterMotion }, responsive: { mobile: 'stacked' }, accessibility };
+            case 'cta':
+              return { id: scene.id, type: 'cta', content: { ...text, ...(scene.cta ? { cta: scene.cta } : {}) }, visual: {}, motion: { type: 'subtle-reveal' }, responsive: {}, accessibility };
+          }
+        }),
       },
     ],
     assets: base.assets,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { IpcChannel } from './ipc-channels.ts';
+import { StorySpecSchema } from './story-spec.ts';
 import { CreativeBrief, CreativeState, DiscoveryAnswer, StoryboardScene } from './creative.ts';
 
 export { IPC_CHANNELS, MENU_COMMANDS, MENU_COMMAND_CHANNEL, type IpcChannel, type IpcEnvelope, type MenuCommand, type MenuCommandMessage } from './ipc-channels.ts';
@@ -68,6 +69,29 @@ export const PreviewSession = z.object({
 });
 export type PreviewSession = z.infer<typeof PreviewSession>;
 
+export const PreviewMotion = z.enum(['full', 'reduce']);
+export type PreviewMotion = z.infer<typeof PreviewMotion>;
+
+/** Something the running preview reported (data from the generated site — always shown as text). */
+export const PreviewIssue = z.object({
+  kind: z.enum(['exception', 'console', 'network', 'security']),
+  message: z.string().max(2000),
+  source: z.string().max(500).nullable(),
+  line: z.number().int().nonnegative().nullable(),
+  at: z.string(),
+});
+export type PreviewIssue = z.infer<typeof PreviewIssue>;
+
+export const PreviewDiagnostics = z.object({
+  /** False when the studio could not attach its inspector (e.g. another debugger holds the window). */
+  available: z.boolean(),
+  motion: PreviewMotion,
+  issues: z.array(PreviewIssue).max(50),
+  /** Issues dropped after the cap, so the UI can say so instead of hiding them silently. */
+  dropped: z.number().int().nonnegative(),
+});
+export type PreviewDiagnostics = z.infer<typeof PreviewDiagnostics>;
+
 export const ProviderStatus = z.object({
   id: z.enum(['claude-code', 'codex']),
   displayName: z.string(),
@@ -124,6 +148,7 @@ export const MenuState = z.strictObject({
   tab: z.enum(['discover', 'brief', 'storyboard', 'build']).nullable(),
   target: OutputTarget,
   device: z.enum(['desktop', 'tablet', 'mobile']),
+  reducedMotion: z.boolean(),
   hasPreview: z.boolean(),
 });
 export type MenuState = z.infer<typeof MenuState>;
@@ -150,6 +175,8 @@ export const ipcContract = {
   'generation.get': { request: z.strictObject({ jobId: JobId }), response: JobSnapshot },
   'generation.cancel': { request: z.strictObject({ jobId: JobId }), response: JobSnapshot },
   'preview.start': { request: z.strictObject({ projectId: ProjectId, target: OutputTarget }), response: PreviewSession },
+  'preview.setMotion': { request: z.strictObject({ motion: PreviewMotion }), response: PreviewMotion },
+  'preview.issues': { request: z.strictObject({ url: z.string().url().max(2048) }), response: PreviewDiagnostics },
   'providers.probe': { request: z.void(), response: z.array(ProviderStatus) },
   'skills.list': { request: z.void(), response: z.array(SkillManifest) },
   'settings.get': { request: z.void(), response: StudioSettings },
@@ -163,6 +190,11 @@ export const ipcContract = {
   'creative.approveStoryboard': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'references.analyze': { request: z.strictObject({ projectId: ProjectId, url: z.string().max(2048), inspiration: z.string().trim().max(300) }), response: CreativeState },
   'references.remove': { request: z.strictObject({ projectId: ProjectId, referenceId: z.string().uuid() }), response: CreativeState },
+  'story.get': { request: z.strictObject({ projectId: ProjectId }), response: StorySpecSchema.nullable() },
+  'story.updateScene': {
+    request: z.strictObject({ projectId: ProjectId, sceneId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/), content: z.unknown(), visual: z.unknown().optional(), accessibility: z.unknown().optional() }),
+    response: ProjectVersion,
+  },
   'ui.menuState': { request: MenuState, response: z.boolean() },
   'ui.contextMenu': { request: ContextMenuRequest, response: z.boolean() },
 } as const satisfies Record<IpcChannel, { request: z.ZodType; response: z.ZodType }>;

@@ -72,7 +72,7 @@ describe('creative workflow', () => {
     state = await s.creative(id).draftStoryboard(id, 'local-planner');
     expect(state.storyboard?.scenes.map((sc) => sc.id)).toEqual(['hero-01', 'chapter-02', 'chapter-03']);
     const scenes = state.storyboard!.scenes.map((sc, i) => (i === 1 ? { ...sc, heading: 'Our ovens', body: 'Since 1962.' } : sc));
-    await expect(s.creative(id).saveStoryboard(id, [scenes[1]!, scenes[0]!])).rejects.toThrow(/start with one hero/);
+    await expect(s.creative(id).saveStoryboard(id, [scenes[1]!, scenes[0]!])).rejects.toThrow(/start with the hero/);
     await s.creative(id).saveStoryboard(id, scenes);
     state = await s.creative(id).approveStoryboard(id);
     expect(state.stage).toBe('approved');
@@ -80,6 +80,16 @@ describe('creative workflow', () => {
     expect(spec.ok && spec.spec.pages[0]!.scenes[1]!.content.heading).toBe('Our ovens');
     expect(spec.ok && spec.spec.design.theme).toBe('Signal Noir');
     expect(s.openProject(id).versions[0]?.label).toBe('Storyboard approved');
+    // A scoped scene edit (T020) survives approving the storyboard again.
+    await s.updateScene(id, 'chapter-02', { content: { heading: 'Our ovens, rebuilt', body: 'Since 1962, wood-fired.' } });
+    expect((await s.creative(id).state(id)).storyboard?.scenes[1]).toMatchObject({ heading: 'Our ovens, rebuilt', body: 'Since 1962, wood-fired.' });
+    await s.creative(id).approveStoryboard(id);
+    const again = await s.workspace.readSpec(id);
+    expect(again.ok && again.spec.pages[0]!.scenes[1]!.content).toEqual({ heading: 'Our ovens, rebuilt', body: 'Since 1962, wood-fired.' });
+    // Rolling the edit back updates the storyboard too, so it does not return on the next approval.
+    const beforeEdit = s.openProject(id).versions.filter((v) => v.label === 'Storyboard approved').at(-1)!; // the first approval (newest first)
+    await s.restore(id, beforeEdit.id);
+    expect((await s.creative(id).state(id)).storyboard?.scenes[1]).toMatchObject({ heading: 'Our ovens', body: 'Since 1962.' });
     // Editing the brief afterwards un-approves it and the storyboard.
     state = await s.creative(id).saveBrief(id, { audience: 'Everyone', tone: 'Bold', directionId: 'signal-noir', motion: 'calm', chapters: 2, notes: '' });
     expect(state.stage).toBe('brief_ready');

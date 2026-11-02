@@ -10,6 +10,8 @@ export const IPC_CHANNELS = [
   'generation.get',
   'generation.cancel',
   'preview.start',
+  'preview.setMotion',
+  'preview.issues',
   'providers.probe',
   'skills.list',
   'settings.get',
@@ -23,6 +25,8 @@ export const IPC_CHANNELS = [
   'creative.approveStoryboard',
   'references.analyze',
   'references.remove',
+  'story.get',
+  'story.updateScene',
   'ui.menuState',
   'ui.contextMenu',
 ] as const;
@@ -50,6 +54,7 @@ export const MENU_COMMANDS = [
   'device.tablet',
   'device.mobile',
   'preview.reload',
+  'preview.reducedMotion',
   'view.providers',
   'view.skills',
 ] as const;

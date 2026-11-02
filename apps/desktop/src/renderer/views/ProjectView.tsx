@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CreativeState } from '@studio/contracts';
-import type { JobSnapshot, MenuCommandMessage, MenuState, OutputTarget, ProjectDetail, ProjectVersion } from '@studio/contracts/ipc';
+import type { JobSnapshot, MenuCommandMessage, MenuState, OutputTarget, PreviewDiagnostics, ProjectDetail, ProjectVersion } from '@studio/contracts/ipc';
 import { call } from '../api';
 import { ErrorBanner, Segmented, StatusChip, isContextMenuKey, timeAgo } from '../components/Common';
-import { ChevronIcon, PlayIcon, ShieldIcon, SpinnerIcon, StopIcon, TerminalIcon } from '../components/Icons';
+import { ChevronIcon, MotionIcon, PlayIcon, ShieldIcon, SpinnerIcon, StopIcon, TerminalIcon } from '../components/Icons';
 import { DEVICES, PreviewStage, type DeviceId } from '../components/PreviewStage';
+import { SceneEditor } from './SceneEditor';
+import type { StorySpec } from '@studio/contracts';
 import { BriefTab } from './creative/BriefTab';
 import { DiscoverTab } from './creative/DiscoverTab';
 import { StoryboardTab } from './creative/StoryboardTab';
@@ -53,6 +55,14 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   const logRef = useRef<HTMLOListElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [reloadKey, setReloadKey] = useState(0);
+  const [spec, setSpec] = useState<StorySpec | null>(null);
+  const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  // The last build stays visible after edits, clearly marked until the next successful generation.
+  const [stale, setStale] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<PreviewDiagnostics | null>(null);
+  // Issues already seen when the user dismissed the panel; new ones bring it back.
+  const [dismissedAt, setDismissedAt] = useState<string | null>(null);
 
   const running = job?.status === 'running';
 
@@ -69,10 +79,11 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   }, [projectId]);
 
   const refresh = useCallback(async () => {
-    const [opened, validated, creativeState] = await Promise.all([call('projects.open', { projectId }), call('story.validate', { projectId }), call('creative.get', { projectId })]);
+    const [opened, validated, creativeState, currentSpec] = await Promise.all([call('projects.open', { projectId }), call('story.validate', { projectId }), call('creative.get', { projectId }), call('story.get', { projectId })]);
     setDetail(opened);
     setValidation(validated);
     setCreative(creativeState);
+    setSpec(currentSpec);
     return { opened, creativeState };
   }, [projectId]);
 
@@ -102,13 +113,40 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
       call('generation.get', { jobId: job.id })
         .then((snapshot) => {
           setJob(snapshot);
-          if (snapshot.status === 'succeeded') void loadPreviews();
+          if (snapshot.status === 'succeeded') {
+            setStale(false);
+            void loadPreviews();
+          }
           if (snapshot.status === 'failed') setError(snapshot.error ?? 'Generation failed');
         })
         .catch((err: Error) => setError(err.message));
     }, 400);
     return () => window.clearInterval(timer);
   }, [job, loadPreviews]);
+
+  // Real media emulation of the preview frame, applied by the main process (the export is untouched).
+  useEffect(() => {
+    call('preview.setMotion', { motion: reducedMotion ? 'reduce' : 'full' }).catch((err: Error) => setError(err.message));
+  }, [reducedMotion]);
+
+  // Errors the running preview reports (uncaught exceptions, console errors, failed loads).
+  const watchedUrl = tab === 'build' ? (previews[target] ?? null) : null;
+  useEffect(() => {
+    setDiagnostics(null);
+    setDismissedAt(null);
+    if (!watchedUrl) return;
+    let alive = true;
+    const poll = () =>
+      call('preview.issues', { url: watchedUrl })
+        .then((next) => alive && setDiagnostics(next))
+        .catch(() => undefined);
+    void poll();
+    const timer = window.setInterval(poll, 1000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, [watchedUrl, reloadKey]);
 
   useEffect(() => {
     logRef.current?.lastElementChild?.scrollIntoView({ block: 'end' });
@@ -146,7 +184,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
     try {
       await call('versions.restore', { projectId, versionId: version.id });
       await refresh();
-      setPreviews({});
+      setStale(true);
+      void loadPreviews();
       setAnnouncement(`Restored ${version.label}. Generate again to update the preview.`);
     } catch (err) {
       setError((err as Error).message);
@@ -158,8 +197,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   // Report state to the native menu (enabled/checked items).
   const previewForMenu = previews[target] ?? null;
   useEffect(() => {
-    onMenuState({ canGenerate: Boolean(validation?.ok), canSnapshot: Boolean(validation?.ok), running, tab, target, device, hasPreview: tab === 'build' && previewForMenu !== null });
-  }, [validation?.ok, running, tab, target, device, previewForMenu, onMenuState]);
+    onMenuState({ canGenerate: Boolean(validation?.ok), canSnapshot: Boolean(validation?.ok), running, tab, target, device, reducedMotion, hasPreview: tab === 'build' && previewForMenu !== null });
+  }, [validation?.ok, running, tab, target, device, reducedMotion, previewForMenu, onMenuState]);
 
   // Menu bar / context-menu commands, run with the same handlers as the on-screen controls.
   useEffect(() => {
@@ -174,6 +213,10 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
       setTab('build');
       setDevice(c.slice(7) as DeviceId);
     } else if (c === 'preview.reload') setReloadKey((k) => k + 1);
+    else if (c === 'preview.reducedMotion') {
+      setTab('build');
+      setReducedMotion((v) => !v);
+    }
     else if (c === 'project.generate' && validation.ok && !running) {
       setTab('build');
       void generate();
@@ -195,6 +238,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   }
 
   const previewUrl = previews[target] ?? null;
+  const allIssues = diagnostics?.issues ?? [];
+  const visibleIssues = dismissedAt && allIssues.every((issue) => issue.at <= dismissedAt) ? [] : allIssues;
   const targetInfo = TARGETS.find((t) => t.id === target)!;
   const latestId = detail.versions[0]?.id;
 
@@ -269,7 +314,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
                 onError={setError}
                 onApproved={() => {
                   void refresh();
-                  setPreviews({});
+                  setStale(true);
+                  void loadPreviews();
                   setAnnouncement('Storyboard approved and saved as the StorySpec. Generate to preview it.');
                   setTab('build');
                 }}
@@ -284,6 +330,10 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
         <div className="toolbar">
           <Segmented label="Output target" value={target} onChange={setTarget} options={TARGETS.map((t) => ({ id: t.id, label: t.label }))} />
           <Segmented label="Device size" value={device} onChange={setDevice} options={DEVICES.map((d) => ({ id: d.id, label: d.label, icon: <d.Icon /> }))} />
+          <button type="button" className="btn btn--secondary toggle" aria-pressed={reducedMotion} onClick={() => setReducedMotion((v) => !v)} disabled={diagnostics?.available === false} title={diagnostics?.available === false ? 'Reduced-motion preview is unavailable in this window' : undefined}>
+            <MotionIcon />
+            Reduced motion
+          </button>
           <div className="toolbar__spacer" />
           {running ? (
             <button type="button" className="btn btn--secondary" onClick={() => void cancel()}>
@@ -307,8 +357,21 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
               <ShieldIcon />
               {previewUrl ? `Isolated preview · ${new URL(previewUrl).host} · ${targetInfo.stack}` : `Preview · ${targetInfo.stack}`}
             </span>
+            {reducedMotion && previewUrl && <StatusChip tone="idle">Reduced motion</StatusChip>}
+            {stale && previewUrl && <StatusChip tone="warn">Out of date — generate to apply edits</StatusChip>}
           </div>
-          <PreviewStage key={`${previewUrl ?? 'none'}-${reloadKey}`} url={previewUrl} device={device} title={`${detail.project.name} — ${targetInfo.label} preview`} />
+          <PreviewStage
+            key={`${previewUrl ?? 'none'}-${reloadKey}`}
+            url={previewUrl}
+            device={device}
+            anchor={selectedScene}
+            error={job?.status === 'failed' ? job.error : null}
+            onRetry={() => void generate()}
+            issues={visibleIssues}
+            issuesDropped={visibleIssues.length ? (diagnostics?.dropped ?? 0) : 0}
+            onDismissIssues={() => setDismissedAt(diagnostics?.issues.at(-1)?.at ?? null)}
+            title={`${detail.project.name} — ${targetInfo.label} preview`}
+          />
         </section>
 
         <section className={`activity ${logOpen ? 'activity--open' : ''}`} aria-label="Activity log">
@@ -330,8 +393,45 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
         )}
       </div>
 
-      <aside className="inspector" aria-labelledby="versions-title">
-        <div className="inspector__head">
+      <aside className="inspector" aria-label="Scenes and versions">
+        {tab === 'build' && spec && (
+          <section className="inspector__section" aria-labelledby="scenes-title">
+            <h2 id="scenes-title">Scenes</h2>
+            <p className="muted small">Select a scene to jump the preview to it and edit just that scene.</p>
+            <ol className="scene-picker">
+              {spec.pages[0]!.scenes.map((scene, i) => (
+                <li key={scene.id}>
+                  <button type="button" className="scene-picker__item" aria-expanded={selectedScene === scene.id} aria-controls={`scene-editor-${scene.id}`} onClick={() => setSelectedScene((cur) => (cur === scene.id ? null : scene.id))}>
+                    <span className="scene-card__index">{i + 1}</span>
+                    <span className="scene-picker__text">
+                      <span>{scene.content.heading}</span>
+                      <span className="muted small mono">
+                        {scene.type} · {scene.id}
+                      </span>
+                    </span>
+                  </button>
+                  {selectedScene === scene.id && (
+                    <div id={`scene-editor-${scene.id}`}>
+                      <SceneEditor
+                        projectId={projectId}
+                        scene={scene}
+                        disabled={running}
+                        onError={setError}
+                        onSaved={(label) => {
+                          void refresh();
+                          setStale(true);
+                          void loadPreviews();
+                          setAnnouncement(`${label}. Generate again to update the preview.`);
+                        }}
+                      />
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+        <div className="inspector__head" id="versions-title">
           <h2 id="versions-title">Versions</h2>
           <button type="button" className="btn btn--secondary btn--small" onClick={() => void saveSnapshot()} disabled={busyVersion !== null || !validation?.ok} aria-busy={busyVersion === 'snapshot'}>
             {busyVersion === 'snapshot' && <SpinnerIcon />}

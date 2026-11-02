@@ -8,6 +8,7 @@ import type {
   ProjectStage,
   ReferenceReport,
   StoryboardScene,
+  StorySpec,
   StudioSettings,
 } from '@studio/contracts';
 import type { ProjectWorkspace } from '@studio/core';
@@ -26,6 +27,7 @@ import {
   sanitizeDraft,
   storyboardPrompt,
   storyboardToSpec,
+  syncStoryboardScene,
 } from '@studio/story-engine';
 
 export interface CreativeDeps {
@@ -163,7 +165,7 @@ export class CreativeService {
   async saveStoryboard(projectId: string, scenes: StoryboardScene[]): Promise<CreativeState> {
     const file = await this.workspace.readCreative(projectId);
     if (!file.storyboard) throw new Error('Draft a storyboard first.');
-    if (scenes[0]?.type !== 'hero' || scenes.slice(1).some((s) => s.type !== 'chapter')) throw new Error('The storyboard must start with one hero followed by chapters.');
+    if (scenes[0]?.type !== 'hero' || scenes.slice(1).some((s) => s.type === 'hero')) throw new Error('The storyboard must start with the hero scene, and only once.');
     const ids = new Set(scenes.map((s) => s.id));
     if (ids.size !== scenes.length) throw new Error('Scene IDs must be unique.');
     file.storyboard = { ...file.storyboard, scenes, approved: false, approvedAt: null };
@@ -171,6 +173,15 @@ export class CreativeService {
   }
 
   /** Writes the StorySpec from the approved brief + storyboard and records a version. */
+  /** Keep storyboard text in step with scenes changed on the StorySpec (scoped edits and restores, T020). */
+  async syncScenes(projectId: string, scenes: StorySpec['pages'][number]['scenes']): Promise<void> {
+    const file = await this.workspace.readCreative(projectId);
+    if (!file.storyboard) return;
+    const storyboard = scenes.reduce(syncStoryboardScene, file.storyboard);
+    if (storyboard === file.storyboard) return;
+    await this.save(projectId, { ...file, storyboard });
+  }
+
   async approveStoryboard(projectId: string): Promise<CreativeState> {
     const file = await this.workspace.readCreative(projectId);
     if (!file.brief?.approved) throw new Error('Approve the brief first.');

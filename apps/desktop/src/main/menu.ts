@@ -1,5 +1,6 @@
 import { app, BrowserWindow, clipboard, Menu, shell, type ContextMenuParams, type MenuItemConstructorOptions, type WebContents } from 'electron';
 import { MENU_COMMAND_CHANNEL, type ContextMenuRequest, type MenuCommandMessage, type MenuState } from '@studio/contracts';
+import { PREVIEW_ORIGIN } from './preview-inspector.ts';
 import type { StudioServices } from './services.ts';
 
 // Native menus (menu bar + context menus). Items either use Electron roles
@@ -8,7 +9,6 @@ import type { StudioServices } from './services.ts';
 // follow the renderer's reported MenuState so items never do nothing.
 
 const isMac = process.platform === 'darwin';
-const PREVIEW_ORIGIN = /^http:\/\/127\.0\.0\.1:\d+\/[0-9a-f]{32}\//;
 const revealLabel = isMac ? 'Reveal in Finder' : process.platform === 'win32' ? 'Show in Explorer' : 'Open Containing Folder';
 
 const INITIAL_STATE: MenuState = {
@@ -20,6 +20,7 @@ const INITIAL_STATE: MenuState = {
   tab: null,
   target: 'html',
   device: 'desktop',
+  reducedMotion: false,
   hasPreview: false,
 };
 
@@ -125,6 +126,7 @@ export class StudioMenus {
               this.command('device.mobile', 'Mobile (390 × 844)', { type: 'radio', checked: s.device === 'mobile', enabled: inProject, accelerator: 'CmdOrCtrl+Alt+3' }),
             ],
           },
+          this.command('preview.reducedMotion', 'Preview with Reduced Motion', { type: 'checkbox', checked: s.reducedMotion, enabled: inProject }),
           this.command('preview.reload', 'Reload Preview', { accelerator: 'CmdOrCtrl+Shift+R', enabled: inProject && s.hasPreview }),
           { type: 'separator' },
           this.command('view.skills', 'Skills'),

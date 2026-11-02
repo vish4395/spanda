@@ -6,6 +6,7 @@ import type { StorySpec } from '@studio/contracts';
 import { APP_ORIGIN, registerIpc } from './ipc.ts';
 import { captureReference } from './capture.ts';
 import { StudioMenus } from './menu.ts';
+import { PREVIEW_ORIGIN, PreviewInspector } from './preview-inspector.ts';
 import { StudioServices } from './services.ts';
 
 // Layout produced by scripts/build.ts:
@@ -112,6 +113,14 @@ function createWindow(): BrowserWindow {
 }
 
 let services: StudioServices | undefined;
+const inspectors = new WeakMap<WebContents, PreviewInspector>();
+
+/** Watch a studio window's preview frame (reduced-motion emulation, runtime errors). */
+function inspect(contents: WebContents): void {
+  const inspector = new PreviewInspector(contents.debugger, (url) => PREVIEW_ORIGIN.test(url));
+  inspectors.set(contents, inspector);
+  void inspector.start();
+}
 
 app.on('web-contents-created', (_event, contents) => hardenContents(contents));
 
@@ -147,12 +156,16 @@ app.whenReady().then(async () => {
   });
   const menus = new StudioMenus(services, !app.isPackaged);
   menus.install();
-  registerIpc(services, menus);
-  const win = createWindow();
-  menus.attach(win.webContents);
+  registerIpc(services, menus, (contents) => inspectors.get(contents));
+  const open = () => {
+    const win = createWindow();
+    menus.attach(win.webContents);
+    inspect(win.webContents);
+  };
+  open();
 
   app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) menus.attach(createWindow().webContents);
+    if (BrowserWindow.getAllWindows().length === 0) open();
   });
 }).catch((err: unknown) => {
   console.error('Failed to start AI Cinematic Studio', err);

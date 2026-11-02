@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DraftStoryboardOutput, validateStorySpec } from '@studio/contracts';
-import { QUESTIONS, createStarterSpec, directionsFor, draftBrief, isValidAnswer, localStoryboard, nextQuestion, sanitizeDraft, storyboardPrompt, storyboardToSpec, allDirections } from '../src/index.ts';
+import { QUESTIONS, createStarterSpec, defaultSceneOf, directionsFor, draftBrief, isValidAnswer, localStoryboard, nextQuestion, sanitizeDraft, storyboardPrompt, storyboardToSpec, syncStoryboardScene, allDirections } from '../src/index.ts';
 
 function contrast(a: string, b: string) {
   const lum = (hex: string) => {
@@ -86,5 +86,48 @@ describe('brief and storyboard', () => {
     expect(spec.design.colors).toEqual(directions[0]!.colors);
     expect(spec.pages[0]!.scenes.map((s) => s.id)).toEqual(board.scenes.map((s) => s.id));
     expect(spec.pages[0]!.scenes[0]!.visual.background).toBe('procedural-3d');
+  });
+});
+
+describe('M3 storyboard scene types', () => {
+  it('maps every scene type onto a valid StorySpec', () => {
+    const answers = { tone: 'warm', subject: 'object', motion: 'balanced', length: 'short' } as const;
+    const directions = directionsFor(answers);
+    const brief = draftBrief(answers, directions);
+    const base = createStarterSpec({ name: 'Glass', goal: 'g', id: 'glass-000001' });
+    const scenes = [defaultSceneOf('hero', 'hero-01'), ...(['scroll-reveal', 'model-showcase', 'chapter', 'gallery', 'cta'] as const).map((t, i) => defaultSceneOf(t, `scene-${String(i + 2).padStart(2, '0')}`))];
+    scenes[0] = { ...scenes[0]!, heading: 'Glass' };
+    const spec = storyboardToSpec(base, brief, directions[0]!, { scenes, source: { kind: 'local-planner', detail: '', createdAt: '' }, approved: false, approvedAt: null });
+    expect(validateStorySpec(spec).ok).toBe(true);
+    expect(spec.pages[0]!.scenes.map((s) => s.type)).toEqual(['hero', 'scroll-reveal', 'model-showcase', 'chapter', 'gallery', 'cta']);
+  });
+
+  it('syncs a scoped scene edit back so re-approving rebuilds the edited scene (T020)', () => {
+    const answers = { tone: 'warm', subject: 'object', motion: 'balanced', length: 'short' } as const;
+    const directions = directionsFor(answers);
+    const brief = draftBrief(answers, directions);
+    const base = createStarterSpec({ name: 'Glass', goal: 'g', id: 'glass-000001' });
+    const scenes = [{ ...defaultSceneOf('hero', 'hero-01'), heading: 'Glass' }, { ...defaultSceneOf('chapter', 'chapter-02'), visualNote: 'Kiln glow' }, defaultSceneOf('gallery', 'gallery-03'), defaultSceneOf('model-showcase', 'show-04')];
+    const board = { scenes, source: { kind: 'local-planner' as const, detail: '', createdAt: '' }, approved: true, approvedAt: 'then' };
+    const spec = storyboardToSpec(base, brief, directions[0]!, board);
+    const [, chapter, gallery, showcase] = spec.pages[0]!.scenes;
+
+    const longBody = 'b'.repeat(3500);
+    const editedChapter = { ...chapter!, content: { eyebrow: 'Part two', heading: 'Into the fire', body: longBody } };
+    let synced = syncStoryboardScene(board, editedChapter);
+    expect(synced.approved).toBe(true);
+    expect(synced.scenes[1]).toMatchObject({ eyebrow: 'Part two', heading: 'Into the fire', body: longBody, visualNote: 'Kiln glow' });
+    synced = syncStoryboardScene(synced, { ...gallery!, content: { ...gallery!.content, items: [{ title: 'Jug', text: 'Salt glaze' }, { title: 'Bowl', text: '' }] } });
+    synced = syncStoryboardScene(synced, { ...showcase!, visual: { ...showcase!.visual, object: 'vessel' }, accessibility: { ...showcase!.accessibility, fallbackText: 'A turning vessel' } });
+
+    const rebuilt = storyboardToSpec(base, brief, directions[0]!, synced).pages[0]!.scenes;
+    expect(rebuilt[1]!.content).toEqual(editedChapter.content);
+    expect(rebuilt[1]!.accessibility.fallbackText).toBe('Kiln glow');
+    expect(rebuilt[2]!.content.items).toEqual([{ title: 'Jug', text: 'Salt glaze' }, { title: 'Bowl', text: '' }]);
+    expect(rebuilt[3]!.visual.object).toBe('vessel');
+    expect(rebuilt[3]!.accessibility.fallbackText).toBe('A turning vessel');
+    expect(rebuilt[0]).toEqual(spec.pages[0]!.scenes[0]); // untouched scene unchanged
+    // Scenes the storyboard does not know (imported specs) leave it as it was.
+    expect(syncStoryboardScene(board, { ...chapter!, id: 'elsewhere' })).toBe(board);
   });
 });

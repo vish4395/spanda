@@ -10,9 +10,9 @@ import { SkillsView } from './views/SkillsView';
 
 type View = { kind: 'project'; projectId: string } | { kind: 'new' } | { kind: 'skills' } | { kind: 'providers' } | { kind: 'empty' };
 
-const PROJECT_DEFAULTS: ProjectMenuState = { canGenerate: false, canSnapshot: false, running: false, tab: null, target: 'html', device: 'desktop', hasPreview: false };
+const PROJECT_DEFAULTS: ProjectMenuState = { canGenerate: false, canSnapshot: false, running: false, tab: null, target: 'html', device: 'desktop', reducedMotion: false, hasPreview: false };
 /** Commands handled by the open project view (forwarded, or queued until that project opens). */
-const PROJECT_COMMANDS = new Set<MenuCommandMessage['command']>(['project.generate', 'project.cancel', 'project.snapshot', 'version.restore', 'tab.discover', 'tab.brief', 'tab.storyboard', 'tab.build', 'target.html', 'target.react', 'device.desktop', 'device.tablet', 'device.mobile', 'preview.reload']);
+const PROJECT_COMMANDS = new Set<MenuCommandMessage['command']>(['project.generate', 'project.cancel', 'project.snapshot', 'version.restore', 'tab.discover', 'tab.brief', 'tab.storyboard', 'tab.build', 'target.html', 'target.react', 'device.desktop', 'device.tablet', 'device.mobile', 'preview.reload', 'preview.reducedMotion']);
 
 export function App() {
   const [projects, setProjects] = useState<ProjectSummary[]>([]);

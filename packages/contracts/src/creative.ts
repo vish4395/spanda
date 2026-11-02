@@ -65,12 +65,16 @@ export type CreativeBrief = z.infer<typeof CreativeBrief>;
 
 export const StoryboardScene = z.object({
   id: Id,
-  type: z.enum(['hero', 'chapter']),
+  type: z.enum(['hero', 'chapter', 'scroll-reveal', 'model-showcase', 'gallery', 'cta']),
   eyebrow: ShortText(120).optional(),
   heading: ShortText(200).min(1),
-  body: ShortText(1200),
+  // Same limits as the StorySpec fields they become, so scoped scene edits sync back losslessly (T020).
+  body: ShortText(4000),
   layout: z.enum(['split', 'centered']).optional(),
-  visualNote: ShortText(300),
+  visualNote: ShortText(1000),
+  items: z.array(z.object({ title: ShortText(120).min(1), text: ShortText(600) })).max(8).optional(),
+  cta: z.object({ label: ShortText(80).min(1), href: z.string().max(2048) }).optional(),
+  object: z.enum(['monolith', 'vessel', 'orb']).optional(),
 });
 export type StoryboardScene = z.infer<typeof StoryboardScene>;
 

@@ -94,6 +94,24 @@ describe('StudioServices (M1)', () => {
     expect(jobs[0]?.log.at(-1)).toBe('Done.');
   });
 
+  it('scoped scene edits change only that scene and are reversible', async () => {
+    const { services, dir } = await boot();
+    const id = 'demo-heritage';
+    const before = JSON.parse(await readFile(path.join(dir, 'projects', id, 'story-spec.json'), 'utf8')) as StorySpec;
+    const imported = services.openProject(id).versions[0]!;
+    const version = await services.updateScene(id, 'chapter-02', { content: { heading: 'A new chapter title', body: 'Rewritten.' } });
+    expect(version.label).toBe('Edited “Journey”');
+    const after = JSON.parse(await readFile(path.join(dir, 'projects', id, 'story-spec.json'), 'utf8')) as StorySpec;
+    expect(JSON.stringify(after.pages[0]!.scenes[0])).toBe(JSON.stringify(before.pages[0]!.scenes[0])); // untouched scene identical
+    expect(after.pages[0]!.scenes[1]!.content).toEqual({ heading: 'A new chapter title', body: 'Rewritten.' });
+    expect(after.pages[0]!.scenes[1]!.id).toBe('chapter-02');
+    await expect(services.updateScene(id, 'chapter-02', { content: { heading: '', script: 'x' } })).rejects.toThrow(/content/);
+    await expect(services.updateScene(id, 'nope', { content: { heading: 'x' } })).rejects.toThrow(/not found/);
+    await services.restore(id, imported.id);
+    const restored = JSON.parse(await readFile(path.join(dir, 'projects', id, 'story-spec.json'), 'utf8')) as StorySpec;
+    expect(restored.pages[0]!.scenes[1]!.content.heading).toBe('Explore the Journey');
+  });
+
   it('rejects unknown projects and lists pinned skills', async () => {
     const { services } = await boot();
     expect(() => services.openProject('nope-123')).toThrow(/not found/);

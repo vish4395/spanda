@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { CreativeState, StoryboardScene } from '@studio/contracts';
 import { call } from '../../api';
 import { StatusChip } from '../../components/Common';
+import { ITEM_LIMITS, ItemsEditor } from '../../components/ItemsEditor';
 import { SpinnerIcon } from '../../components/Icons';
 
 interface Props {
@@ -12,9 +13,26 @@ interface Props {
   onApproved: () => void;
 }
 
-/** Renumber chapter IDs after reordering so IDs stay stable by position (hero-01, chapter-02…). */
-function renumber(scenes: StoryboardScene[]): StoryboardScene[] {
-  return scenes.map((s, i) => ({ ...s, id: i === 0 ? 'hero-01' : `chapter-${String(i + 1).padStart(2, '0')}`, type: i === 0 ? 'hero' : 'chapter' }));
+type SceneType = StoryboardScene['type'];
+const TYPE_LABELS: Record<SceneType, string> = { hero: 'Hero', chapter: 'Chapter', 'scroll-reveal': 'Scroll reveal', 'model-showcase': '3D showcase', gallery: 'Gallery', cta: 'Call to action' };
+const ID_PREFIX: Record<SceneType, string> = { hero: 'hero', chapter: 'chapter', 'scroll-reveal': 'reveal', 'model-showcase': 'showcase', gallery: 'gallery', cta: 'cta' };
+
+/** New scenes get a fresh unique ID; existing IDs never change (docs/04: stable scene IDs). */
+function uniqueId(type: SceneType, scenes: StoryboardScene[]): string {
+  const taken = new Set(scenes.map((s) => s.id));
+  for (let n = scenes.length + 1; ; n += 1) {
+    const id = `${ID_PREFIX[type]}-${String(n).padStart(2, '0')}`;
+    if (!taken.has(id)) return id;
+  }
+}
+
+function newScene(type: SceneType, id: string): StoryboardScene {
+  const base = { id, type, heading: 'New scene', body: '', visualNote: '' };
+  if (type === 'scroll-reveal') return { ...base, heading: 'How it unfolds', items: [{ title: 'First', text: 'Starter text.' }, { title: 'Then', text: 'Starter text.' }, { title: 'Finally', text: 'Starter text.' }] };
+  if (type === 'gallery') return { ...base, heading: 'Highlights', items: [{ title: 'One', text: 'Starter text.' }, { title: 'Two', text: 'Starter text.' }, { title: 'Three', text: 'Starter text.' }] };
+  if (type === 'model-showcase') return { ...base, heading: 'A closer look', body: 'Starter text — describe the object.', object: 'orb' };
+  if (type === 'cta') return { ...base, heading: 'Join us', body: 'Starter text — the invitation.', cta: { label: 'Get in touch', href: '#hero-01' } };
+  return { ...base, eyebrow: 'Chapter', heading: 'New chapter', body: 'Starter text — replace with this chapter’s story.', layout: 'split' };
 }
 
 export function StoryboardTab({ projectId, state, onState, onError, onApproved }: Props) {
@@ -22,6 +40,7 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
   const [planner, setPlanner] = useState<'local-planner' | 'claude-code'>('local-planner');
   const [busy, setBusy] = useState<'draft' | 'save' | 'approve' | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [addType, setAddType] = useState<SceneType>('chapter');
 
   useEffect(() => setScenes(state.storyboard?.scenes ?? []), [state.storyboard]);
 
@@ -45,11 +64,10 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
       const next = [...list];
       [next[index], next[target]] = [next[target]!, next[index]!];
       setAnnouncement(`Moved “${list[index]!.heading}” to position ${target + 1}.`);
-      return renumber(next);
+      return next;
     });
-  const remove = (index: number) => setScenes((list) => renumber(list.filter((_, i) => i !== index)));
-  const add = () =>
-    setScenes((list) => renumber([...list, { id: 'chapter-99', type: 'chapter', eyebrow: `Chapter ${list.length}`, heading: 'New chapter', body: 'Starter text — replace with this chapter’s story.', layout: 'split', visualNote: '' }]));
+  const remove = (index: number) => setScenes((list) => list.filter((_, i) => i !== index));
+  const add = () => setScenes((list) => [...list, newScene(addType, uniqueId(addType, list))]);
 
   const run = async (kind: 'draft' | 'save' | 'approve') => {
     setBusy(kind);
@@ -111,9 +129,9 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
           <li key={`${scene.id}-${index}`} className="card scene-card">
             <div className="card__head">
               <span className="scene-card__index">{index + 1}</span>
-              <h3>{scene.type === 'hero' ? 'Hero' : 'Chapter'}</h3>
+              <h3>{TYPE_LABELS[scene.type]}</h3>
               <span className="mono small muted">{scene.id}</span>
-              {scene.type === 'chapter' && (
+              {scene.type !== 'hero' && (
                 <span className="scene-card__actions">
                   <button type="button" className="btn btn--ghost btn--small" onClick={() => move(index, -1)} disabled={index <= 1} aria-label={`Move scene ${index + 1} up`}>
                     ↑
@@ -127,7 +145,7 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
                 </span>
               )}
             </div>
-            {scene.type === 'chapter' && (
+            {scene.type !== 'hero' && (
               <div className="field">
                 <label htmlFor={`eyebrow-${index}`}>Eyebrow</label>
                 <input id={`eyebrow-${index}`} value={scene.eyebrow ?? ''} maxLength={120} onChange={(e) => update(index, { eyebrow: e.target.value })} />
@@ -139,11 +157,36 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
             </div>
             <div className="field">
               <label htmlFor={`body-${index}`}>Body</label>
-              <textarea id={`body-${index}`} rows={2} value={scene.body} maxLength={1200} onChange={(e) => update(index, { body: e.target.value })} />
+              <textarea id={`body-${index}`} rows={2} value={scene.body} maxLength={4000} onChange={(e) => update(index, { body: e.target.value })} />
             </div>
+            {(scene.type === 'gallery' || scene.type === 'scroll-reveal') && (
+              <ItemsEditor idPrefix={`items-${index}`} items={scene.items ?? []} {...ITEM_LIMITS[scene.type]} onChange={(items) => update(index, { items })} />
+            )}
+            {scene.type === 'model-showcase' && (
+              <div className="field">
+                <label htmlFor={`object-${index}`}>3D object</label>
+                <select id={`object-${index}`} value={scene.object ?? 'orb'} onChange={(e) => update(index, { object: e.target.value as 'monolith' | 'vessel' | 'orb' })}>
+                  <option value="orb">Orb</option>
+                  <option value="vessel">Vessel</option>
+                  <option value="monolith">Monolith</option>
+                </select>
+              </div>
+            )}
+            {scene.type === 'cta' && (
+              <div className="field-grid">
+                <div className="field">
+                  <label htmlFor={`cta-label-${index}`}>Button label</label>
+                  <input id={`cta-label-${index}`} value={scene.cta?.label ?? ''} maxLength={80} onChange={(e) => update(index, { cta: { label: e.target.value, href: scene.cta?.href ?? '#hero-01' } })} />
+                </div>
+                <div className="field">
+                  <label htmlFor={`cta-href-${index}`}>Link (https://, mailto: or #section)</label>
+                  <input id={`cta-href-${index}`} value={scene.cta?.href ?? ''} maxLength={2048} onChange={(e) => update(index, { cta: { label: scene.cta?.label ?? 'Learn more', href: e.target.value } })} />
+                </div>
+              </div>
+            )}
             <div className="field">
               <label htmlFor={`visual-${index}`}>Visual note (also the text alternative for decorative art)</label>
-              <input id={`visual-${index}`} value={scene.visualNote} maxLength={300} onChange={(e) => update(index, { visualNote: e.target.value })} />
+              <input id={`visual-${index}`} value={scene.visualNote} maxLength={1000} onChange={(e) => update(index, { visualNote: e.target.value })} />
             </div>
           </li>
         ))}
@@ -158,9 +201,21 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
           <button type="button" className="btn btn--secondary" onClick={() => void run('save')} disabled={busy !== null || !dirty}>
             Save draft
           </button>
-          <button type="button" className="btn btn--ghost" onClick={add} disabled={scenes.length >= 7}>
-            Add chapter
-          </button>
+          <span className="add-scene">
+            <label htmlFor="add-scene-type" className="visually-hidden">
+              Scene type to add
+            </label>
+            <select id="add-scene-type" value={addType} onChange={(e) => setAddType(e.target.value as SceneType)}>
+              {(['chapter', 'scroll-reveal', 'model-showcase', 'gallery', 'cta'] as const).map((t) => (
+                <option key={t} value={t}>
+                  {TYPE_LABELS[t]}
+                </option>
+              ))}
+            </select>
+            <button type="button" className="btn btn--ghost" onClick={add} disabled={scenes.length >= 8}>
+              Add scene
+            </button>
+          </span>
         </div>
       )}
     </div>

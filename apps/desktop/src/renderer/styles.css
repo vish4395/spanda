@@ -482,6 +482,8 @@ button {
 .preview__bar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   min-height: 36px;
   padding: 0 12px;
   border-bottom: 1px solid var(--divider);
@@ -1286,4 +1288,186 @@ button {
 .setting h2 {
   font-size: 15px;
   font-weight: 600;
+}
+
+/* M3: scene inspector, items editor, preview error overlay */
+.inspector__section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.inspector__section h2 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.scene-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scene-picker__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.scene-picker__item:hover,
+.scene-picker__item[aria-expanded='true'] {
+  background: var(--raised);
+}
+
+.scene-picker__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.scene-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  margin: 4px 0 8px;
+  border-radius: var(--radius-control);
+  background: var(--bg);
+}
+
+.items-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.items-editor__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: end;
+  gap: 8px;
+}
+
+.inspector .items-editor__row {
+  grid-template-columns: minmax(0, 1fr);
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--divider);
+}
+
+.add-scene {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.add-scene select {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--control-border);
+  border-radius: var(--radius-control);
+  background: var(--raised);
+  color: var(--fg);
+}
+
+.stage__overlay {
+  position: absolute;
+  inset: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
+  color: var(--danger);
+}
+
+/* Runtime errors from the running preview: docked so the page stays usable behind them. */
+.stage__issues {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 45%;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--danger) 8%, var(--panel));
+  box-shadow: var(--shadow-menu);
+}
+
+.stage__issues-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--danger);
+}
+
+.stage__issues-head .alert__title {
+  flex: 1;
+  color: var(--fg);
+}
+
+.stage__issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.stage__issue {
+  padding-top: 8px;
+  border-top: 1px solid var(--divider);
+}
+
+.stage__issue-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.stage__issue-kind {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.stage__issue-message {
+  margin: 2px 0 0;
+  max-height: 4.5em;
+  overflow: auto;
+  font: 12px/1.5 var(--font-mono);
+  color: var(--fg);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.toggle[aria-pressed='true'] {
+  border-color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 22%, var(--raised));
+  color: var(--fg);
 }

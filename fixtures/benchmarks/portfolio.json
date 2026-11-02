@@ -1,20 +1,34 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "project": {
     "id": "bench-portfolio",
     "name": "Studio Marrow",
     "goal": "A portfolio for a fictional set and exhibition design studio"
   },
   "design": {
-    "theme": "gallery dark",
+    "theme": "Swiss Signal",
     "colors": {
-      "background": "#121010",
-      "foreground": "#f2ece4",
-      "accent": "#e0a96d"
+      "background": "#f3f3ef",
+      "foreground": "#0d0d0d",
+      "accent": "#c4161c",
+      "secondary": "#0f6e52"
     },
     "typography": {
-      "heading": "Didot, Georgia, serif",
-      "body": "Helvetica Neue, Arial, sans-serif"
+      "heading": "Avenir Next Condensed, Arial Narrow, Roboto Condensed, Liberation Sans Narrow, sans-serif",
+      "body": "Helvetica Neue, Helvetica, Arial, Liberation Sans, sans-serif"
+    },
+    "style": {
+      "mode": "light",
+      "scale": "monumental",
+      "headingCase": "normal",
+      "headingWeight": "bold",
+      "radius": "sharp",
+      "texture": "none",
+      "density": "balanced",
+      "reveal": "mask",
+      "easing": "gentle",
+      "heroArt": "none",
+      "panelArt": "grid"
     }
   },
   "pages": [
@@ -31,6 +45,7 @@
           },
           "visual": {
             "background": "gradient",
+            "variant": "top-left",
             "modelAssetId": null
           },
           "motion": {
@@ -53,7 +68,7 @@
             "body": "We design theatre sets, museum rooms and travelling exhibitions, usually starting from a single object."
           },
           "visual": {
-            "layout": "split"
+            "layout": "stacked"
           },
           "motion": {
             "type": "scroll-reveal"
@@ -99,7 +114,9 @@
               }
             ]
           },
-          "visual": {},
+          "visual": {
+            "variant": "grid"
+          },
           "motion": {
             "type": "scroll-reveal"
           },
@@ -120,7 +137,7 @@
             "body": "Every project starts as a cardboard model on the studio table before anything is built."
           },
           "visual": {
-            "layout": "centered"
+            "layout": "asymmetric"
           },
           "motion": {
             "type": "subtle-reveal"
@@ -144,7 +161,9 @@
               "href": "mailto:studio@example.com"
             }
           },
-          "visual": {},
+          "visual": {
+            "variant": "banner"
+          },
           "motion": {
             "type": "subtle-reveal"
           },

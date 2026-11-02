@@ -43,6 +43,7 @@ for (const name of BENCHMARKS) {
   const spec = specOf(name);
   const scenes = spec.pages[0]!.scenes;
   const hero = scenes.find((s) => s.type === 'hero')!;
+  const has3D = (spec.design.style.heroArt !== 'none' && Boolean(hero)) || scenes.some((s) => s.type === 'model-showcase');
 
   test.describe(`benchmark: ${name}`, () => {
     for (const target of TARGETS) {
@@ -62,6 +63,19 @@ for (const name of BENCHMARKS) {
           const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
           expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
           await scrollThrough(page);
+          // After scrolling, every heading has been revealed and fits its column.
+          for (const scene of scenes) await expect(page.locator(`#${scene.id} :is(h1, h2)`).first()).toBeVisible();
+          const clipped = await page.evaluate(() =>
+            [...document.querySelectorAll('main :is(h1, h2, h3)')]
+              .filter((h) => {
+                const el = h as HTMLElement;
+                const opacity = Number(getComputedStyle(el.closest('[data-reveal]') ?? el).opacity);
+                const clip = getComputedStyle(el.closest('[data-reveal]') ?? el).clipPath;
+                return el.scrollWidth > el.clientWidth + 1 || opacity < 0.99 || (clip !== 'none' && !/inset\(0(px)?\)/.test(clip));
+              })
+              .map((h) => h.textContent),
+          );
+          expect(clipped, 'headings hidden or wider than their column').toEqual([]);
           expect(errors).toEqual([]);
           await page.screenshot({ path: path.join(shots, `benchmark-${name}-${target}-${browserName}-${vp.name}.png`), fullPage: true, caret: 'initial' });
         });
@@ -81,7 +95,8 @@ for (const name of BENCHMARKS) {
         });
         const errors = watchErrors(page);
         await open(page, urls()[name]![target]);
-        await expect(page.locator('html')).toHaveAttribute('data-webgl', 'off');
+        // A design without 3D reports 'none' (no fallback captions); one with 3D falls back to 'off'.
+        await expect(page.locator('html')).toHaveAttribute('data-webgl', has3D ? 'off' : 'none');
         // With reduced motion every scene's content is visible without scrolling it into view.
         for (const scene of scenes) await expect(page.locator(`#${scene.id}`).getByText(scene.content.heading, { exact: true }).first()).toBeVisible();
         expect(errors.filter((e) => !/webgl/i.test(e))).toEqual([]);

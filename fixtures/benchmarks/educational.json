@@ -1,20 +1,34 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "project": {
     "id": "bench-educational",
     "name": "How Tides Work",
     "goal": "An educational scroll story explaining ocean tides"
   },
   "design": {
-    "theme": "deep water",
+    "theme": "Ocean Depth",
     "colors": {
-      "background": "#06141f",
-      "foreground": "#e6f1f7",
-      "accent": "#5fd3e6"
+      "background": "#06171c",
+      "foreground": "#e9f6f6",
+      "accent": "#4fd1c5",
+      "secondary": "#7fa7ff"
     },
     "typography": {
-      "heading": "Georgia, serif",
-      "body": "system-ui, sans-serif"
+      "heading": "Optima, Candara, Segoe UI, Noto Sans, sans-serif",
+      "body": "system-ui, Segoe UI, Roboto, Ubuntu, sans-serif"
+    },
+    "style": {
+      "mode": "dark",
+      "scale": "quiet",
+      "headingCase": "normal",
+      "headingWeight": "light",
+      "radius": "round",
+      "texture": "none",
+      "density": "balanced",
+      "reveal": "fade-up",
+      "easing": "gentle",
+      "heroArt": "ribbons",
+      "panelArt": "blobs"
     }
   },
   "pages": [
@@ -31,6 +45,7 @@
           },
           "visual": {
             "background": "procedural-3d",
+            "variant": "centered",
             "modelAssetId": null
           },
           "motion": {
@@ -53,7 +68,7 @@
             "body": "The Moon's gravity pulls hardest on the side of Earth facing it, raising a bulge of water there."
           },
           "visual": {
-            "layout": "split"
+            "layout": "full-bleed"
           },
           "motion": {
             "type": "scroll-reveal"
@@ -75,7 +90,7 @@
             "body": "On the opposite side, the ocean is pulled less than the planet itself, so a second bulge forms. That is why most coasts see two high tides a day."
           },
           "visual": {
-            "layout": "centered"
+            "layout": "split"
           },
           "motion": {
             "type": "scroll-reveal"
@@ -96,6 +111,7 @@
             "body": "As Earth rotates, a coastline passes through both bulges, about every 12 hours and 25 minutes."
           },
           "visual": {
+            "variant": "stage",
             "object": "orb",
             "camera": "front"
           },
@@ -135,7 +151,9 @@
               }
             ]
           },
-          "visual": {},
+          "visual": {
+            "variant": "timeline"
+          },
           "motion": {
             "type": "scroll-reveal"
           },
@@ -158,7 +176,9 @@
               "href": "#hero-01"
             }
           },
-          "visual": {},
+          "visual": {
+            "variant": "card"
+          },
           "motion": {
             "type": "subtle-reveal"
           },

@@ -1,14 +1,35 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "project": {
     "id": "bench-all-primitives",
     "name": "Tidewater Glassworks",
     "goal": "Show every StorySpec primitive in one original story about a coastal glass studio"
   },
   "design": {
-    "theme": "sea glass",
-    "colors": { "background": "#0b1215", "foreground": "#eef6f5", "accent": "#7fd1c7" },
-    "typography": { "heading": "Georgia, serif", "body": "system-ui" }
+    "theme": "Ember Archive",
+    "colors": {
+      "background": "#12100e",
+      "foreground": "#f5efe6",
+      "accent": "#e0a458",
+      "secondary": "#b5653a"
+    },
+    "typography": {
+      "heading": "Iowan Old Style, Palatino Linotype, Palatino, Book Antiqua, Georgia, serif",
+      "body": "Avenir Next, Avenir, Segoe UI, Ubuntu, Helvetica Neue, sans-serif"
+    },
+    "style": {
+      "mode": "dark",
+      "scale": "editorial",
+      "headingCase": "normal",
+      "headingWeight": "bold",
+      "radius": "soft",
+      "texture": "none",
+      "density": "balanced",
+      "reveal": "blur",
+      "easing": "gentle",
+      "heroArt": "rings",
+      "panelArt": "mesh"
+    }
   },
   "pages": [
     {
@@ -18,11 +39,25 @@
         {
           "id": "hero-01",
           "type": "hero",
-          "content": { "heading": "Tidewater Glassworks", "body": "Glass shaped by fire and finished by the sea." },
-          "visual": { "background": "gradient", "modelAssetId": null },
-          "motion": { "type": "subtle-reveal" },
-          "responsive": { "mobile": "static-hero" },
-          "accessibility": { "label": "Welcome", "fallbackText": "Decorative 3D artwork of a faceted glass form." }
+          "content": {
+            "heading": "Tidewater Glassworks",
+            "body": "Glass shaped by fire and finished by the sea."
+          },
+          "visual": {
+            "background": "gradient",
+            "variant": "bottom-left",
+            "modelAssetId": null
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
+          "responsive": {
+            "mobile": "static-hero"
+          },
+          "accessibility": {
+            "label": "Welcome",
+            "fallbackText": "Decorative 3D artwork of a faceted glass form."
+          }
         },
         {
           "id": "reveal-02",
@@ -31,33 +66,78 @@
             "eyebrow": "The process",
             "heading": "From sand to light",
             "items": [
-              { "title": "Gather", "text": "Molten glass is gathered on the end of a long pipe." },
-              { "title": "Shape", "text": "Breath and gravity give the piece its first form." },
-              { "title": "Cool", "text": "The kiln lowers the heat slowly over a full night." }
+              {
+                "title": "Gather",
+                "text": "Molten glass is gathered on the end of a long pipe."
+              },
+              {
+                "title": "Shape",
+                "text": "Breath and gravity give the piece its first form."
+              },
+              {
+                "title": "Cool",
+                "text": "The kiln lowers the heat slowly over a full night."
+              }
             ]
           },
-          "visual": {},
-          "motion": { "type": "scroll-reveal" },
-          "responsive": { "mobile": "stacked" },
-          "accessibility": { "label": "The process", "fallbackText": "Three steps of glassmaking." }
+          "visual": {
+            "variant": "timeline"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "The process",
+            "fallbackText": "Three steps of glassmaking."
+          }
         },
         {
           "id": "showcase-03",
           "type": "model-showcase",
-          "content": { "heading": "The tide vessel", "body": "A single form, turned slowly so every facet catches the light." },
-          "visual": { "object": "vessel", "camera": "orbit" },
-          "motion": { "type": "scroll-reveal" },
-          "responsive": { "mobile": "stacked" },
-          "accessibility": { "label": "The tide vessel", "fallbackText": "A tall, faceted glass vessel shown as decorative 3D art." }
+          "content": {
+            "heading": "The tide vessel",
+            "body": "A single form, turned slowly so every facet catches the light."
+          },
+          "visual": {
+            "variant": "split",
+            "object": "vessel",
+            "camera": "orbit"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "The tide vessel",
+            "fallbackText": "A tall, faceted glass vessel shown as decorative 3D art."
+          }
         },
         {
           "id": "chapter-04",
           "type": "chapter",
-          "content": { "eyebrow": "The studio", "heading": "Built where the river meets the sea", "body": "Morning light from the estuary fills the workshop." },
-          "visual": { "layout": "split" },
-          "motion": { "type": "scroll-reveal" },
-          "responsive": { "mobile": "stacked" },
-          "accessibility": { "label": "The studio", "fallbackText": "Abstract decorative artwork in sea-glass colours." }
+          "content": {
+            "eyebrow": "The studio",
+            "heading": "Built where the river meets the sea",
+            "body": "Morning light from the estuary fills the workshop."
+          },
+          "visual": {
+            "layout": "split"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "The studio",
+            "fallbackText": "Abstract decorative artwork in sea-glass colours."
+          }
         },
         {
           "id": "gallery-05",
@@ -65,29 +145,72 @@
           "content": {
             "heading": "Recent pieces",
             "items": [
-              { "title": "Estuary bowl", "text": "Wide and shallow, tinted like low water." },
-              { "title": "Lantern float", "text": "A hollow sphere that glows when lit." },
-              { "title": "Salt tumbler", "text": "Frosted by hand with fine sand." },
-              { "title": "Kelp vase", "text": "Tall, green and gently twisted." }
+              {
+                "title": "Estuary bowl",
+                "text": "Wide and shallow, tinted like low water."
+              },
+              {
+                "title": "Lantern float",
+                "text": "A hollow sphere that glows when lit."
+              },
+              {
+                "title": "Salt tumbler",
+                "text": "Frosted by hand with fine sand."
+              },
+              {
+                "title": "Kelp vase",
+                "text": "Tall, green and gently twisted."
+              }
             ]
           },
-          "visual": {},
-          "motion": { "type": "scroll-reveal" },
-          "responsive": { "mobile": "stacked" },
-          "accessibility": { "label": "Recent pieces", "fallbackText": "Four decorative cards for recent glass pieces." }
+          "visual": {
+            "variant": "carousel"
+          },
+          "motion": {
+            "type": "scroll-reveal"
+          },
+          "responsive": {
+            "mobile": "stacked"
+          },
+          "accessibility": {
+            "label": "Recent pieces",
+            "fallbackText": "Four decorative cards for recent glass pieces."
+          }
         },
         {
           "id": "cta-06",
           "type": "cta",
-          "content": { "heading": "Visit the workshop", "body": "Open studio days run every spring.", "cta": { "label": "Plan a visit", "href": "#hero-01" } },
-          "visual": {},
-          "motion": { "type": "subtle-reveal" },
+          "content": {
+            "heading": "Visit the workshop",
+            "body": "Open studio days run every spring.",
+            "cta": {
+              "label": "Plan a visit",
+              "href": "#hero-01"
+            }
+          },
+          "visual": {
+            "variant": "card"
+          },
+          "motion": {
+            "type": "subtle-reveal"
+          },
           "responsive": {},
-          "accessibility": { "label": "Visit", "fallbackText": "Invitation to visit the workshop." }
+          "accessibility": {
+            "label": "Visit",
+            "fallbackText": "Invitation to visit the workshop."
+          }
         }
       ]
     }
   ],
   "assets": [],
-  "quality": { "reducedMotion": true, "webglFallback": true, "targetBrowsers": ["chromium", "firefox", "webkit"] }
+  "quality": {
+    "reducedMotion": true,
+    "webglFallback": true,
+    "targetBrowsers": [
+      "chromium",
+      "firefox",
+      "webkit"
+    ]
+  }
 }

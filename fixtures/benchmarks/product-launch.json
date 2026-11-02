@@ -1,20 +1,34 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "project": {
     "id": "bench-product-launch",
     "name": "Halden One",
     "goal": "Launch a fictional desk lamp with a calm, light product story"
   },
   "design": {
-    "theme": "warm paper",
+    "theme": "Signal Noir",
     "colors": {
-      "background": "#f6f2ea",
-      "foreground": "#1d1b18",
-      "accent": "#9a3f1c"
+      "background": "#0b0b0d",
+      "foreground": "#fafafa",
+      "accent": "#ff6b5b",
+      "secondary": "#ffd166"
     },
     "typography": {
-      "heading": "Georgia, serif",
-      "body": "system-ui, sans-serif"
+      "heading": "Avenir Next Condensed, Arial Narrow, Roboto Condensed, Liberation Sans Narrow, sans-serif",
+      "body": "Helvetica Neue, Helvetica, Arial, Liberation Sans, sans-serif"
+    },
+    "style": {
+      "mode": "dark",
+      "scale": "monumental",
+      "headingCase": "normal",
+      "headingWeight": "bold",
+      "radius": "sharp",
+      "texture": "lines",
+      "density": "compact",
+      "reveal": "scale",
+      "easing": "snappy",
+      "heroArt": "faceted",
+      "panelArt": "duotone"
     }
   },
   "pages": [
@@ -31,6 +45,7 @@
           },
           "visual": {
             "background": "procedural-3d",
+            "variant": "monumental",
             "modelAssetId": null
           },
           "motion": {
@@ -52,6 +67,7 @@
             "body": "Turn it slowly: the arm, the shade and the base are cut from a single sheet."
           },
           "visual": {
+            "variant": "split",
             "object": "monolith",
             "camera": "low"
           },
@@ -87,7 +103,9 @@
               }
             ]
           },
-          "visual": {},
+          "visual": {
+            "variant": "cards"
+          },
           "motion": {
             "type": "scroll-reveal"
           },
@@ -120,7 +138,9 @@
               }
             ]
           },
-          "visual": {},
+          "visual": {
+            "variant": "mosaic"
+          },
           "motion": {
             "type": "scroll-reveal"
           },
@@ -141,7 +161,7 @@
             "body": "The bulb, the cable and the switch are standard parts held by screws, not glue."
           },
           "visual": {
-            "layout": "centered"
+            "layout": "split"
           },
           "motion": {
             "type": "scroll-reveal"
@@ -165,7 +185,9 @@
               "href": "https://example.com/halden"
             }
           },
-          "visual": {},
+          "visual": {
+            "variant": "banner"
+          },
           "motion": {
             "type": "subtle-reveal"
           },

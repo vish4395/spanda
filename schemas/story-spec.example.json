@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "0.1.0",
+  "schemaVersion": "0.2.0",
   "project": {
     "id": "demo-heritage",
     "name": "Heritage Journey",
@@ -10,11 +10,25 @@
     "colors": {
       "background": "#10141c",
       "foreground": "#f4eee4",
-      "accent": "#d9a76c"
+      "accent": "#d9a76c",
+      "secondary": "#d9a76c"
     },
     "typography": {
       "heading": "system-ui",
       "body": "system-ui"
+    },
+    "style": {
+      "mode": "dark",
+      "scale": "editorial",
+      "headingCase": "normal",
+      "headingWeight": "bold",
+      "radius": "soft",
+      "texture": "none",
+      "density": "balanced",
+      "reveal": "fade-up",
+      "easing": "gentle",
+      "heroArt": "faceted",
+      "panelArt": "arcs"
     }
   },
   "pages": [

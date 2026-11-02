@@ -4,7 +4,7 @@
   "properties": {
     "schemaVersion": {
       "type": "string",
-      "const": "0.1.0"
+      "const": "0.2.0"
     },
     "project": {
       "type": "object",
@@ -54,12 +54,17 @@
             "accent": {
               "type": "string",
               "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+            },
+            "secondary": {
+              "type": "string",
+              "pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
             }
           },
           "required": [
             "background",
             "foreground",
-            "accent"
+            "accent",
+            "secondary"
           ],
           "additionalProperties": false
         },
@@ -84,12 +89,128 @@
             "body"
           ],
           "additionalProperties": false
+        },
+        "style": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "dark",
+                "light"
+              ]
+            },
+            "scale": {
+              "type": "string",
+              "enum": [
+                "quiet",
+                "editorial",
+                "monumental"
+              ]
+            },
+            "headingCase": {
+              "type": "string",
+              "enum": [
+                "normal",
+                "uppercase"
+              ]
+            },
+            "headingWeight": {
+              "type": "string",
+              "enum": [
+                "light",
+                "regular",
+                "bold"
+              ]
+            },
+            "radius": {
+              "type": "string",
+              "enum": [
+                "sharp",
+                "soft",
+                "round"
+              ]
+            },
+            "texture": {
+              "type": "string",
+              "enum": [
+                "none",
+                "grain",
+                "grid",
+                "lines",
+                "dots"
+              ]
+            },
+            "density": {
+              "type": "string",
+              "enum": [
+                "airy",
+                "balanced",
+                "compact"
+              ]
+            },
+            "reveal": {
+              "type": "string",
+              "enum": [
+                "fade-up",
+                "mask",
+                "blur",
+                "scale",
+                "slide"
+              ]
+            },
+            "easing": {
+              "type": "string",
+              "enum": [
+                "gentle",
+                "snappy",
+                "dramatic"
+              ]
+            },
+            "heroArt": {
+              "type": "string",
+              "enum": [
+                "faceted",
+                "particles",
+                "ribbons",
+                "terrain",
+                "rings",
+                "none"
+              ]
+            },
+            "panelArt": {
+              "type": "string",
+              "enum": [
+                "arcs",
+                "mesh",
+                "stripes",
+                "grid",
+                "blobs",
+                "duotone"
+              ]
+            }
+          },
+          "required": [
+            "mode",
+            "scale",
+            "headingCase",
+            "headingWeight",
+            "radius",
+            "texture",
+            "density",
+            "reveal",
+            "easing",
+            "heroArt",
+            "panelArt"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "theme",
         "colors",
-        "typography"
+        "typography",
+        "style"
       ],
       "additionalProperties": false
     },
@@ -214,7 +335,32 @@
                       "type": "string",
                       "enum": [
                         "split",
-                        "centered"
+                        "split-reverse",
+                        "centered",
+                        "full-bleed",
+                        "editorial",
+                        "asymmetric",
+                        "stacked"
+                      ]
+                    },
+                    "variant": {
+                      "type": "string",
+                      "enum": [
+                        "bottom-left",
+                        "centered",
+                        "top-left",
+                        "split",
+                        "monumental",
+                        "cards",
+                        "timeline",
+                        "sticky",
+                        "stage",
+                        "carousel",
+                        "grid",
+                        "mosaic",
+                        "card",
+                        "banner",
+                        "minimal"
                       ]
                     },
                     "modelAssetId": {

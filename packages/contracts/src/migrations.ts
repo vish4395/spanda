@@ -1,4 +1,4 @@
-import { STORY_SPEC_VERSION, validateStorySpec, type ValidationResult } from './story-spec.ts';
+import { LEGACY_DESIGN_STYLE, STORY_SPEC_VERSION, validateStorySpec, type ValidationResult } from './story-spec.ts';
 
 // StorySpec migrations (docs/04 "Evolution"): each step upgrades one schemaVersion
 // to the next. Steps must preserve scene IDs so approved scenes survive upgrades.
@@ -9,8 +9,25 @@ export interface SpecMigration {
   migrate(input: Record<string, unknown>): Record<string, unknown>;
 }
 
-/** Registered migrations, oldest first. Empty while 0.1.0 is the only released version. */
-export const MIGRATIONS: readonly SpecMigration[] = [];
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** 0.1.0 → 0.2.0: add the design language with the values that reproduce the 0.1.0 look. */
+const addDesignLanguage: SpecMigration = {
+  from: '0.1.0',
+  to: '0.2.0',
+  migrate(input) {
+    const design = isRecord(input.design) ? input.design : {};
+    const colors = isRecord(design.colors) ? design.colors : {};
+    return {
+      ...input,
+      schemaVersion: '0.2.0',
+      design: { ...design, colors: { ...colors, secondary: colors.secondary ?? colors.accent }, style: design.style ?? { ...LEGACY_DESIGN_STYLE } },
+    };
+  },
+};
+
+/** Registered migrations, oldest first. */
+export const MIGRATIONS: readonly SpecMigration[] = [addDesignLanguage];
 
 export type MigrationResult =
   | { ok: true; value: Record<string, unknown>; applied: string[] }

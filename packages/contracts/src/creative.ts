@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DesignStyleSchema, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.ts';
 
 // Creative workflow contracts (M2: discovery → brief → storyboard → StorySpec).
 
@@ -20,13 +21,28 @@ export const DiscoveryAnswer = z.union([Id, z.literal('skip'), z.literal('ai-dec
 export type DiscoveryAnswer = z.infer<typeof DiscoveryAnswer>;
 
 const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+/** How a direction arranges scenes: hero variant, the rhythm of chapter layouts, and section variants. */
+export const DirectionComposition = z.object({
+  hero: z.enum(SCENE_VARIANTS.hero),
+  chapterLayouts: z.array(z.enum(SCENE_LAYOUTS)).min(1).max(6),
+  steps: z.enum(SCENE_VARIANTS['scroll-reveal']),
+  showcase: z.enum(SCENE_VARIANTS['model-showcase']),
+  gallery: z.enum(SCENE_VARIANTS.gallery),
+  cta: z.enum(SCENE_VARIANTS.cta),
+});
+export type DirectionComposition = z.infer<typeof DirectionComposition>;
+
 export const CreativeDirection = z.object({
   id: Id,
   name: z.string(),
   description: z.string(),
-  colors: z.object({ background: Hex, foreground: Hex, accent: Hex }),
-  typography: z.object({ heading: z.string(), body: z.string() }),
+  colors: z.object({ background: Hex, foreground: Hex, accent: Hex, secondary: Hex }),
+  typography: z.object({ heading: z.string(), body: z.string(), label: z.string() }),
   motion: z.enum(['calm', 'balanced', 'bold']),
+  style: DesignStyleSchema,
+  composition: DirectionComposition,
+  /** Where the direction came from: a studio family, or a reference's design DNA. */
+  basis: z.string().max(200),
 });
 export type CreativeDirection = z.infer<typeof CreativeDirection>;
 
@@ -55,6 +71,8 @@ export const CreativeBrief = z.object({
   audience: ShortText(200),
   tone: ShortText(120),
   directionId: Id,
+  /** Snapshot of the chosen direction, so regenerating options never changes an approved brief. */
+  direction: CreativeDirection.optional(),
   motion: z.enum(['calm', 'balanced', 'bold']),
   chapters: z.number().int().min(1).max(6),
   notes: ShortText(1000),
@@ -70,7 +88,8 @@ export const StoryboardScene = z.object({
   heading: ShortText(200).min(1),
   // Same limits as the StorySpec fields they become, so scoped scene edits sync back losslessly (T020).
   body: ShortText(4000),
-  layout: z.enum(['split', 'centered']).optional(),
+  layout: z.enum(SCENE_LAYOUTS).optional(),
+  variant: z.string().max(40).optional(),
   visualNote: ShortText(1000),
   items: z.array(z.object({ title: ShortText(120).min(1), text: ShortText(600) })).max(8).optional(),
   cta: z.object({ label: ShortText(80).min(1), href: z.string().max(2048) }).optional(),
@@ -102,6 +121,8 @@ export const CreativeFile = z.object({
   brief: CreativeBrief.nullable(),
   storyboard: Storyboard.nullable(),
   references: z.array(ReferenceReport).max(10),
+  /** Bumped by "Show other directions"; directions are generated deterministically from it. */
+  directionSeed: z.number().int().min(0).optional(),
 });
 export type CreativeFile = z.infer<typeof CreativeFile>;
 
@@ -123,14 +144,18 @@ export const DraftStoryboardOutput = z.object({
   scenes: z
     .array(
       z.object({
-        type: z.enum(['hero', 'chapter']),
+        type: z.enum(['hero', 'chapter', 'scroll-reveal', 'model-showcase', 'gallery', 'cta']),
         eyebrow: z.string().max(120).optional(),
         heading: z.string().min(1).max(200),
-        body: z.string().max(1200),
+        body: z.string().max(1200).default(''),
         visualNote: z.string().max(300).default(''),
+        layout: z.string().max(40).optional(),
+        items: z.array(z.object({ title: z.string().min(1).max(120), text: z.string().max(600) })).max(8).optional(),
+        cta: z.object({ label: z.string().min(1).max(80) }).optional(),
+        object: z.string().max(40).optional(),
       }),
     )
     .min(2)
-    .max(7),
+    .max(8),
 });
 export type DraftStoryboardOutput = z.infer<typeof DraftStoryboardOutput>;

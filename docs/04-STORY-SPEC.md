@@ -17,6 +17,25 @@ Single source of truth for both HTML and React renderers. Must represent story a
 5. `gallery`: media collection with keyboard navigation.
 6. `cta`: conversion or contact section.
 
+## Design language (0.2.0)
+`design` holds `theme`, `colors` (`background`, `foreground`, `accent`, `secondary`, all hex), `typography` (`heading`, `body` font stacks) and `style`. Every `style` field is an enum, so a StorySpec can never carry raw CSS:
+
+| Field | Values |
+|---|---|
+| `mode` | dark, light |
+| `scale` | quiet, editorial, monumental |
+| `headingCase` / `headingWeight` | normal, uppercase / light, regular, bold |
+| `radius` | sharp, soft, round |
+| `texture` | none, grain, grid, lines, dots |
+| `density` | airy, balanced, compact |
+| `reveal` / `easing` | fade-up, mask, blur, scale, slide / gentle, snappy, dramatic |
+| `heroArt` | faceted, particles, ribbons, terrain, rings, none |
+| `panelArt` | arcs, mesh, stripes, grid, blobs, duotone |
+
+Scenes compose with `visual.layout` (chapters: split, split-reverse, centered, full-bleed, editorial, asymmetric, stacked) and `visual.variant` (hero: bottom-left, centered, top-left, split, monumental; scroll-reveal: cards, timeline, sticky; model-showcase: split, stage; gallery: carousel, grid, mosaic; cta: card, banner, minimal). The first variant is the default.
+
+Both generators map `design` through one function (`renderDesignTokensCss` and `designRootAttributes` in `@studio/contracts`) onto CSS custom properties and `<html>` data attributes, and share one stylesheet, so HTML and React cannot drift. Art directions come from the story engine's design families (`packages/story-engine/src/directions.ts`): seeded, deterministic per project, contrast-checked (body text ≥ 7:1, accent ≥ 4.5:1). The 0.1.0 → 0.2.0 migration adds the style that reproduces the 0.1.0 look.
+
 ## Motion model
 Use declarative scroll ranges and transitions: `trigger`, `start`, `end`, `easing`, `property`, `from`, `to`. Renderer maps to native CSS/JS or React timeline. Restrict to known safe properties. `prefers-reduced-motion` behavior required.
 

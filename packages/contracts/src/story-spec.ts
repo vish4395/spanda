@@ -4,7 +4,7 @@ import { z } from 'zod';
 // Every string that reaches generated CSS/HTML/URLs is constrained here so the
 // generators never have to interpret free-form markup or code.
 
-export const STORY_SPEC_VERSION = '0.1.0';
+export const STORY_SPEC_VERSION = '0.2.0';
 
 export const SCENE_TYPES = [
   'hero',
@@ -70,13 +70,77 @@ export const SceneContentSchema = z.strictObject({
 /** Procedural 3D objects (original geometry, no external model files). */
 export const OBJECT_PRESETS = ['monolith', 'vessel', 'orb'] as const;
 
+/** Chapter compositions. Every layout is pure CSS over the same semantic markup. */
+export const SCENE_LAYOUTS = ['split', 'split-reverse', 'centered', 'full-bleed', 'editorial', 'asymmetric', 'stacked'] as const;
+export type SceneLayout = (typeof SCENE_LAYOUTS)[number];
+
+/** Per-type composition variants; the first entry is the default. */
+export const SCENE_VARIANTS = {
+  hero: ['bottom-left', 'centered', 'top-left', 'split', 'monumental'],
+  chapter: [],
+  'scroll-reveal': ['cards', 'timeline', 'sticky'],
+  'model-showcase': ['split', 'stage'],
+  gallery: ['carousel', 'grid', 'mosaic'],
+  cta: ['card', 'banner', 'minimal'],
+} as const satisfies Record<SceneType, readonly string[]>;
+const ALL_VARIANTS = [...new Set(Object.values(SCENE_VARIANTS).flat())] as [string, ...string[]];
+
 export const SceneVisualSchema = z.strictObject({
   background: z.enum(['gradient', 'solid', 'procedural-3d']).optional(),
-  layout: z.enum(['split', 'centered']).optional(),
+  layout: z.enum(SCENE_LAYOUTS).optional(),
+  variant: z.enum(ALL_VARIANTS).optional(),
   modelAssetId: StableId.nullable().optional(),
   object: z.enum(OBJECT_PRESETS).optional(),
   camera: z.enum(['orbit', 'front', 'low']).optional(),
 });
+
+/**
+ * Design language (0.2.0): the knobs that make two sites look unrelated. All are enums
+ * that map to CSS custom properties and data attributes, so nothing here is free-form CSS.
+ */
+export const DESIGN_STYLE_OPTIONS = {
+  mode: ['dark', 'light'],
+  scale: ['quiet', 'editorial', 'monumental'],
+  headingCase: ['normal', 'uppercase'],
+  headingWeight: ['light', 'regular', 'bold'],
+  radius: ['sharp', 'soft', 'round'],
+  texture: ['none', 'grain', 'grid', 'lines', 'dots'],
+  density: ['airy', 'balanced', 'compact'],
+  reveal: ['fade-up', 'mask', 'blur', 'scale', 'slide'],
+  easing: ['gentle', 'snappy', 'dramatic'],
+  heroArt: ['faceted', 'particles', 'ribbons', 'terrain', 'rings', 'none'],
+  panelArt: ['arcs', 'mesh', 'stripes', 'grid', 'blobs', 'duotone'],
+} as const;
+
+export const DesignStyleSchema = z.strictObject({
+  mode: z.enum(DESIGN_STYLE_OPTIONS.mode),
+  scale: z.enum(DESIGN_STYLE_OPTIONS.scale),
+  headingCase: z.enum(DESIGN_STYLE_OPTIONS.headingCase),
+  headingWeight: z.enum(DESIGN_STYLE_OPTIONS.headingWeight),
+  radius: z.enum(DESIGN_STYLE_OPTIONS.radius),
+  texture: z.enum(DESIGN_STYLE_OPTIONS.texture),
+  density: z.enum(DESIGN_STYLE_OPTIONS.density),
+  reveal: z.enum(DESIGN_STYLE_OPTIONS.reveal),
+  easing: z.enum(DESIGN_STYLE_OPTIONS.easing),
+  heroArt: z.enum(DESIGN_STYLE_OPTIONS.heroArt),
+  panelArt: z.enum(DESIGN_STYLE_OPTIONS.panelArt),
+});
+export type DesignStyle = z.infer<typeof DesignStyleSchema>;
+
+/** The 0.1.0 look, used by the migration so upgraded projects render as before. */
+export const LEGACY_DESIGN_STYLE: DesignStyle = {
+  mode: 'dark',
+  scale: 'editorial',
+  headingCase: 'normal',
+  headingWeight: 'bold',
+  radius: 'soft',
+  texture: 'none',
+  density: 'balanced',
+  reveal: 'fade-up',
+  easing: 'gentle',
+  heroArt: 'faceted',
+  panelArt: 'arcs',
+};
 
 export const SceneMotionSchema = z.strictObject({
   type: z.enum(['none', 'subtle-reveal', 'scroll-reveal']),
@@ -133,11 +197,13 @@ export const StorySpecSchema = z
         background: CssColor,
         foreground: CssColor,
         accent: CssColor,
+        secondary: CssColor,
       }),
       typography: z.strictObject({
         heading: FontStack,
         body: FontStack,
       }),
+      style: DesignStyleSchema,
     }),
     pages: z.array(PageSchema).min(1).max(20),
     assets: z.array(AssetSchema).max(500),
@@ -176,6 +242,9 @@ export const StorySpecSchema = z
         if (scene.type === 'gallery' && (items < 2 || items > 8)) ctx.addIssue({ code: 'custom', path: at('content', 'items'), message: 'A gallery needs 2–8 items' });
         if (scene.type === 'scroll-reveal' && (items < 2 || items > 5)) ctx.addIssue({ code: 'custom', path: at('content', 'items'), message: 'A scroll-reveal scene needs 2–5 steps' });
         if (scene.type === 'model-showcase' && !scene.visual.object && !scene.visual.modelAssetId) ctx.addIssue({ code: 'custom', path: at('visual', 'object'), message: 'A model-showcase scene needs an object preset or a model asset' });
+        const variants: readonly string[] = SCENE_VARIANTS[scene.type];
+        if (scene.visual.variant && !variants.includes(scene.visual.variant)) ctx.addIssue({ code: 'custom', path: at('visual', 'variant'), message: variants.length ? `A ${scene.type} variant must be one of: ${variants.join(', ')}` : `${scene.type} scenes have no variants; use layout` });
+        if (scene.visual.layout && scene.type !== 'chapter') ctx.addIssue({ code: 'custom', path: at('visual', 'layout'), message: `Layout applies to chapter scenes, not ${scene.type}; use variant` });
         if (items && !['gallery', 'scroll-reveal'].includes(scene.type)) ctx.addIssue({ code: 'custom', path: at('content', 'items'), message: `Items are only used by gallery and scroll-reveal scenes, not ${scene.type}` });
       }),
     );

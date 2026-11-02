@@ -16,7 +16,8 @@
     "test:browsers": "pnpm --filter @studio/qa test:browsers",
     "test:desktop": "pnpm --filter @studio/desktop test:e2e",
     "licenses:check": "pnpm --filter @studio/licensing check",
-    "check": "pnpm typecheck && pnpm test && pnpm licenses:check && pnpm build && pnpm test:browsers && pnpm test:desktop"
+    "secrets:check": "node scripts/secret-scan.mts",
+    "check": "pnpm typecheck && pnpm test && pnpm licenses:check && pnpm secrets:check && pnpm build && pnpm test:browsers && pnpm test:desktop"
   },
   "devDependencies": {
     "@types/node": "24.19.2",

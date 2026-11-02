@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import type { Scene } from '../types';
 import type { WebGLState } from '../hooks/useWebGL';

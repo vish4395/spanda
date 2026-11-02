@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import type { SceneItem, Scene } from '../types';
 import { useReveal } from '../hooks/useReveal';
 import { SceneCopy } from './SceneCopy';

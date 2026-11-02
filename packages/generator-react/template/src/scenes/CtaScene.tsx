@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import type { Scene } from '../types';
 import { SceneCopy } from './SceneCopy';
 

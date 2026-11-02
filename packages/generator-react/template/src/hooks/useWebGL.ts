@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import { useCallback, useEffect, useState } from 'react';
 
 export type WebGLState = 'loading' | 'on' | 'off';

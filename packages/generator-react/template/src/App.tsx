@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import storyJson from './story-spec.json';
 import type { Scene, StorySpec } from './types';
 import { useReducedMotion } from './hooks/useReducedMotion';

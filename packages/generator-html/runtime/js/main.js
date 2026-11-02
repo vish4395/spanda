@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 // Progressive enhancement entry point. Content is fully readable without this file.
 const root = document.documentElement;
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');

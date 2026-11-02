@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Scene } from '../types';
 import { SceneCopy } from './SceneCopy';

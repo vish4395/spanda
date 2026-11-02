@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 // Subset of the StorySpec contract this site renders (validated by the studio before export).
 export interface SceneItem {
   title: string;

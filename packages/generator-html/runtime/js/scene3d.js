@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 // Decorative, procedural 3D scenes (original geometry; no external models or textures).
 // variant 'hero': faceted form with rings and dust. variant 'showcase': one object preset, centred.
 import * as THREE from '../vendor/three/three.module.js';

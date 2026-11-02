@@ -96,6 +96,17 @@ describe('buildExport (T024)', () => {
     expect((await buildExport({ spec: sample, outputs: { html, react }, studioVersion: '0.0.1' })).zip.equals(result.zip)).toBe(true);
   });
 
+  it('carries no Apache-2.0 obligation into exported code; template sources are marked MIT-0 (T035)', async () => {
+    const { html, react } = await outputs();
+    const files = readZip((await buildExport({ spec: sample, outputs: { html, react }, studioVersion: '0' })).zip);
+    // Third-party code keeps its own license (vendored three.js, notices); everything else is ours.
+    const ours = [...files.keys()].filter((n) => !n.startsWith('html/vendor/') && !/THIRD_PARTY_NOTICES\.md$|sbom\.cdx\.json$|package-lock\.json$|metadata\/licenses\.json$/.test(n));
+    for (const name of ours) expect(files.get(name)!.toString('utf8'), name).not.toMatch(/Apache/i);
+    const templated = ours.filter((n) => /^html\/(js\/.*\.js|styles\.css)$|^react\/src\/(?!story-spec).*\.(tsx?|css)$|^react\/vite\.config\.ts$/.test(n) && !/tokens\.css$/.test(n));
+    expect(templated.length).toBeGreaterThan(10);
+    for (const name of templated) expect(files.get(name)!.toString('utf8').split('\n')[0], name).toMatch(/SPDX-License-Identifier: MIT-0/);
+  });
+
   it('exports only the selected target', async () => {
     const { html } = await outputs();
     const files = readZip((await buildExport({ spec: sample, outputs: { html }, studioVersion: '0.0.1' })).zip);

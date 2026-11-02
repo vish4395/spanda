@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT-0
 import { useEffect, useRef, useState } from 'react';
 
 /** Adds the `is-visible` state when the element scrolls into view (immediately under reduced motion). */

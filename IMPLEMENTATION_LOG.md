@@ -8,7 +8,11 @@ Deliberately **not** renamed (AGENTS.md › Naming): package names `@studio/*`, 
 
 Verification: `pnpm typecheck` pass; `pnpm test` 204/204; `pnpm build` pass; `pnpm test:desktop` 17/18 on the first run, the failure being "generates HTML + React" ending in "Failed" during a cold-cache React build. It passed on rerun (`e2e/app.spec.ts` 5/5), and the export spec asserting "Exported by Spanda Studio" passed. Reviewed `artifacts/screenshots/desktop-preview-html.png`: Spanda Studio and the Kolam S render in the top bar.
 
-Open: studio palette (bright vs muted) is undecided; packaged app icons (macOS/Windows/Linux) are T029/T033.
+Follow-up (same day): the studio switched to **muted** Neel tints (`--accent` #5862C4, white text 5.3:1 and at least 3:1 on every surface; `--accent-text` #9AA1DE) with a true-neutral preview surround (`--stage` #121212). Full-strength Neel and Diya Gold remain for the logo only (`--brand-neel`, `--brand-gold`). App icons are generated from `docs/brand/assets/spanda-icon.svg` by `pnpm --filter @studio/desktop icons` into `apps/desktop/build/icons/`: `icon.icns` (Apple 824/1024 grid with shadow), `icon.ico` (7 PNG sizes) and `icon.png`. The window uses `icon.png` and unpackaged macOS runs set the Dock icon; installers wire `.icns`/`.ico` in T029.
+
+Re-verification: `pnpm test:desktop` **18/18** with no other sessions running. The earlier "generates HTML + React" failures coincided with the disk filling up (`npm ci` ENOSPC, recorded in the job table) and with a parallel session running Electron and React builds at the same time. Reviewed `artifacts/screenshots/desktop-preview-react.png` (muted button, neutral stage, full-color logo).
+
+Open: 16px favicon refinement and the final logo drawing (T033); trademark search (T031) and domains/handles (T032) are owner actions.
 
 ## 2026-11-02 — Release readiness R0: T035, T036, T037
 

@@ -11,6 +11,7 @@ export function draftBrief(answers: Record<string, DiscoveryAnswer>, directions:
     audience: '',
     tone: TONE_WORDS[resolved(answers, 'tone')] ?? 'Warm and inviting',
     directionId: directions[0]!.id,
+    direction: directions[0]!,
     motion,
     chapters: CHAPTERS[resolved(answers, 'length')] ?? 3,
     notes: '',

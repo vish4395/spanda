@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { STORY_SPEC_VERSION, validateStorySpec, type StorySpec } from '@studio/contracts';
+import { STORY_SPEC_VERSION, validateStorySpec, type CreativeDirection, type StorySpec } from '@studio/contracts';
+import { generateDirections } from './directions.ts';
 
 /** URL-safe, lowercase project ID with a random suffix so names never collide. */
 export function projectIdFor(name: string, random: () => string = () => randomBytes(3).toString('hex')): string {
@@ -22,14 +23,13 @@ export function projectIdFor(name: string, random: () => string = () => randomBy
 export function createStarterSpec(input: { name: string; goal: string; id?: string }): StorySpec {
   const name = input.name.trim();
   const goal = input.goal.trim();
+  const id = input.id ?? projectIdFor(name);
+  // Each new project starts from its own generated direction, not one shared look.
+  const direction = generateDirections({}, { salt: id, count: 1 })[0]!;
   const spec: StorySpec = {
     schemaVersion: STORY_SPEC_VERSION,
-    project: { id: input.id ?? projectIdFor(name), name, goal },
-    design: {
-      theme: 'studio starter',
-      colors: { background: '#0f1115', foreground: '#f3f1ec', accent: '#a998ff' },
-      typography: { heading: 'system-ui', body: 'system-ui' },
-    },
+    project: { id, name, goal },
+    design: designFromDirection(direction),
     pages: [
       {
         id: 'home',
@@ -39,7 +39,7 @@ export function createStarterSpec(input: { name: string; goal: string; id?: stri
             id: 'hero-01',
             type: 'hero',
             content: { heading: name, body: goal },
-            visual: { background: 'gradient', modelAssetId: null },
+            visual: { background: 'gradient', modelAssetId: null, variant: direction.composition.hero },
             motion: { type: 'subtle-reveal' },
             responsive: { mobile: 'static-hero' },
             accessibility: { label: 'Introduction', fallbackText: `Decorative 3D artwork introducing ${name}.` },
@@ -48,7 +48,7 @@ export function createStarterSpec(input: { name: string; goal: string; id?: stri
             id: 'chapter-02',
             type: 'chapter',
             content: { eyebrow: 'Starter text', heading: 'Chapter one', body: 'Replace this starter text with the first chapter of your story.' },
-            visual: { layout: 'split' },
+            visual: { layout: direction.composition.chapterLayouts[0]! },
             motion: { type: 'scroll-reveal' },
             responsive: { mobile: 'stacked' },
             accessibility: { label: 'Chapter one', fallbackText: 'Abstract decorative artwork for the first chapter.' },
@@ -62,4 +62,15 @@ export function createStarterSpec(input: { name: string; goal: string; id?: stri
   const result = validateStorySpec(spec);
   if (!result.ok) throw new Error(`Starter spec invalid: ${result.issues.map((i) => `${i.path}: ${i.message}`).join('; ')}`);
   return result.spec;
+}
+
+/** StorySpec design section for a direction (font stacks are already schema-safe). */
+export function designFromDirection(direction: CreativeDirection): StorySpec['design'] {
+  const font = (stack: string) => stack.replace(/[^A-Za-z0-9 ,-]/g, '');
+  return {
+    theme: direction.name,
+    colors: { ...direction.colors },
+    typography: { heading: font(direction.typography.heading), body: font(direction.typography.body) },
+    style: { ...direction.style },
+  };
 }

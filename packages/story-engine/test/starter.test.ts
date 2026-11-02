@@ -18,4 +18,9 @@ describe('starter spec', () => {
     expect(spec.pages[0]!.scenes[0]!.content).toEqual({ heading: 'Orbital Bakery', body: 'Launch a <neighbourhood> bakery' });
     expect(spec.pages[0]!.scenes[1]!.content.eyebrow).toBe('Starter text');
   });
+
+  it('gives each new project its own generated look instead of one shared starter design', () => {
+    const looks = new Set(['a', 'b', 'c', 'd', 'e', 'f'].map((k) => JSON.stringify(createStarterSpec({ name: 'Same', goal: 'g', id: `same-${k}00000` }).design)));
+    expect(looks.size).toBeGreaterThanOrEqual(4);
+  });
 });

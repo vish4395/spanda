@@ -1,4 +1,5 @@
 import type { CreativeDirection, DiscoveryAnswer, DiscoveryQuestion } from '@studio/contracts';
+import { generateDirections, type DirectionOptions } from './directions.ts';
 
 // Visual discovery (FR-02): at most one focused question at a time, 2–4 options,
 // always skippable. Deterministic so the flow works without any AI provider.
@@ -69,24 +70,7 @@ export function resolved(answers: Record<string, DiscoveryAnswer>, questionId: s
   return a && a !== 'skip' && a !== 'ai-decide' ? a : q.default;
 }
 
-// Original direction presets. Foreground/background pairs are ≥ 12:1; accents ≥ 4.5:1 on background.
-const DIRECTIONS: readonly (CreativeDirection & { tones: string[] })[] = [
-  { id: 'ember-archive', name: 'Ember Archive', description: 'Charcoal night with candle-gold accents; warm, human and timeless.', colors: { background: '#12100e', foreground: '#f5efe6', accent: '#e0a458' }, typography: { heading: 'Georgia, serif', body: 'system-ui' }, motion: 'balanced', tones: ['warm', 'mysterious'] },
-  { id: 'polar-gallery', name: 'Polar Gallery', description: 'Ink-blue calm with frost highlights; spacious and precise.', colors: { background: '#0c1118', foreground: '#eef3f8', accent: '#8fc3ff' }, typography: { heading: 'system-ui', body: 'system-ui' }, motion: 'calm', tones: ['elegant'] },
-  { id: 'signal-noir', name: 'Signal Noir', description: 'Near-black stage with an electric coral signal; confident and fast.', colors: { background: '#0b0b0d', foreground: '#fafafa', accent: '#ff6b5b' }, typography: { heading: 'system-ui', body: 'system-ui' }, motion: 'bold', tones: ['bold'] },
-  { id: 'verdant-dusk', name: 'Verdant Dusk', description: 'Forest-dark green with moss light; grounded and atmospheric.', colors: { background: '#0d1310', foreground: '#eef4ee', accent: '#9fd49a' }, typography: { heading: 'Georgia, serif', body: 'system-ui' }, motion: 'calm', tones: ['elegant', 'warm'] },
-  { id: 'violet-hour', name: 'Violet Hour', description: 'Deep plum dark with lilac glow; dreamy and cinematic.', colors: { background: '#110e17', foreground: '#f3effa', accent: '#b9a2ff' }, typography: { heading: 'system-ui', body: 'system-ui' }, motion: 'balanced', tones: ['mysterious', 'bold'] },
-];
-
-/** Three directions ordered by fit with the chosen tone. */
-export function directionsFor(answers: Record<string, DiscoveryAnswer>): CreativeDirection[] {
-  const tone = resolved(answers, 'tone');
-  return [...DIRECTIONS]
-    .sort((a, b) => Number(b.tones.includes(tone)) - Number(a.tones.includes(tone)) || DIRECTIONS.indexOf(a) - DIRECTIONS.indexOf(b))
-    .slice(0, 3)
-    .map(({ tones: _tones, ...direction }) => direction);
-}
-
-export function allDirections(): CreativeDirection[] {
-  return DIRECTIONS.map(({ tones: _tones, ...d }) => d);
+/** Three generated, accessible and clearly different art directions (see directions.ts). */
+export function directionsFor(answers: Record<string, DiscoveryAnswer>, options: DirectionOptions = {}): CreativeDirection[] {
+  return generateDirections(answers, options);
 }

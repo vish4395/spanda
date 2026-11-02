@@ -2,7 +2,7 @@
   "name": "@studio/desktop",
   "version": "0.0.1",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "description": "AI Cinematic Studio desktop shell",
   "type": "module",
   "main": "dist/main.mjs",

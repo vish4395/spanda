@@ -2,7 +2,7 @@
   "name": "@studio/generator-react",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0 AND MIT-0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

@@ -2,7 +2,7 @@
   "name": "@studio/generator-html",
   "version": "0.0.0",
   "private": true,
-  "license": "UNLICENSED",
+  "license": "Apache-2.0 AND MIT-0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

@@ -1,5 +1,15 @@
 # Implementation log
 
+## 2026-11-02 — Release readiness R0: T035, T036, T037
+
+| Ticket | Result |
+|---|---|
+| T035 License files | `LICENSE` (canonical Apache-2.0 text, taken from installed packages and cross-checked across three independent copies), `NOTICE` (owner decision: "Copyright 2026 Vishal Sharma (NewAi.in) and contributors"), `"license": "Apache-2.0"` in every package (`Apache-2.0 AND MIT-0` for the two generators), `LICENSE-MIT-0` plus SPDX MIT-0 headers on every runtime/template file copied into exports. Tests: no Apache text in exported first-party files; every package licensed; files present |
+| T036 Policy files | `CONTRIBUTING.md` (DCO, gates, licensing of contributions), `SECURITY.md` and `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1 by reference; reports through GitHub private vulnerability reporting), `TRADEMARKS.md` (unregistered marks, fork-and-rename policy), issue forms and PR template; CI `dco` job on pull requests |
+| T037 Pre-publication audit | `pnpm secrets:check` scans all commits and the working tree (self-tested against a planted key and `.env`); runs in CI with full history. Result: 36 commits clean; no binary assets tracked; no internal or customer references; license gate green; the four skills are studio-original markdown with pinned hashes |
+
+Owner actions still open: enable private vulnerability reporting in the GitHub repo settings; re-pin `skills/skills.lock.json` under a maintainer's name; decide whether the public history should keep the personal commit email; a private email alias for conduct reports would be better than the advisory form. T031 trademark search, T032 domains/handles and T030 provider-terms review are outside the codebase.
+
 ## 2026-11-02 — T024 export ZIP
 
 Export… in the project header (and **File → Export Website…**, ⌘E) packages HTML, React or both into a ZIP chosen with the native save dialog; the renderer never sees host paths. New package `@studio/export`: a dependency-free, deterministic ZIP writer on Node's `zlib`, and an export builder that refuses stale/missing/unbuilt outputs, blocked dependency licenses and blocked asset rights, and writes README, LICENSES.md (generated code MIT-0), THIRD_PARTY_NOTICES.md (full texts from the React build plus three.js), ASSET_CREDITS.md, CycloneDX 1.5 SBOM and metadata. React is exported as source plus lockfile. The HTML generator now records `vendor/three/package.json` for the SBOM.

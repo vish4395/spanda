@@ -201,6 +201,7 @@ export const ipcContract = {
   'creative.answer': { request: z.strictObject({ projectId: ProjectId, questionId: z.string().max(64), answer: DiscoveryAnswer.nullable() }), response: CreativeState },
   'creative.saveBrief': { request: z.strictObject({ projectId: ProjectId, brief: BriefInput }), response: CreativeState },
   'creative.approveBrief': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
+  'creative.moreDirections': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'creative.draftStoryboard': { request: z.strictObject({ projectId: ProjectId, planner: z.enum(['local-planner', 'claude-code']) }), response: CreativeState },
   'creative.saveStoryboard': { request: z.strictObject({ projectId: ProjectId, scenes: z.array(StoryboardScene).min(1).max(8) }), response: CreativeState },
   'creative.approveStoryboard': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },

@@ -89,6 +89,10 @@ export function registerIpc(services: StudioServices, menus: StudioMenus, inspec
       const { projectId, brief } = req as { projectId: string; brief: Parameters<ReturnType<typeof services.creative>['saveBrief']>[1] };
       return services.creative(projectId).saveBrief(projectId, brief);
     },
+    'creative.moreDirections': (req) => {
+      const { projectId } = req as { projectId: string };
+      return services.creative(projectId).moreDirections(projectId);
+    },
     'creative.approveBrief': (req) => {
       const { projectId } = req as { projectId: string };
       return services.creative(projectId).approveBrief(projectId);

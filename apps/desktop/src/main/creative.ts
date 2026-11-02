@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
   CreativeBrief,
+  CreativeDirection,
   CreativeFile,
   CreativeState,
   DiscoveryAnswer,
@@ -17,8 +18,8 @@ import { extractFacts, safeFetch, type FetchedPage } from '@studio/reference-ana
 import type { StudioStore } from '@studio/storage';
 import {
   QUESTIONS,
-  allDirections,
   directionsFor,
+  legacyDirection,
   draftBrief,
   isValidAnswer,
   localStoryboard,
@@ -35,12 +36,15 @@ export interface CreativeDeps {
   /** Returns a small JPEG data URL of the page, or null when capture is unavailable. */
   capture: (url: string) => Promise<string | null>;
   draftWithClaude: (prompt: string) => Promise<DraftStoryboardOutput>;
+  /** Text of the enabled skills that apply to a phase, for the AI prompt (empty when none). */
+  guidance: (phase: 'storyboard' | 'direction' | 'code' | 'qa') => Promise<{ name: string; text: string }[]>;
 }
 
 export const defaultCreativeDeps: CreativeDeps = {
   fetchPage: (url) => safeFetch(url),
   capture: async () => null,
   draftWithClaude: (prompt) => draftStoryboardWithClaude(prompt),
+  guidance: async () => [],
 };
 
 const RIGHTS_NOTICE =
@@ -79,16 +83,34 @@ export class CreativeService {
     return Object.keys(file.answers).length ? 'discovery' : 'draft';
   }
 
+  /** The offered directions: generated per project and seed, plus the chosen one if it is no longer offered. */
+  private directionsOf(projectId: string, file: CreativeFile): CreativeDirection[] {
+    const directions = directionsFor(file.answers, { seed: file.directionSeed ?? 0, salt: projectId });
+    const chosen = file.brief ? this.chosenDirection(projectId, file, directions) : null;
+    if (chosen && !directions.some((d) => d.id === chosen.id)) directions.unshift(chosen);
+    return directions;
+  }
+
+  /** The brief's direction: its snapshot, else (older briefs) the offer or 0.1.0 preset with that id. */
+  private chosenDirection(projectId: string, file: CreativeFile, offered?: CreativeDirection[]): CreativeDirection | null {
+    const brief = file.brief;
+    if (!brief) return null;
+    if (brief.direction?.id === brief.directionId) return brief.direction;
+    const pool = offered ?? directionsFor(file.answers, { seed: file.directionSeed ?? 0, salt: projectId });
+    return pool.find((d) => d.id === brief.directionId) ?? legacyDirection(brief.directionId);
+  }
+
+  private requireDirection(projectId: string, file: CreativeFile): CreativeDirection {
+    const direction = this.chosenDirection(projectId, file);
+    if (!direction) throw new Error('The brief’s art direction is no longer available. Choose a direction and save the brief again.');
+    return direction;
+  }
+
   async state(projectId: string, file?: CreativeFile): Promise<CreativeState> {
     const data = file ?? (await this.workspace.readCreative(projectId));
     const spec = await this.workspace.readSpec(projectId);
     const idea = spec.ok ? spec.spec.project.goal : '';
-    const directions = directionsFor(data.answers);
-    // Keep a previously chosen direction visible even if answers changed.
-    if (data.brief && !directions.some((d) => d.id === data.brief!.directionId)) {
-      const chosen = allDirections().find((d) => d.id === data.brief!.directionId);
-      if (chosen) directions.push(chosen);
-    }
+    const directions = this.directionsOf(projectId, data);
     const claudeEnabled = this.settings().claudeStoryboard;
     return {
       stage: this.stageOf(data),
@@ -125,16 +147,24 @@ export class CreativeService {
       if (!isValidAnswer(questionId, answer)) throw new Error('That answer is not one of the options.');
       file.answers[questionId] = answer;
     }
-    if (nextQuestion(file.answers) === null && !file.brief) file.brief = draftBrief(file.answers, directionsFor(file.answers));
+    if (nextQuestion(file.answers) === null && !file.brief) file.brief = draftBrief(file.answers, this.directionsOf(projectId, file));
     return this.save(projectId, file);
   }
 
   async saveBrief(projectId: string, input: Omit<CreativeBrief, 'approved' | 'approvedAt'>): Promise<CreativeState> {
-    if (!allDirections().some((d) => d.id === input.directionId)) throw new Error('Unknown art direction.');
     const file = await this.workspace.readCreative(projectId);
+    const direction = this.directionsOf(projectId, file).find((d) => d.id === input.directionId);
+    if (!direction) throw new Error('Unknown art direction.');
     // Editing an approved brief needs re-approval; the storyboard stays but is no longer approved.
-    file.brief = { ...input, approved: false, approvedAt: null };
+    file.brief = { ...input, direction, approved: false, approvedAt: null };
     if (file.storyboard) file.storyboard = { ...file.storyboard, approved: false, approvedAt: null };
+    return this.save(projectId, file);
+  }
+
+  /** "Show other directions": a new seed, keeping the chosen direction on offer. */
+  async moreDirections(projectId: string): Promise<CreativeState> {
+    const file = await this.workspace.readCreative(projectId);
+    file.directionSeed = (file.directionSeed ?? 0) + 1;
     return this.save(projectId, file);
   }
 
@@ -153,11 +183,11 @@ export class CreativeService {
     const { name, goal } = spec.spec.project;
     if (planner === 'claude-code') {
       if (!this.settings().claudeStoryboard) throw new Error('Claude Code drafting is turned off in AI providers settings.');
-      const direction = allDirections().find((d) => d.id === file.brief!.directionId)!;
-      const output = await this.deps.draftWithClaude(storyboardPrompt({ name, idea: goal, brief: file.brief, direction, references: file.references }));
-      file.storyboard = sanitizeDraft(output, { kind: 'claude-code', detail: 'Drafted by your local Claude Code CLI (tools disabled). Review before approving.', createdAt: new Date().toISOString() });
+      const direction = this.requireDirection(projectId, file);
+      const output = await this.deps.draftWithClaude(storyboardPrompt({ name, idea: goal, brief: file.brief, direction, references: file.references, guidance: await this.deps.guidance('storyboard') }));
+      file.storyboard = sanitizeDraft(output, { kind: 'claude-code', detail: 'Drafted by your local Claude Code CLI (tools disabled). Review before approving.', createdAt: new Date().toISOString() }, direction);
     } else {
-      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(file.answers, 'subject') });
+      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(file.answers, 'subject'), direction: this.requireDirection(projectId, file) });
     }
     return this.save(projectId, file);
   }
@@ -188,7 +218,7 @@ export class CreativeService {
     if (!file.storyboard) throw new Error('Draft a storyboard first.');
     const current = await this.workspace.readSpec(projectId);
     if (!current.ok) throw new Error('Fix the StorySpec issues first.');
-    const direction = allDirections().find((d) => d.id === file.brief!.directionId)!;
+    const direction = this.requireDirection(projectId, file);
     const spec = storyboardToSpec(current.spec, file.brief, direction, file.storyboard);
     await this.workspace.writeSpec(projectId, spec);
     file.storyboard = { ...file.storyboard, approved: true, approvedAt: new Date().toISOString() };

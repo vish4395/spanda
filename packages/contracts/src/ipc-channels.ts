@@ -26,6 +26,7 @@ export const IPC_CHANNELS = [
   'creative.approveBrief',
   'creative.moreDirections',
   'creative.kickoff',
+  'creative.planForMe',
   'creative.aiDirections',
   'creative.aiBrief',
   'creative.draftStoryboard',

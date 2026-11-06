@@ -13,7 +13,7 @@ export const DiscoveryQuestion = z.object({
   id: Id,
   reason: z.string(),
   prompt: z.string(),
-  options: z.array(DiscoveryOption).min(2).max(4),
+  options: z.array(DiscoveryOption).min(2).max(6),
   default: Id,
   /** Why the studio would pick `default` when asked to decide (AI-planned questions). */
   why: z.string().optional(),

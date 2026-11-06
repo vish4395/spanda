@@ -6,8 +6,23 @@ import { DesignStyleSchema, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.t
 
 const Line = (max: number) => z.string().trim().min(1).max(max);
 
-/** The studio's four core choices; a plan sets their starting values. */
+/** Website archetypes ("looks"), modelled on award-level reference sites. */
+export const LOOKS = ['dark-tech', 'bold-color', 'warm-editorial', 'clean-light', 'immersive-gallery', 'cinematic-story'] as const;
+export const Look = z.enum(LOOKS);
+export type Look = z.infer<typeof Look>;
+
+export const LOOK_INFO: Record<Look, { label: string; explanation: string }> = {
+  'dark-tech': { label: 'Dark tech glow', explanation: 'Near-black stage, glowing particles or a point-cloud globe, crisp product proof. For SaaS, fintech and AI.' },
+  'bold-color': { label: 'Bold colour statement', explanation: 'One saturated colour, huge uppercase headlines, playful 3D. For brands that want to be remembered.' },
+  'warm-editorial': { label: 'Warm editorial', explanation: 'Cream paper, rich serif type, products turning in soft light. For food, craft, fashion and hospitality.' },
+  'clean-light': { label: 'Clean and light', explanation: 'Bright, calm and precise, with a tidy 3D object or scene. For portfolios, studios and tools.' },
+  'immersive-gallery': { label: 'Immersive gallery', explanation: 'Dark, spacious and image-led, with work floating in depth. For artists, agencies and showcases.' },
+  'cinematic-story': { label: 'Cinematic story', explanation: 'A slow, atmospheric journey through chapters, like a film. For places, causes, launches and heritage.' },
+};
+
+/** The studio's core choices; a plan sets their starting values. */
 export const CoreChoices = z.object({
+  look: Look.optional(),
   tone: z.enum(['warm', 'elegant', 'bold', 'mysterious']),
   subject: z.enum(['place', 'object', 'abstract', 'type']),
   motion: z.enum(['calm', 'balanced', 'bold']),

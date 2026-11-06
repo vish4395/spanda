@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT-0
 import type { Scene } from '../types';
 import { useReveal } from '../hooks/useReveal';
+import { stageAttributes } from '../cinema/plan';
 import { SceneCopy } from './SceneCopy';
 
 interface Props {
@@ -13,6 +14,7 @@ export function ChapterScene({ scene, headingLevel, reducedMotion }: Props) {
   const visual = useReveal<HTMLDivElement>(scene.motion.type !== 'none', reducedMotion);
   return (
     <section
+      {...stageAttributes(scene.id)}
       id={scene.id}
       className="scene scene--chapter"
       aria-labelledby={`${scene.id}-title`}
@@ -22,7 +24,7 @@ export function ChapterScene({ scene, headingLevel, reducedMotion }: Props) {
       data-scene-label={scene.accessibility.label}
     >
       <div className="scene__inner">
-        <SceneCopy scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} />
+        <SceneCopy scene={scene} headingLevel={headingLevel} />
         <div
           ref={visual.ref}
           className={['chapter-visual', visual.className].filter(Boolean).join(' ')}

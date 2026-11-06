@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT-0
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { variantOf, type Scene } from '../types';
+import { stageAttributes } from '../cinema/plan';
 import { SceneCopy } from './SceneCopy';
 
 export function GalleryScene({ scene, headingLevel, reducedMotion }: { scene: Scene; headingLevel: 1 | 2; reducedMotion: boolean }) {
@@ -32,9 +33,9 @@ export function GalleryScene({ scene, headingLevel, reducedMotion }: { scene: Sc
 
   const carousel = variantOf(scene) === 'carousel';
   return (
-    <section id={scene.id} className="scene scene--gallery" aria-labelledby={`${scene.id}-title`} data-variant={variantOf(scene)} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
+    <section {...stageAttributes(scene.id)} id={scene.id} className="scene scene--gallery" aria-labelledby={`${scene.id}-title`} data-variant={variantOf(scene)} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
       <div className="scene__inner">
-        <SceneCopy scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} />
+        <SceneCopy scene={scene} headingLevel={headingLevel} />
         <div className="gallery">
           <ul
             ref={track}

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import {
   InvalidSpecError,
   UnsupportedSceneError,
+  cinemaPlan,
   designRootAttributes,
   renderDesignTokensCss,
   findUnsupportedScenes,
@@ -11,7 +12,7 @@ import {
   type SceneType,
   type StorySpec,
 } from '@studio/contracts';
-import { escapeHtml, writeGeneratedFiles, type GeneratedFiles } from '@studio/core';
+import { escapeHtml, renderSeoHead, writeGeneratedFiles, type GeneratedFiles } from '@studio/core';
 
 export const REACT_TARGET = 'react-r3f';
 export const SUPPORTED_SCENES: readonly SceneType[] = ['hero', 'chapter', 'scroll-reveal', 'model-showcase', 'gallery', 'cta'];
@@ -73,8 +74,7 @@ export function renderNoscript(spec: StorySpec): string {
 
 export function renderIndexHtml(template: string, spec: StorySpec): string {
   const values: Record<string, string> = {
-    '%STUDIO_TITLE%': escapeHtml(spec.project.name),
-    '%STUDIO_DESCRIPTION%': escapeHtml(spec.project.goal),
+    '%STUDIO_SEO%': renderSeoHead(spec),
     '%STUDIO_NOSCRIPT%': `<main>${renderNoscript(spec)}</main>`,
     '%STUDIO_HTML_ATTRS%': Object.entries(designRootAttributes(spec)).map(([k, v]) => `${k}="${escapeHtml(v)}"`).join(' '),
   };
@@ -153,6 +153,7 @@ export async function renderReactProject(input: unknown, templateDir: string = d
     files.set(rel, rel === 'index.html' ? renderIndexHtml(raw, spec) : raw);
   }
   files.set('src/story-spec.json', `${JSON.stringify(spec, null, 2)}\n`);
+  files.set('src/cinema.json', `${JSON.stringify(cinemaPlan(spec), null, 2)}\n`);
   files.set('src/tokens.css', renderTokensCss(spec));
   files.set('README.md', renderReadme(spec));
   files.set('THIRD_PARTY_NOTICES.md', renderNotices(JSON.parse(files.get('package-lock.json') as string) as { packages: Record<string, LockPackage> }));

@@ -22,7 +22,7 @@ export interface Scene {
     layout?: 'split' | 'split-reverse' | 'centered' | 'full-bleed' | 'editorial' | 'asymmetric' | 'stacked';
     variant?: string;
     modelAssetId?: string | null;
-    object?: 'monolith' | 'vessel' | 'orb';
+    object?: 'monolith' | 'vessel' | 'orb' | 'crystal' | 'lantern' | 'bottle' | 'cup' | 'knot' | 'arch';
     camera?: 'orbit' | 'front' | 'low';
   };
   motion: { type: 'none' | 'subtle-reveal' | 'scroll-reveal' };

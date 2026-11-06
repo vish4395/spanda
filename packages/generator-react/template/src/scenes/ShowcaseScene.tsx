@@ -1,43 +1,21 @@
 // SPDX-License-Identifier: MIT-0
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import { variantOf, type Scene } from '../types';
-import type { WebGLState } from '../hooks/useWebGL';
-import { CanvasBoundary } from './HeroScene';
+import { stageAttributes } from '../cinema/plan';
 import { SceneCopy } from './SceneCopy';
-
-const SceneCanvas = lazy(() => import('../three/SceneCanvas'));
 
 interface Props {
   scene: Scene;
   headingLevel: 1 | 2;
-  reducedMotion: boolean;
-  webgl: { state: WebGLState; ready: () => void; fail: () => void };
 }
 
-export function ShowcaseScene({ scene, headingLevel, reducedMotion, webgl }: Props) {
-  const stageRef = useRef<HTMLDivElement>(null);
-  const [onScreen, setOnScreen] = useState(false);
-  useEffect(() => {
-    const el = stageRef.current;
-    if (!el || !('IntersectionObserver' in window)) return setOnScreen(true);
-    const observer = new IntersectionObserver(([entry]) => setOnScreen(Boolean(entry?.isIntersecting)));
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+/** The protagonist up close: the stage turns it as the pinned scene scrolls. The frame below is the no-WebGL fallback. */
+export function ShowcaseScene({ scene, headingLevel }: Props) {
   const object = scene.visual.object ?? 'orb';
   return (
-    <section id={scene.id} className="scene scene--model-showcase" aria-labelledby={`${scene.id}-title`} data-variant={variantOf(scene)} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
+    <section {...stageAttributes(scene.id)} id={scene.id} className="scene scene--model-showcase" aria-labelledby={`${scene.id}-title`} data-variant={variantOf(scene)} data-mobile={scene.responsive.mobile} data-scene-label={scene.accessibility.label}>
       <div className="scene__inner">
-        <SceneCopy scene={scene} headingLevel={headingLevel} reducedMotion={reducedMotion} />
-        <div ref={stageRef} className="showcase-stage" data-object={object}>
-          {webgl.state !== 'off' && (
-            <CanvasBoundary onError={webgl.fail}>
-              <Suspense fallback={null}>
-                <SceneCanvas variant="showcase" object={object} camera={scene.visual.camera ?? 'orbit'} animate={onScreen && !reducedMotion} onFirstFrame={webgl.ready} onContextLost={webgl.fail} />
-              </Suspense>
-            </CanvasBoundary>
-          )}
-        </div>
+        <SceneCopy scene={scene} headingLevel={headingLevel} />
+        <div className="showcase-stage" data-object={object} aria-hidden="true" />
       </div>
     </section>
   );

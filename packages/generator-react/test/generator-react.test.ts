@@ -14,12 +14,22 @@ const clone = (): StorySpec => structuredClone(example);
 describe('react-r3f generator', () => {
   it('emits a complete Vite/TS/R3F project with pinned dependencies', async () => {
     const files = await renderReactProject(example);
-    for (const f of ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'src/main.tsx', 'src/App.tsx', 'src/scenes/HeroScene.tsx', 'src/scenes/ChapterScene.tsx', 'src/three/SceneCanvas.tsx', 'src/story-spec.json', 'src/tokens.css', 'README.md', 'THIRD_PARTY_NOTICES.md']) {
+    for (const f of ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'tsconfig.json', 'src/main.tsx', 'src/App.tsx', 'src/scenes/HeroScene.tsx', 'src/scenes/ChapterScene.tsx', 'src/three/Stage.tsx', 'src/cinema/stage.js', 'src/cinema/director.js', 'src/cinema.json', 'src/story-spec.json', 'src/tokens.css', 'README.md', 'THIRD_PARTY_NOTICES.md']) {
       expect(files.has(f), f).toBe(true);
     }
     const pkg = JSON.parse(files.get('package.json') as string) as { dependencies: Record<string, string>; devDependencies: Record<string, string> };
     for (const version of [...Object.values(pkg.dependencies), ...Object.values(pkg.devDependencies)]) {
       expect(version).toMatch(/^\d+\.\d+\.\d+$/); // exact pins, no ranges
+    }
+  });
+
+  it('ships the same cinema engine as the HTML export, byte for byte', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const { fileURLToPath } = await import('node:url');
+    for (const file of ['stage.js', 'director.js']) {
+      const html = await readFile(fileURLToPath(new URL(`../../generator-html/runtime/js/cinema/${file}`, import.meta.url)), 'utf8');
+      const react = await readFile(fileURLToPath(new URL(`../template/src/cinema/${file}`, import.meta.url)), 'utf8');
+      expect(react, file).toBe(html);
     }
   });
 

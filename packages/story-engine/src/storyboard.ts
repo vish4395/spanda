@@ -1,5 +1,6 @@
 import type { CreativeBrief, CreativeDirection, DraftStoryboardOutput, ReferenceReport, StorySpec, Storyboard, StoryboardScene } from '@studio/contracts';
-import { OBJECT_PRESETS, SCENE_LAYOUTS, SCENE_VARIANTS, STORY_SPEC_VERSION, validateStorySpec } from '@studio/contracts';
+import { LOOK_INFO, OBJECT_PRESETS, SCENE_LAYOUTS, SCENE_VARIANTS, STORY_SPEC_VERSION, validateStorySpec } from '@studio/contracts';
+import { LOOK_RECIPES, isLook } from './looks.ts';
 import { designFromDirection } from './starter.ts';
 
 const CHAPTERS: Record<string, { heading: string; body: (name: string) => string }[]> = {
@@ -75,11 +76,12 @@ export function compositionFor(type: StoryboardScene['type'], direction: Creativ
  * direction's layout rhythm, plus the section types that suit the subject, ending on a
  * call to action. Copy is a draft built from the user's own name and idea.
  */
-export function localStoryboard(input: { name: string; idea: string; brief: CreativeBrief; subject: string; direction?: CreativeDirection | null }): Storyboard {
+export function localStoryboard(input: { name: string; idea: string; brief: CreativeBrief; subject: string; look?: string | undefined; direction?: CreativeDirection | null }): Storyboard {
   const subject = CHAPTERS[input.subject] ? input.subject : 'place';
   const chapters = CHAPTERS[subject]!;
   const direction = input.direction ?? input.brief.direction ?? null;
-  const extras = EXTRAS[subject]!.slice(0, input.brief.chapters >= 3 ? 2 : 1);
+  // A look sets the section order (e.g. an immersive gallery leads with work); otherwise the subject does.
+  const extras = (isLook(input.look) ? LOOK_RECIPES[input.look].extras : EXTRAS[subject]!).slice(0, input.brief.chapters >= 3 ? 2 : 1);
   const scenes: StoryboardScene[] = [{ id: 'hero-01', type: 'hero', heading: input.name, body: input.idea, visualNote: 'Decorative 3D hero in the direction’s style.', ...compositionFor('hero', direction) }];
   const next = () => String(scenes.length + 1).padStart(2, '0');
   let chapter = 0;
@@ -147,10 +149,12 @@ export function sanitizeDraft(output: DraftStoryboardOutput, source: Storyboard[
  * Prompt for an AI provider. Reference material is passed as delimited,
  * untrusted data; the model is told never to follow instructions inside it.
  */
-export function storyboardPrompt(input: { name: string; idea: string; brief: CreativeBrief; direction: CreativeDirection; references: ReferenceReport[]; guidance?: { name: string; text: string }[]; discovery?: { question: string; answer: string }[] }): string {
+export function storyboardPrompt(input: { name: string; idea: string; brief: CreativeBrief; direction: CreativeDirection; references: ReferenceReport[]; guidance?: { name: string; text: string }[]; discovery?: { question: string; answer: string }[]; look?: string | undefined }): string {
   const references = input.references.map((r) => ({ title: r.title, headings: r.headings.slice(0, 6), observations: r.observations.map((o) => o.text), userWantsToBorrow: r.inspiration }));
   return [
-    'You are the Story Architect for a cinematic, scroll-driven website. Write an ORIGINAL storyboard.',
+    'You are the Story Architect for a cinematic, scroll-driven website, writing like an award-winning creative director and copywriter. Write an ORIGINAL storyboard.',
+    'Craft: open with a hook in 3–7 words, build tension or desire chapter by chapter, pay it off, and close with an invitation that echoes the opening line (the site\'s last screen returns to its first 3D shot). Concrete, sensory words; no filler like "welcome to" or "we are passionate". Headings work as SEO-friendly statements of what each part is about.',
+    ...(isLook(input.look) ? [`Look: ${LOOK_INFO[input.look].label} — ${LOOK_INFO[input.look].explanation} Prefer these section types, in this order, between chapters: ${LOOK_RECIPES[input.look].extras.join(', ')}.`] : []),
     'Return ONLY a JSON object: {"scenes":[{"type":string,"eyebrow"?:string,"heading":string,"body":string,"visualNote":string,"layout"?:string,"items"?:[{"title":string,"text":string}],"cta"?:{"label":string},"object"?:string}]}',
     `Scene types: hero (first, exactly one), chapter, scroll-reveal (2–5 items: steps of a process), gallery (3–6 items: highlights), model-showcase (one object: ${OBJECT_PRESETS.join(' | ')}), cta (last; a short invitation with cta.label).`,
     `Use ${input.brief.chapters} chapter(s), add the 1–3 other section types that best serve THIS story, and end with a cta. 4–8 scenes in total.`,

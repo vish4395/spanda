@@ -1,10 +1,12 @@
 import type { CreativeDirection, DiscoveryAnswer, DiscoveryQuestion, ProjectPlan } from '@studio/contracts';
 import { generateDirections, type DirectionOptions } from './directions.ts';
+import { LOOK_FOR_TONE, lookQuestion } from './looks.ts';
 
 // Visual discovery (FR-02): at most one focused question at a time, 2–4 options,
 // always skippable. Deterministic so the flow works without any AI provider.
 
 export const QUESTIONS: readonly DiscoveryQuestion[] = [
+  lookQuestion(),
   {
     id: 'tone',
     reason: 'Tone decides colour temperature, typography and pacing.',
@@ -55,8 +57,12 @@ export const QUESTIONS: readonly DiscoveryQuestion[] = [
 
 /** The questions a project asks: its AI plan's, or the studio's fixed set. */
 export function questionsOf(plan: ProjectPlan | null | undefined): readonly DiscoveryQuestion[] {
-  return plan?.questions.length ? plan.questions : QUESTIONS;
+  if (!plan?.questions.length) return QUESTIONS;
+  return [lookQuestion(plan.core.look, plan.core.look ? `It suits a ${plan.projectType.toLowerCase()}.` : undefined), ...plan.questions];
 }
+
+/** The choices that shape directions, brief and planner (a plan's starting values, else the fixed questions). */
+const CORE_IDS = ['look', 'tone', 'subject', 'motion', 'length'];
 
 export function nextQuestion(answers: Record<string, DiscoveryAnswer>, questions: readonly DiscoveryQuestion[] = QUESTIONS): DiscoveryQuestion | null {
   return questions.find((q) => !(q.id in answers)) ?? null;
@@ -73,9 +79,16 @@ export function isValidAnswer(questionId: string, answer: DiscoveryAnswer, quest
  * any core question the user answered with a concrete option.
  */
 export function effectiveAnswers(answers: Record<string, DiscoveryAnswer>, plan: ProjectPlan | null | undefined): Record<string, DiscoveryAnswer> {
-  if (!plan) return answers;
-  const chosen = Object.fromEntries(Object.entries(answers).filter(([id, a]) => id in plan.core && a !== 'skip' && a !== 'ai-decide'));
-  return { ...plan.core, ...chosen };
+  const out: Record<string, DiscoveryAnswer> = { ...answers };
+  if (plan) {
+    for (const id of Object.keys(out)) if (!CORE_IDS.includes(id) || out[id] === 'skip' || out[id] === 'ai-decide') delete out[id];
+    for (const [id, value] of Object.entries(plan.core)) if (value !== undefined && !(id in out)) out[id] = value;
+  }
+  // The look: a concrete choice, else "You decide" (the plan's pick, or one that suits the tone); "Skip" means no particular look.
+  const look = answers.look;
+  if (look === 'ai-decide') out.look = plan?.core.look ?? LOOK_FOR_TONE[resolved(out, 'tone')] ?? 'cinematic-story';
+  else if (look === 'skip' || (look === undefined && !plan?.core.look)) delete out.look;
+  return out;
 }
 
 /** The plan's questions with the user's answers as readable text, for AI prompts. */
@@ -93,6 +106,7 @@ export function discoveryNotes(answers: Record<string, DiscoveryAnswer>, plan: P
 /** Resolve an answer to a concrete option (skip and "you decide" use the question default). */
 export function resolved(answers: Record<string, DiscoveryAnswer>, questionId: string): string {
   const q = QUESTIONS.find((x) => x.id === questionId)!;
+  if (!q) return answers[questionId] ?? '';
   const a = answers[questionId];
   return a && a !== 'skip' && a !== 'ai-decide' ? a : q.default;
 }

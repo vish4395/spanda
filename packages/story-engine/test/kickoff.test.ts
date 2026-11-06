@@ -25,13 +25,17 @@ describe('kickoff plan', () => {
     expect(plan.questions.map((q) => q.id)).toEqual(['q-1', 'q-2', 'q-3']);
     expect(plan.questions[0]).toMatchObject({ default: 'o-1', options: [{ id: 'o-1' }, { id: 'o-2' }] });
     expect(plan.questions[1]).toMatchObject({ default: 'o-2', why: 'because' });
-    expect(questionsOf(plan)).toBe(plan.questions);
+    expect(questionsOf(plan).map((q) => q.id)).toEqual(['look', 'q-1', 'q-2', 'q-3']);
     expect(questionsOf(null)).toBe(QUESTIONS);
   });
 
   it('uses the plan for core choices unless the user picked one, and turns answers into prompt notes', () => {
     const plan = sanitizePlan(raw, provenance);
     expect(effectiveAnswers({ 'q-1': 'o-1' }, plan)).toEqual({ tone: 'bold', subject: 'object', motion: 'bold', length: 'short' });
+    // "You decide" with no look in the plan picks the one that suits the tone; "Skip" means no particular look.
+    expect(effectiveAnswers({ look: 'ai-decide' }, plan).look).toBe('bold-color');
+    expect(effectiveAnswers({ look: 'skip' }, plan).look).toBeUndefined();
+    expect(effectiveAnswers({ look: 'immersive-gallery' }, plan).look).toBe('immersive-gallery');
     expect(effectiveAnswers({ motion: 'calm', tone: 'skip' }, plan)).toMatchObject({ motion: 'calm', tone: 'bold' });
     expect(effectiveAnswers({ tone: 'warm' }, null)).toEqual({ tone: 'warm' });
     expect(discoveryNotes({ 'q-1': 'o-2', 'q-2': 'ai-decide', 'q-3': 'skip' }, plan)).toEqual([
@@ -45,5 +49,19 @@ describe('kickoff plan', () => {
     const prompt = kickoffPrompt({ name: 'Halden "One"', idea: 'A lamp' });
     expect(prompt).toContain('Project name: "Halden \\"One\\""');
     expect(prompt).not.toContain('untrusted');
+  });
+});
+
+describe('looks', () => {
+  it('steer directions toward the look and its section order', async () => {
+    const { directionsFor, localStoryboard, LOOK_RECIPES } = await import('../src/index.ts');
+    const dark = directionsFor({ look: 'dark-tech', tone: 'bold' }, { salt: 'x' });
+    expect(dark.every((d) => d.style.mode === 'dark')).toBe(true);
+    expect(dark.every((d) => (LOOK_RECIPES['dark-tech'].heroArt as readonly string[]).includes(d.style.heroArt))).toBe(true);
+    const bold = directionsFor({ look: 'bold-color' }, { salt: 'x' });
+    expect(bold.every((d) => d.style.headingCase === 'uppercase' && d.style.scale === 'monumental')).toBe(true);
+    const brief = { audience: '', tone: 'Bold', directionId: dark[0]!.id, motion: 'balanced' as const, chapters: 3, notes: '', approved: true, approvedAt: null };
+    const gallery = localStoryboard({ name: 'Atelier', idea: 'Work in depth', brief, subject: 'place', look: 'immersive-gallery', direction: dark[0]! });
+    expect(gallery.scenes.map((s) => s.type)).toEqual(['hero', 'chapter', 'gallery', 'chapter', 'model-showcase', 'chapter', 'cta']);
   });
 });

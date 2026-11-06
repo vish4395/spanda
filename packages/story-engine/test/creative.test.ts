@@ -13,10 +13,11 @@ function contrast(a: string, b: string) {
 
 describe('discovery', () => {
   it('asks one question at a time and supports skip / you decide', () => {
-    expect(nextQuestion({})?.id).toBe('tone');
-    expect(nextQuestion({ tone: 'bold' })?.id).toBe('subject');
-    expect(nextQuestion({ tone: 'skip', subject: 'ai-decide', motion: 'calm', length: 'short' })).toBeNull();
-    expect(QUESTIONS.every((q) => q.options.length >= 2 && q.options.length <= 4)).toBe(true);
+    expect(nextQuestion({})?.id).toBe('look');
+    expect(nextQuestion({ look: 'skip' })?.id).toBe('tone');
+    expect(nextQuestion({ look: 'skip', tone: 'bold' })?.id).toBe('subject');
+    expect(nextQuestion({ look: 'dark-tech', tone: 'skip', subject: 'ai-decide', motion: 'calm', length: 'short' })).toBeNull();
+    expect(QUESTIONS.every((q) => q.options.length >= 2 && q.options.length <= 6)).toBe(true);
     expect(isValidAnswer('tone', 'bold')).toBe(true);
     expect(isValidAnswer('tone', 'purple')).toBe(false);
     expect(isValidAnswer('nope', 'skip')).toBe(false);

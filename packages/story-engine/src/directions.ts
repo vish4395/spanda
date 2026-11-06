@@ -1,4 +1,5 @@
 import type { CreativeDirection, DesignStyle, DirectionComposition, DiscoveryAnswer } from '@studio/contracts';
+import { LOOK_RECIPES, isLook, type LookRecipe } from './looks.ts';
 
 // Art-direction generator (Phase 1 design language). Directions are built from design
 // families: each family fixes a palette and character, and lists the alternatives it
@@ -193,7 +194,7 @@ const answerOf = (answers: Record<string, DiscoveryAnswer>, id: string, fallback
   return a && a !== 'skip' && a !== 'ai-decide' ? a : fallback;
 };
 
-function build(family: Family, r: () => number, motion: CreativeDirection['motion'], seedTag: string): CreativeDirection {
+function build(family: Family, r: () => number, motion: CreativeDirection['motion'], seedTag: string, recipe?: LookRecipe): CreativeDirection {
   const palette = pick(r, family.palettes.filter(paletteIsAccessible).length ? family.palettes.filter(paletteIsAccessible) : family.palettes);
   const [heading, body] = pick(r, family.fonts);
   const style = Object.fromEntries(Object.entries(family.style).map(([k, list]) => [k, pick(r, list as readonly string[])])) as DesignStyle;
@@ -203,6 +204,12 @@ function build(family: Family, r: () => number, motion: CreativeDirection['motio
     if (style.reveal === 'scale' || style.reveal === 'slide') style.reveal = 'fade-up';
   } else if (motion === 'bold' && style.heroArt === 'none') {
     style.heroArt = family.style.heroArt.find((a) => a !== 'none') ?? 'particles';
+  }
+  // A look insists on a few traits (its hero art and style), the family supplies the rest.
+  if (recipe) {
+    Object.assign(style, recipe.style);
+    const arts = recipe.heroArt.filter((a) => family.style.heroArt.includes(a));
+    style.heroArt = pick(r, arts.length ? arts : recipe.heroArt);
   }
   // Mode follows the palette (a family may offer both).
   style.mode = luminance(palette.background) > 0.4 ? 'light' : 'dark';
@@ -240,25 +247,29 @@ export function generateDirections(answers: Record<string, DiscoveryAnswer>, opt
   const tone = answerOf(answers, 'tone', '');
   const subject = answerOf(answers, 'subject', '');
   const motion = answerOf(answers, 'motion', 'balanced') as CreativeDirection['motion'];
+  const look = answerOf(answers, 'look', '');
+  const recipe = isLook(look) ? LOOK_RECIPES[look] : undefined;
   const seed = options.seed ?? 0;
   const count = options.count ?? 3;
-  const r = rng(hash(`${options.salt ?? ''}|${tone}|${subject}|${motion}|${seed}`));
+  // Without a look the seed is unchanged, so existing projects keep their directions.
+  const r = rng(hash(`${options.salt ?? ''}|${look ? `${look}|` : ''}${tone}|${subject}|${motion}|${seed}`));
   // Fit first, with a seeded jitter so later seeds surface other good families.
-  const ranked = FAMILIES.map((f) => ({ f, score: (tone && f.tones.includes(tone) ? 3 : tone ? 0 : 1) + (subject && f.subjects.includes(subject) ? 2 : subject ? 0 : 1) + r() * 2.5 }))
+  // The look's families come first; tone and subject rank within that.
+  const ranked = FAMILIES.map((f) => ({ f, score: (recipe?.families.includes(f.id) ? 10 : 0) + (tone && f.tones.includes(tone) ? 3 : tone ? 0 : 1) + (subject && f.subjects.includes(subject) ? 2 : subject ? 0 : 1) + r() * 2.5 }))
     .sort((a, b) => b.score - a.score)
     .map((x) => x.f);
-  const pool = ranked.slice(0, Math.min(ranked.length, 6 + seed * 2));
+  const pool = ranked.slice(0, Math.min(ranked.length, recipe ? Math.max(recipe.families.length, 4) + seed : 6 + seed * 2));
   const tag = (i: number) => `${seed}${i}${hash(`${options.salt ?? ''}${seed}`).toString(36).slice(0, 4)}`;
   const out: CreativeDirection[] = [];
   for (let i = 0; i < pool.length && out.length < count; i += 1) {
-    const candidate = build(pool[(i + seed) % pool.length]!, r, motion, tag(out.length));
-    // Prefer a mix of light and dark, and directions that differ in at least 5 traits.
-    const tooClose = out.some((d) => distance(d, candidate) < 5);
-    const sameMode = out.length === 2 && out.every((d) => d.style.mode === candidate.style.mode);
+    const candidate = build(pool[(i + seed) % pool.length]!, r, motion, tag(out.length), recipe);
+    // Prefer a mix of light and dark (unless the look fixes the mood), and directions that differ in at least 5 traits.
+    const tooClose = out.some((d) => distance(d, candidate) < (recipe ? 3 : 5));
+    const sameMode = !recipe && out.length === 2 && out.every((d) => d.style.mode === candidate.style.mode);
     if (!tooClose && !sameMode) out.push(candidate);
   }
   for (let i = 0; out.length < count && i < ranked.length; i += 1) {
-    const candidate = build(ranked[i]!, r, motion, tag(out.length));
+    const candidate = build(ranked[i]!, r, motion, tag(out.length), recipe);
     if (!out.some((d) => d.name === candidate.name)) out.push(candidate);
   }
   return out;

@@ -1010,9 +1010,36 @@ button {
   gap: 10px;
 }
 
-.direction-grid + .btn {
+.direction-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 6px;
   margin-left: -8px;
+}
+
+.direction__ai {
+  display: block;
+  color: var(--fg-muted);
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 4px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.tab-head__actions {
+  margin-left: auto;
+}
+
+.notice--ai {
+  border-left: 3px solid var(--accent);
 }
 
 .choice,

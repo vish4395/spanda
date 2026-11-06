@@ -18,11 +18,23 @@ const toDraft = ({ audience, tone, directionId, motion, chapters, notes }: Creat
 
 export function BriefTab({ projectId, state, onState, onError }: Props) {
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [busy, setBusy] = useState<'save' | 'approve' | 'more' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'approve' | 'more' | 'ai-directions' | 'ai-brief' | null>(null);
 
   useEffect(() => {
     if (state.brief) setDraft(toDraft(state.brief));
   }, [state.brief]);
+
+  const ai = async (kind: 'ai-directions' | 'ai-brief') => {
+    setBusy(kind);
+    try {
+      onState(await call(kind === 'ai-directions' ? 'creative.aiDirections' : 'creative.aiBrief', { projectId }));
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+  const aiRunning = state.aiJob !== null;
 
   if (!state.brief || !draft) {
     return (
@@ -30,6 +42,11 @@ export function BriefTab({ projectId, state, onState, onError }: Props) {
         <div className="empty">
           <p className="empty__title">No brief yet</p>
           <p className="empty__body">Answer the discovery questions (or skip them) and the studio drafts an editable brief.</p>
+          {state.aiSteps.brief.available && (
+            <button type="button" className="btn btn--secondary" onClick={() => void ai('ai-brief')} disabled={busy !== null || aiRunning}>
+              Write the brief with AI
+            </button>
+          )}
         </div>
       </div>
     );
@@ -68,13 +85,24 @@ export function BriefTab({ projectId, state, onState, onError }: Props) {
       <div className="tab-head">
         <h2>Creative brief</h2>
         {state.brief.approved && !dirty ? <StatusChip tone="ok">Approved</StatusChip> : <StatusChip tone="warn">Needs approval</StatusChip>}
+        <span className="tab-head__actions">
+          <button type="button" className="btn btn--secondary btn--small" onClick={() => void ai('ai-brief')} disabled={busy !== null || aiRunning || !state.aiSteps.brief.available} title={state.aiSteps.brief.reason ?? undefined}>
+            {busy === 'ai-brief' && <SpinnerIcon />}
+            Fill brief with AI
+          </button>
+        </span>
       </div>
+      {state.briefSource && !dirty && (
+        <p className="notice notice--ai small">
+          Filled by AI ({state.briefSource.provenance.provider === 'codex' ? 'Codex' : 'Claude Code'}): {state.briefSource.reasons} Edit anything, then approve.
+        </p>
+      )}
 
       <fieldset className="fieldset">
         <legend>Art direction</legend>
         <div className="direction-grid" role="radiogroup" aria-label="Art direction">
           {state.directions.map((d) => (
-            <button key={d.id} type="button" role="radio" aria-checked={draft.directionId === d.id} className="direction" onClick={() => set('directionId', d.id)}>
+            <button key={d.id} type="button" role="radio" aria-checked={draft.directionId === d.id} className="direction" onClick={() => set('directionId', d.id)} title={d.basis}>
               <span className="direction__preview" style={{ background: d.colors.background, color: d.colors.foreground }}>
                 <span className="direction__title" style={{ fontFamily: d.typography.heading }}>
                   {d.name}
@@ -82,13 +110,24 @@ export function BriefTab({ projectId, state, onState, onError }: Props) {
                 <span className="direction__accent" style={{ background: d.colors.accent }} />
               </span>
               <span className="choice__text">{d.description}</span>
+              {d.id.startsWith('ai-') && (
+                <span className="direction__ai small">
+                  <span className="badge">AI</span> {d.basis.replace(/^AI: /, '')}
+                </span>
+              )}
             </button>
           ))}
         </div>
-        <button type="button" className="btn btn--ghost" onClick={() => void moreDirections()} disabled={busy !== null} aria-busy={busy === 'more'}>
-          {busy === 'more' && <SpinnerIcon />}
-          Show other directions
-        </button>
+        <div className="direction-actions">
+          <button type="button" className="btn btn--ghost" onClick={() => void moreDirections()} disabled={busy !== null} aria-busy={busy === 'more'}>
+            {busy === 'more' && <SpinnerIcon />}
+            Show other directions
+          </button>
+          <button type="button" className="btn btn--secondary btn--small" onClick={() => void ai('ai-directions')} disabled={busy !== null || aiRunning || !state.aiSteps.direction.available} title={state.aiSteps.direction.reason ?? undefined}>
+            {busy === 'ai-directions' && <SpinnerIcon />}
+            Suggest directions with AI
+          </button>
+        </div>
       </fieldset>
 
       <div className="field-grid">

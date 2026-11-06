@@ -17,7 +17,7 @@ import type {
   StudioSettings,
   StudioSettingsInput,
 } from '@studio/contracts';
-import type { JobContext, ProjectWorkspace } from '@studio/core';
+import { throwIfCancelled, type JobContext, type ProjectWorkspace } from '@studio/core';
 import { PROVIDER_LIMITS, codexRefusal, draftStoryboardWithAi, runAiTask, type AiResult, type AiTask } from '@studio/providers';
 import { extractFacts, safeFetch, type FetchedPage } from '@studio/reference-analyzer';
 import type { StudioStore } from '@studio/storage';
@@ -222,35 +222,6 @@ export class CreativeService {
     return provider;
   }
 
-  /**
-   * Kickoff: AI plans the project from its name and idea, with next steps and
-   * questions made for it. `auto` (right after creating a project) stays silent
-   * when AI is off or unavailable.
-   */
-  async kickoff(projectId: string, options: { auto?: boolean } = {}): Promise<CreativeState> {
-    let provider: AiProviderId;
-    try {
-      provider = this.providerFor('kickoff');
-    } catch (err) {
-      if (options.auto) return this.state(projectId);
-      throw err;
-    }
-    const spec = await this.workspace.readSpec(projectId);
-    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
-    const { name, goal } = spec.spec.project;
-    this.runAi(projectId, 'kickoff', `Planning “${name}” with the ${PROVIDER_LABEL[provider]}`, async (ctx) => {
-      const guidance = await this.deps.guidance('storyboard');
-      const { value, provenance } = await this.deps.runTask(provider, { name: 'kickoff', prompt: kickoffPrompt({ name, idea: goal, guidance }), schema: KickoffOutput, skills: guidance.map((g) => g.name) }, ctx);
-      const latest = await this.workspace.readCreative(projectId);
-      // Answers to an earlier plan's questions no longer apply; answers to the fixed core questions still do.
-      for (const id of Object.keys(latest.answers)) if (id.startsWith('q-')) delete latest.answers[id];
-      latest.plan = sanitizePlan(value, provenance);
-      await this.save(projectId, latest);
-      ctx.log(`Plan saved: ${latest.plan.questions.length} questions, ${latest.plan.nextSteps.length} next steps.`);
-    });
-    return this.state(projectId);
-  }
-
   private async save(projectId: string, file: CreativeFile): Promise<CreativeState> {
     await this.workspace.writeCreative(projectId, file);
     this.store.setStage(projectId, this.stageOf(file));
@@ -281,6 +252,43 @@ export class CreativeService {
     return this.save(projectId, file);
   }
 
+  /**
+   * Kickoff: AI plans the project from its name and idea, with next steps and
+   * questions made for it. `auto` (right after creating a project) stays silent
+   * when AI is off or unavailable.
+   */
+  async kickoff(projectId: string, options: { auto?: boolean } = {}): Promise<CreativeState> {
+    let provider: AiProviderId;
+    try {
+      provider = this.providerFor('kickoff');
+    } catch (err) {
+      if (options.auto) return this.state(projectId);
+      throw err;
+    }
+    const name = await this.projectName(projectId);
+    this.runAi(projectId, 'kickoff', `Planning “${name}” with the ${PROVIDER_LABEL[provider]}`, (ctx) => this.runKickoff(projectId, provider, ctx));
+    return this.state(projectId);
+  }
+
+  private async projectName(projectId: string): Promise<string> {
+    const spec = await this.workspace.readSpec(projectId);
+    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
+    return spec.spec.project.name;
+  }
+
+  private async runKickoff(projectId: string, provider: AiProviderId, ctx: JobContext): Promise<void> {
+    const spec = await this.workspace.readSpec(projectId);
+    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
+    const guidance = await this.deps.guidance('storyboard');
+    const { value, provenance } = await this.deps.runTask(provider, { name: 'kickoff', prompt: kickoffPrompt({ name: spec.spec.project.name, idea: spec.spec.project.goal, guidance }), schema: KickoffOutput, skills: guidance.map((g) => g.name) }, ctx);
+    const latest = await this.workspace.readCreative(projectId);
+    // Answers to an earlier plan's questions no longer apply; answers to the fixed core questions still do.
+    for (const id of Object.keys(latest.answers)) if (id.startsWith('q-')) delete latest.answers[id];
+    latest.plan = sanitizePlan(value, provenance);
+    await this.save(projectId, latest);
+    ctx.log(`Plan saved: ${latest.plan.questions.length} questions, ${latest.plan.nextSteps.length} next steps.`);
+  }
+
   private async context(projectId: string, file: CreativeFile, phase: 'direction' | 'storyboard') {
     const spec = await this.workspace.readSpec(projectId);
     if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
@@ -288,54 +296,62 @@ export class CreativeService {
     return { name: spec.spec.project.name, idea: spec.spec.project.goal, plan: file.plan, discovery: discoveryNotes(file.answers, file.plan), references: file.references, guidance };
   }
 
+  /** Codex may not see third-party content (its sandbox can read local files). */
+  private guardCodex(provider: AiProviderId, file: CreativeFile): void {
+    if (provider !== 'codex') return;
+    const refusal = codexRefusal({ untrustedData: file.references.length > 0 });
+    if (refusal) throw new Error(refusal);
+  }
+
   /** AI proposes art directions for this project; they are offered before the studio's own. */
   async aiDirections(projectId: string): Promise<CreativeState> {
     const provider = this.providerFor('direction');
+    this.guardCodex(provider, await this.workspace.readCreative(projectId));
+    this.runAi(projectId, 'direction', `Proposing art directions with the ${PROVIDER_LABEL[provider]}`, async (ctx) => {
+      await this.runDirections(projectId, provider, ctx);
+    });
+    return this.state(projectId);
+  }
+
+  private async runDirections(projectId: string, provider: AiProviderId, ctx: JobContext): Promise<CreativeDirection[]> {
     const file = await this.workspace.readCreative(projectId);
-    if (provider === 'codex') {
-      const refusal = codexRefusal({ untrustedData: file.references.length > 0 });
-      if (refusal) throw new Error(refusal);
-    }
     const ctxInput = await this.context(projectId, file, 'direction');
     const core = effectiveAnswers(file.answers, file.plan);
     const motion = resolved(core, 'motion') as CreativeDirection['motion'];
-    this.runAi(projectId, 'direction', `Proposing art directions with the ${PROVIDER_LABEL[provider]}`, async (ctx) => {
-      const prompt = directionsPrompt({ ...ctxInput, core: { tone: resolved(core, 'tone'), subject: resolved(core, 'subject'), motion } });
-      const { value, provenance } = await this.deps.runTask(provider, { name: 'directions', prompt, schema: DirectionsOutput, skills: ctxInput.guidance.map((g) => g.name), untrustedData: file.references.length > 0 }, ctx);
-      const latest = await this.workspace.readCreative(projectId);
-      const round = (latest.aiDirections?.provenance ? Number(/^ai-(\d+)-/.exec(latest.aiDirections.directions[0]?.id ?? '')?.[1] ?? 0) : 0) + 1;
-      const directions = sanitizeDirections(value, provenance, motion, round);
-      if (directions.length === 0) throw new Error('None of the proposed directions met the contrast rules. Try again.');
-      const dropped = value.directions.length - directions.length;
-      latest.aiDirections = { directions, provenance };
-      await this.save(projectId, latest);
-      ctx.log(`${directions.length} directions added${dropped ? ` (${dropped} dropped: contrast or duplicate name)` : ''}.`);
-    });
-    return this.state(projectId);
+    const prompt = directionsPrompt({ ...ctxInput, core: { tone: resolved(core, 'tone'), subject: resolved(core, 'subject'), motion } });
+    const { value, provenance } = await this.deps.runTask(provider, { name: 'directions', prompt, schema: DirectionsOutput, skills: ctxInput.guidance.map((g) => g.name), untrustedData: file.references.length > 0 }, ctx);
+    const latest = await this.workspace.readCreative(projectId);
+    const round = (latest.aiDirections?.provenance ? Number(/^ai-(\d+)-/.exec(latest.aiDirections.directions[0]?.id ?? '')?.[1] ?? 0) : 0) + 1;
+    const directions = sanitizeDirections(value, provenance, motion, round);
+    if (directions.length === 0) throw new Error('None of the proposed directions met the contrast rules. Try again.');
+    const dropped = value.directions.length - directions.length;
+    latest.aiDirections = { directions, provenance };
+    await this.save(projectId, latest);
+    ctx.log(`${directions.length} directions added${dropped ? ` (${dropped} dropped: contrast or duplicate name)` : ''}.`);
+    return directions;
   }
 
   /** AI fills the brief (audience, tone, motion, chapters, notes); the user edits and approves it. */
   async aiBrief(projectId: string): Promise<CreativeState> {
     const provider = this.providerFor('brief');
-    const file = await this.workspace.readCreative(projectId);
-    if (provider === 'codex') {
-      const refusal = codexRefusal({ untrustedData: file.references.length > 0 });
-      if (refusal) throw new Error(refusal);
-    }
-    const ctxInput = await this.context(projectId, file, 'storyboard');
-    this.runAi(projectId, 'brief', `Writing the brief with the ${PROVIDER_LABEL[provider]}`, async (ctx) => {
-      const direction = file.brief ? this.chosenDirection(projectId, file) : null;
-      const prompt = briefPrompt({ ...ctxInput, direction, current: file.brief });
-      const { value, provenance } = await this.deps.runTask(provider, { name: 'brief', prompt, schema: BriefOutput, skills: ctxInput.guidance.map((g) => g.name), untrustedData: file.references.length > 0 }, ctx);
-      const latest = await this.workspace.readCreative(projectId);
-      const base = latest.brief ?? draftBrief(effectiveAnswers(latest.answers, latest.plan), this.directionsOf(projectId, latest));
-      latest.brief = applyBrief(base, value);
-      latest.briefSource = { reasons: value.reasons.slice(0, 300), provenance };
-      if (latest.storyboard) latest.storyboard = { ...latest.storyboard, approved: false, approvedAt: null };
-      await this.save(projectId, latest);
-      ctx.log('Brief filled. Review it, then approve.');
-    });
+    this.guardCodex(provider, await this.workspace.readCreative(projectId));
+    this.runAi(projectId, 'brief', `Writing the brief with the ${PROVIDER_LABEL[provider]}`, (ctx) => this.runBrief(projectId, provider, ctx));
     return this.state(projectId);
+  }
+
+  private async runBrief(projectId: string, provider: AiProviderId, ctx: JobContext): Promise<void> {
+    const file = await this.workspace.readCreative(projectId);
+    const ctxInput = await this.context(projectId, file, 'storyboard');
+    const direction = file.brief ? this.chosenDirection(projectId, file) : null;
+    const prompt = briefPrompt({ ...ctxInput, direction, current: file.brief });
+    const { value, provenance } = await this.deps.runTask(provider, { name: 'brief', prompt, schema: BriefOutput, skills: ctxInput.guidance.map((g) => g.name), untrustedData: file.references.length > 0 }, ctx);
+    const latest = await this.workspace.readCreative(projectId);
+    const base = latest.brief ?? draftBrief(effectiveAnswers(latest.answers, latest.plan), this.directionsOf(projectId, latest));
+    latest.brief = applyBrief(base, value);
+    latest.briefSource = { reasons: value.reasons.slice(0, 300), provenance };
+    if (latest.storyboard) latest.storyboard = { ...latest.storyboard, approved: false, approvedAt: null };
+    await this.save(projectId, latest);
+    ctx.log('Brief filled. Review it, then approve.');
   }
 
   /** "Show other directions": a new seed, keeping the chosen direction on offer. */
@@ -359,29 +375,93 @@ export class CreativeService {
   async draftStoryboard(projectId: string, planner: StoryboardPlanner): Promise<CreativeState> {
     const file = await this.workspace.readCreative(projectId);
     if (!file.brief?.approved) throw new Error('Approve the brief before drafting a storyboard.');
-    const spec = await this.workspace.readSpec(projectId);
-    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
-    const { name, goal } = spec.spec.project;
-    const direction = this.requireDirection(projectId, file);
     if (planner === 'local-planner') {
-      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(effectiveAnswers(file.answers, file.plan), 'subject'), direction });
-      return this.save(projectId, file);
+      await this.localDraft(projectId);
+      return this.state(projectId);
     }
     const reason = this.unavailable('storyboard', planner) ?? (planner === 'codex' ? codexRefusal({ untrustedData: file.references.length > 0 }) : null);
     if (reason) throw new Error(reason);
-    const brief = file.brief;
-    this.runAi(projectId, 'storyboard', `Drafting the storyboard with the ${PROVIDER_LABEL[planner]}`, async (ctx) => {
-      const guidance = await this.deps.guidance('storyboard');
-      const prompt = storyboardPrompt({ name, idea: goal, brief, direction, references: file.references, guidance, discovery: discoveryNotes(file.answers, file.plan) });
-      const { value, provenance } = await this.deps.draftWithAi(planner, prompt, ctx, guidance.map((g) => g.name), file.references.length > 0);
-      // Re-read: the user may have edited other parts of the project while the job ran.
-      const latest = await this.workspace.readCreative(projectId);
-      const models = provenance.models.length ? ` (${provenance.models.join(', ')})` : '';
-      latest.storyboard = sanitizeDraft(value, { kind: planner, detail: `Drafted by your local ${PROVIDER_LABEL[planner]}${models} ${PROVIDER_LIMITS[planner]}. Review before approving.`, createdAt: provenance.createdAt, provenance }, direction);
-      await this.save(projectId, latest);
-      ctx.log('Storyboard draft saved.');
-    });
+    this.requireDirection(projectId, file);
+    this.runAi(projectId, 'storyboard', `Drafting the storyboard with the ${PROVIDER_LABEL[planner]}`, (ctx) => this.runStoryboard(projectId, planner, ctx));
     return this.state(projectId, file);
+  }
+
+  private async localDraft(projectId: string): Promise<void> {
+    const file = await this.workspace.readCreative(projectId);
+    const spec = await this.workspace.readSpec(projectId);
+    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
+    if (!file.brief) throw new Error('Write the brief first.');
+    const core = effectiveAnswers(file.answers, file.plan);
+    file.storyboard = localStoryboard({ name: spec.spec.project.name, idea: spec.spec.project.goal, brief: file.brief, subject: resolved(core, 'subject'), look: core.look, direction: this.requireDirection(projectId, file) });
+    await this.save(projectId, file);
+  }
+
+  private async runStoryboard(projectId: string, planner: AiProviderId, ctx: JobContext): Promise<void> {
+    const file = await this.workspace.readCreative(projectId);
+    const spec = await this.workspace.readSpec(projectId);
+    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
+    if (!file.brief) throw new Error('Write the brief first.');
+    const direction = this.requireDirection(projectId, file);
+    const guidance = await this.deps.guidance('storyboard');
+    const prompt = storyboardPrompt({ name: spec.spec.project.name, idea: spec.spec.project.goal, brief: file.brief, direction, references: file.references, guidance, discovery: discoveryNotes(file.answers, file.plan), look: effectiveAnswers(file.answers, file.plan).look });
+    const { value, provenance } = await this.deps.draftWithAi(planner, prompt, ctx, guidance.map((g) => g.name), file.references.length > 0);
+    // Re-read: the user may have edited other parts of the project while the job ran.
+    const latest = await this.workspace.readCreative(projectId);
+    const models = provenance.models.length ? ` (${provenance.models.join(', ')})` : '';
+    latest.storyboard = sanitizeDraft(value, { kind: planner, detail: `Drafted by your local ${PROVIDER_LABEL[planner]}${models} ${PROVIDER_LIMITS[planner]}. Review before approving.`, createdAt: provenance.createdAt, provenance }, direction);
+    await this.save(projectId, latest);
+    ctx.log('Storyboard draft saved.');
+  }
+
+  /**
+   * "Plan for me": the studio decides everything up to a drafted storyboard — the
+   * questions ("You decide"), the look, an art direction and the brief (approved for
+   * you) — using AI for each step where it is set up, and the local planner otherwise.
+   * The storyboard is left for the person to review and approve.
+   */
+  async planForMe(projectId: string): Promise<CreativeState> {
+    const settings = this.settings();
+    const can = (step: AiStep): AiProviderId | null => {
+      const provider = providerForStep(settings, step);
+      return provider !== 'none' && this.unavailable(step, provider) === null ? provider : null;
+    };
+    const name = await this.projectName(projectId);
+    const usesAi = AI_STEPS.some((step) => can(step) !== null);
+    this.runAi(projectId, 'kickoff', `Planning “${name}” for you${usesAi ? ' with AI' : ''}`, async (ctx) => {
+      const step = async (label: string, work: () => Promise<unknown>) => {
+        throwIfCancelled(ctx.signal);
+        ctx.log(label);
+        await work();
+      };
+      let file = await this.workspace.readCreative(projectId);
+      const kickoff = can('kickoff');
+      if (!file.plan && kickoff) await step('Reading your idea and planning the project…', () => this.runKickoff(projectId, kickoff, ctx));
+      await step('Answering the questions (“You decide”)…', async () => {
+        file = await this.workspace.readCreative(projectId);
+        const questions = questionsOf(file.plan);
+        for (const q of questions) if (!(q.id in file.answers)) file.answers[q.id] = 'ai-decide';
+        if (!file.brief) file.brief = draftBrief(effectiveAnswers(file.answers, file.plan), this.directionsOf(projectId, file));
+        await this.save(projectId, file);
+      });
+      const direction = can('direction');
+      const safe = (provider: AiProviderId) => provider !== 'codex' || file.references.length === 0;
+      if (direction && safe(direction)) await step('Proposing art directions…', () => this.runDirections(projectId, direction, ctx));
+      await step('Choosing the art direction…', async () => {
+        file = await this.workspace.readCreative(projectId);
+        const pick = this.directionsOf(projectId, file)[0]!;
+        file.brief = { ...file.brief!, directionId: pick.id, direction: pick };
+        await this.save(projectId, file);
+        ctx.log(`Chose “${pick.name}”.`);
+      });
+      const brief = can('brief');
+      if (brief && safe(brief)) await step('Writing the brief…', () => this.runBrief(projectId, brief, ctx));
+      await step('Approving the brief for you…', () => this.approveBrief(projectId));
+      const storyboard = can('storyboard');
+      if (storyboard && safe(storyboard)) await step('Drafting the storyboard…', () => this.runStoryboard(projectId, storyboard, ctx));
+      else await step('Drafting the storyboard (local planner)…', () => this.localDraft(projectId));
+      ctx.log('Done. Review the storyboard, change anything, then approve it.');
+    });
+    return this.state(projectId);
   }
 
   async saveStoryboard(projectId: string, scenes: StoryboardScene[]): Promise<CreativeState> {

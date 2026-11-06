@@ -86,6 +86,10 @@ describe('creative workflow', () => {
     const { s, id } = await boot();
     let state = await s.creative(id).state(id);
     expect(state.stage).toBe('draft');
+    // The first question is the kind of website (the "look").
+    expect(state.nextQuestion?.id).toBe('look');
+    expect(state.nextQuestion?.options).toHaveLength(6);
+    state = await s.creative(id).answer(id, 'look', 'skip');
     expect(state.nextQuestion?.id).toBe('tone');
     state = await s.creative(id).answer(id, 'tone', 'warm');
     expect(state.stage).toBe('discovery');
@@ -152,7 +156,7 @@ describe('creative workflow', () => {
 
   it('drafts with the chosen, installed provider in a job, with references as untrusted data', async () => {
     const { s, id } = await boot();
-    for (const [q, a] of [['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
+    for (const [q, a] of [['look', 'skip'], ['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
     await s.creative(id).approveBrief(id);
     await s.creative(id).analyzeReference(id, 'https://aurora.example/', 'the slow pacing');
     const planner = async (p: string) => (await s.creative(id).state(id)).planners.find((x) => x.id === p);
@@ -203,7 +207,7 @@ describe('creative workflow', () => {
     const { id } = await s.createProject({ name: 'Glass Harbour', goal: 'A harbour museum' });
     s.store.saveProviderStatuses([claude]);
     s.settings().saveSettings({ onboarded: true, provider: 'none', steps: { storyboard: 'claude-code' }, deepResearch: false });
-    for (const [q, a] of [['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
+    for (const [q, a] of [['look', 'skip'], ['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
     await s.creative(id).approveBrief(id);
     let state = await s.creative(id).draftStoryboard(id, 'claude-code'); // the per-step override applies
     expect(await s.waitAiJob(state.aiJob!.id)).toMatchObject({ status: 'failed', error: expect.stringMatching(/exited with code 1/) });
@@ -215,6 +219,36 @@ describe('creative workflow', () => {
     expect(s.cancelAiJob(state.aiJob!.id).status).toMatch(/running|cancelled/);
     expect(await s.waitAiJob(state.aiJob!.id)).toMatchObject({ status: 'cancelled', error: null });
     expect((await s.creative(id).state(id)).aiError).toBeNull();
+  });
+
+  it('"Plan for me" decides everything up to a drafted storyboard, without AI', async () => {
+    const { s, id } = await boot();
+    let state = await s.creative(id).planForMe(id);
+    const job = await s.waitAiJob(state.aiJob!.id);
+    expect(job.status).toBe('succeeded');
+    expect(job.log).toContain('Answering the questions (“You decide”)…');
+    state = await s.creative(id).state(id);
+    expect(state.nextQuestion).toBeNull();
+    expect(state.brief?.approved).toBe(true);
+    expect(state.storyboard?.approved).toBe(false); // the person reviews and approves it
+    expect(state.storyboard?.source.kind).toBe('local-planner');
+    expect(state.stage).toBe('storyboard_ready');
+  });
+
+  it('"Plan for me" with AI plans, proposes directions, writes the brief and drafts the storyboard', async () => {
+    const { s, id } = await boot();
+    s.store.saveProviderStatuses([{ id: 'claude-code', displayName: 'Claude Code CLI', state: 'available', version: '2', detail: null, authentication: 'managed-by-provider-cli' }]);
+    s.settings().saveSettings({ onboarded: true, provider: 'claude-code', steps: {}, deepResearch: false });
+    let state = await s.creative(id).planForMe(id);
+    expect(state.aiJob?.title).toBe('Planning “Orbital Bakery” for you with AI');
+    const job = await s.waitAiJob(state.aiJob!.id);
+    expect(job.status).toBe('succeeded');
+    state = await s.creative(id).state(id);
+    expect(state.plan?.projectType).toBe('Bakery story');
+    expect(state.answered.map((a) => a.answer).every((a) => a === 'ai-decide')).toBe(true);
+    expect(state.brief).toMatchObject({ approved: true, audience: 'Neighbours who walk past every morning', directionId: expect.stringMatching(/^ai-1-1-/) });
+    expect(state.storyboard?.source.kind).toBe('claude-code');
+    expect(job.log.at(-1)).toBe('Done. Review the storyboard, change anything, then approve it.');
   });
 
   it('migrates the old storyboard opt-in to the default provider', async () => {
@@ -238,7 +272,10 @@ describe('creative workflow', () => {
     let state = await s.creative(id).state(id);
     expect(state.plan).toMatchObject({ projectType: 'Bakery story', provenance: { provider: 'codex', task: 'kickoff' } });
     expect(prompts.at(-1)).toContain('"Introduce a family bakery"');
-    expect(state.questionCount).toBe(3);
+    expect(state.questionCount).toBe(4);
+    // The plan's look comes first; then the plan's own questions.
+    expect(state.nextQuestion).toMatchObject({ id: 'look', default: 'cinematic-story' });
+    state = await s.creative(id).answer(id, 'look', 'ai-decide');
     expect(state.nextQuestion).toMatchObject({ id: 'q-1', prompt: 'Who should feel most welcome?', default: 'o-2', why: 'Visitors need the most context.' });
     await expect(s.creative(id).answer(id, 'tone', 'warm')).rejects.toThrow(/not one of the options/);
     await s.creative(id).answer(id, 'q-1', 'ai-decide');
@@ -250,14 +287,15 @@ describe('creative workflow', () => {
     // Re-planning drops answers to the old plan's questions.
     state = await s.creative(id).kickoff(id);
     await s.waitAiJob(state.aiJob!.id);
-    expect((await s.creative(id).state(id)).answered).toEqual([]);
+    // The look answer stays; answers to the old plan's questions are dropped.
+    expect((await s.creative(id).state(id)).answered.map((a) => a.question.id)).toEqual(['look']);
   });
 
   it('adds AI art directions with enforced contrast, and fills an editable brief', async () => {
     const { s, id } = await boot();
     s.store.saveProviderStatuses([{ id: 'claude-code', displayName: 'Claude Code CLI', state: 'available', version: '2', detail: null, authentication: 'managed-by-provider-cli' }]);
     s.settings().saveSettings({ onboarded: true, provider: 'claude-code', steps: {}, deepResearch: false });
-    for (const [q, a] of [['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
+    for (const [q, a] of [['look', 'skip'], ['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
     let state = await s.creative(id).aiDirections(id);
     let job = await s.waitAiJob(state.aiJob!.id);
     expect(job.log.at(-1)).toBe('2 directions added (1 dropped: contrast or duplicate name).');
@@ -299,7 +337,7 @@ describe('creative workflow', () => {
     const state = await s.creative(id).state(id);
     expect(state.aiJob).toBeNull();
     expect(state.plan).toBeNull();
-    expect(state.questionCount).toBe(4);
+    expect(state.questionCount).toBe(5);
     expect(state.aiSteps.kickoff).toMatchObject({ provider: 'none', available: false });
     await expect(s.creative(id).kickoff(id)).rejects.toThrow(/AI is off/);
   });

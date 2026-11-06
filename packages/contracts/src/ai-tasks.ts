@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { DesignStyleSchema, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.ts';
 
 // Shapes AI providers must return for each workflow task. They are deliberately
 // small and text-only; the studio sanitizes every value before storing it.
@@ -37,3 +38,44 @@ export const KickoffOutput = z.object({
     .max(6),
 });
 export type KickoffOutput = z.infer<typeof KickoffOutput>;
+
+const Hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+
+/** Art directions proposed by AI; palettes are contrast-checked (and repaired or dropped) by the studio. */
+export const DirectionsOutput = z.object({
+  directions: z
+    .array(
+      z.object({
+        name: Line(40),
+        description: Line(160),
+        colors: z.object({ background: Hex, foreground: Hex, accent: Hex, secondary: Hex }),
+        /** Ids from the studio's font list (see the prompt). */
+        headingFont: Line(40),
+        bodyFont: Line(40),
+        style: DesignStyleSchema,
+        composition: z.object({
+          hero: z.enum(SCENE_VARIANTS.hero),
+          chapterLayouts: z.array(z.enum(SCENE_LAYOUTS)).min(1).max(6),
+          steps: z.enum(SCENE_VARIANTS['scroll-reveal']),
+          showcase: z.enum(SCENE_VARIANTS['model-showcase']),
+          gallery: z.enum(SCENE_VARIANTS.gallery),
+          cta: z.enum(SCENE_VARIANTS.cta),
+        }),
+        rationale: Line(200),
+      }),
+    )
+    .min(2)
+    .max(4),
+});
+export type DirectionsOutput = z.infer<typeof DirectionsOutput>;
+
+/** A filled-in creative brief; the user still edits and approves it. */
+export const BriefOutput = z.object({
+  audience: Line(200),
+  tone: Line(120),
+  motion: z.enum(['calm', 'balanced', 'bold']),
+  chapters: z.number().int().min(1).max(6),
+  notes: z.string().trim().max(1000),
+  reasons: Line(300),
+});
+export type BriefOutput = z.infer<typeof BriefOutput>;

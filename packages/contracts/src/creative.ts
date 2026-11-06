@@ -149,6 +149,10 @@ export const CreativeFile = z.object({
   directionSeed: z.number().int().min(0).optional(),
   /** AI plan; when present its questions replace the studio's fixed ones. */
   plan: ProjectPlan.nullable().optional(),
+  /** Directions proposed by AI, offered before the studio's own. */
+  aiDirections: z.object({ directions: z.array(CreativeDirection).max(4), provenance: AiProvenance }).nullable().optional(),
+  /** When AI filled the brief: its reasons and provenance (cleared when the user edits the brief). */
+  briefSource: z.object({ reasons: z.string(), provenance: AiProvenance }).nullable().optional(),
 });
 export type CreativeFile = z.infer<typeof CreativeFile>;
 
@@ -162,6 +166,7 @@ export const CreativeState = z.object({
   answered: z.array(z.object({ question: DiscoveryQuestion, answer: DiscoveryAnswer })),
   directions: z.array(CreativeDirection),
   brief: CreativeBrief.nullable(),
+  briefSource: z.object({ reasons: z.string(), provenance: AiProvenance }).nullable(),
   storyboard: Storyboard.nullable(),
   references: z.array(ReferenceReport),
   planners: z.array(z.object({ id: StoryboardPlanner, label: z.string(), available: z.boolean(), reason: z.string().nullable() })),

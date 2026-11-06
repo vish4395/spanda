@@ -206,6 +206,8 @@ export const ipcContract = {
   'creative.approveBrief': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'creative.moreDirections': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'creative.kickoff': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
+  'creative.aiDirections': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
+  'creative.aiBrief': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'creative.draftStoryboard': { request: z.strictObject({ projectId: ProjectId, planner: StoryboardPlanner }), response: CreativeState },
   'creative.saveStoryboard': { request: z.strictObject({ projectId: ProjectId, scenes: z.array(StoryboardScene).min(1).max(8) }), response: CreativeState },
   'creative.approveStoryboard': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },

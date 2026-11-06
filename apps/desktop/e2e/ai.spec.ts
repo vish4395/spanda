@@ -9,6 +9,25 @@ import { launchStudio, screenshots, type FakeReplies } from './launch.ts';
 const replies: FakeReplies = [
   { marker: 'connection test', reply: { ok: true, note: 'Hello from the fake CLI.' } },
   {
+    marker: 'You are the Discovery Director',
+    reply: {
+      projectType: 'Festival invitation',
+      summary: 'Invite local families to an evening lantern festival by the river.',
+      facts: ['It is a riverside lantern festival.', 'It is for families.'],
+      assumptions: ['It happens once a year.'],
+      nextSteps: [
+        { title: 'Answer three questions', detail: 'They set the mood and the closing invitation.' },
+        { title: 'Approve the brief', detail: 'Then draft the storyboard.' },
+      ],
+      core: { tone: 'warm', subject: 'place', motion: 'balanced', length: 'short' },
+      questions: [
+        { prompt: 'Who is the festival mainly for?', reason: 'Sets the voice of the copy.', options: [{ label: 'Young families', explanation: 'Playful and simple.' }, { label: 'Everyone in town', explanation: 'Broad and welcoming.' }], recommended: 0, why: 'The idea names families.' },
+        { prompt: 'Which moment should open the site?', reason: 'Chooses the hero image.', options: [{ label: 'First lantern on the water', explanation: 'Quiet and magical.' }, { label: 'The crowd at dusk', explanation: 'Busy and warm.' }], recommended: 0, why: 'A single light reads well in 3D.' },
+        { prompt: 'What should visitors do at the end?', reason: 'Sets the call to action.', options: [{ label: 'Plan their evening', explanation: 'Time and place.' }, { label: 'Make a lantern', explanation: 'A workshop sign-up.' }], recommended: 0, why: 'Most visitors need the when and where.' },
+      ],
+    },
+  },
+  {
     marker: 'Story Architect',
     reply: {
       scenes: [
@@ -48,7 +67,20 @@ test('first run: choose and test an AI provider, then draft a storyboard with it
   await win.getByLabel('Project name').fill('Ghat Lanterns');
   await win.getByLabel('One-line idea').fill('A riverside lantern festival for families.');
   await win.getByRole('button', { name: 'Create project' }).click();
-  for (const label of [/Warm and inviting/, /A place or environment/, /Balanced/, /Short/]) await win.getByRole('button', { name: label }).click();
+
+  // Kickoff starts by itself: a plan from the name and idea, then questions made for this project.
+  await expect(win.getByRole('region', { name: 'AI task' })).toContainText('Planning “Ghat Lanterns” with the Claude Code CLI');
+  const plan = win.getByRole('region', { name: 'Studio plan' });
+  await expect(plan).toContainText('Festival invitation', { timeout: 30_000 });
+  await expect(plan).toContainText('Assumptions to check');
+  await expect(plan.getByRole('listitem').filter({ hasText: 'Approve the brief' })).toBeVisible();
+  await expect(win.getByText(/Question 1 of 3/)).toBeVisible();
+  await expect(win.getByRole('heading', { name: 'Who is the festival mainly for?' })).toBeVisible();
+  await win.screenshot({ path: path.join(screenshots, 'desktop-ai-plan.png') });
+  await win.getByRole('button', { name: 'You decide' }).click();
+  await win.getByRole('button', { name: /The crowd at dusk/ }).click();
+  await win.getByRole('button', { name: /Plan their evening/ }).click();
+  await expect(win.getByText('Studio decides: Young families — The idea names families.')).toBeVisible();
   await win.getByRole('tab', { name: 'Brief' }).click();
   await win.getByRole('button', { name: 'Approve brief' }).click();
   await expect(win.getByRole('radio', { name: 'Claude Code CLI' })).toBeDisabled();

@@ -1585,3 +1585,44 @@ button {
 .step-providers select {
   min-width: 190px;
 }
+
+/* Studio plan (AI kickoff) */
+.plan {
+  margin-bottom: 20px;
+}
+
+.plan .card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.plan__source {
+  margin-left: auto;
+}
+
+.plan__columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.plan__list,
+.plan__steps {
+  margin: 4px 0 12px;
+  padding-left: 20px;
+}
+
+.plan__list li,
+.plan__steps li {
+  margin: 4px 0;
+}
+
+.plan-offer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}

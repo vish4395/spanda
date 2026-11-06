@@ -11,7 +11,7 @@ interface Props {
   onError: (message: string) => void;
 }
 
-const TOTAL = 4;
+const PROVIDER_NAME = { 'claude-code': 'Claude Code CLI', codex: 'Codex CLI' } as const;
 
 export function DiscoverTab({ projectId, state, onState, onError }: Props) {
   const [busy, setBusy] = useState(false);
@@ -19,6 +19,20 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
   const [inspiration, setInspiration] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const q = state.nextQuestion;
+  const [planning, setPlanning] = useState(false);
+  const kickoff = state.aiSteps.kickoff;
+  const plan = state.plan;
+
+  const replan = async () => {
+    setPlanning(true);
+    try {
+      onState(await call('creative.kickoff', { projectId }));
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setPlanning(false);
+    }
+  };
 
   const answer = async (questionId: string, value: string | null) => {
     setBusy(true);
@@ -47,17 +61,85 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
   };
 
   const labelFor = (questionId: string, value: string) => {
+    const question = state.answered.find((a) => a.question.id === questionId)?.question;
+    const option = (id: string) => question?.options.find((o) => o.id === id)?.label ?? id;
     if (value === 'skip') return 'Skipped (studio default)';
-    if (value === 'ai-decide') return 'Studio decides';
-    return state.answered.find((a) => a.question.id === questionId)?.question.options.find((o) => o.id === value)?.label ?? value;
+    if (value === 'ai-decide') return question?.why ? `Studio decides: ${option(question.default)} — ${question.why}` : 'Studio decides';
+    return option(value);
   };
 
   return (
     <div className="tab-body">
+      {plan ? (
+        <section className="card plan" aria-labelledby="plan-title">
+          <div className="card__head">
+            <h2 id="plan-title">Studio plan</h2>
+            <StatusChip tone="ok">{plan.projectType}</StatusChip>
+            <span className="plan__source small muted">
+              by {PROVIDER_NAME[plan.provenance.provider]}
+              {plan.provenance.models.length ? ` (${plan.provenance.models.join(', ')})` : ''}
+            </span>
+          </div>
+          <p>{plan.summary}</p>
+          <div className="plan__columns">
+            {plan.facts.length > 0 && (
+              <div>
+                <h3 className="section-title">From your idea</h3>
+                <ul className="plan__list">
+                  {plan.facts.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {plan.assumptions.length > 0 && (
+              <div>
+                <h3 className="section-title">Assumptions to check</h3>
+                <ul className="plan__list">
+                  {plan.assumptions.map((f) => (
+                    <li key={f}>{f}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <h3 className="section-title">Next steps</h3>
+          <ol className="plan__steps">
+            {plan.nextSteps.map((step) => (
+              <li key={step.title}>
+                <strong>{step.title}</strong>
+                <span className="muted"> — {step.detail}</span>
+              </li>
+            ))}
+          </ol>
+          <div className="form-actions">
+            <button type="button" className="btn btn--ghost btn--small" onClick={() => void replan()} disabled={planning || state.aiJob !== null || !kickoff.available}>
+              Plan again with AI
+            </button>
+          </div>
+        </section>
+      ) : (
+        state.aiJob?.step !== 'kickoff' && (
+          <section className="notice plan-offer" aria-label="AI project plan">
+            <p>
+              {kickoff.available
+                ? 'Let AI read your project name and idea, suggest next steps and ask questions made for this project.'
+                : `AI planning is unavailable: ${kickoff.reason ?? 'no provider is set up'} The studio’s own questions are below.`}
+            </p>
+            {kickoff.available && (
+              <button type="button" className="btn btn--secondary" onClick={() => void replan()} disabled={planning || state.aiJob !== null} aria-busy={planning}>
+                {planning && <SpinnerIcon />}
+                Plan with AI
+              </button>
+            )}
+          </section>
+        )
+      )}
+
       {q ? (
         <section className="question" aria-labelledby="question-prompt">
           <p className="muted small">
-            Question {state.answered.length + 1} of {TOTAL} · {q.reason}
+            Question {state.answered.length + 1} of {state.questionCount} · {q.reason}
           </p>
           <h2 id="question-prompt">{q.prompt}</h2>
           <div className="choice-grid" role="group" aria-labelledby="question-prompt">
@@ -69,7 +151,7 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
             ))}
           </div>
           <div className="form-actions">
-            <button type="button" className="btn btn--secondary" onClick={() => void answer(q.id, 'ai-decide')} disabled={busy}>
+            <button type="button" className="btn btn--secondary" onClick={() => void answer(q.id, 'ai-decide')} disabled={busy} title={q.why ? `Studio would pick “${q.options.find((o) => o.id === q.default)?.label}”: ${q.why}` : undefined}>
               You decide
             </button>
             <button type="button" className="btn btn--ghost" onClick={() => void answer(q.id, 'skip')} disabled={busy}>

@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StorySpec } from '@studio/contracts';
 import { BlockedUrlError } from '@studio/reference-analyzer';
+import { contrastRatio } from '@studio/story-engine';
 import { StudioServices } from '../src/main/services.ts';
 import type { CreativeDeps } from '../src/main/creative.ts';
 
@@ -37,6 +38,18 @@ const KICKOFF = {
     { prompt: 'What should visitors do at the end?', reason: 'The call to action.', options: [{ label: 'Visit the shop', explanation: 'Map and hours.' }, { label: 'Order ahead', explanation: 'A simple form link.' }], recommended: 0, why: 'A first visit matters most.' },
   ],
 };
+const STYLE = { mode: 'dark', scale: 'editorial', headingCase: 'normal', headingWeight: 'regular', radius: 'soft', texture: 'grain', density: 'balanced', reveal: 'fade-up', easing: 'gentle', heroArt: 'rings', panelArt: 'arcs' };
+const COMPOSITION = { hero: 'centered', chapterLayouts: ['split', 'editorial'], steps: 'timeline', showcase: 'stage', gallery: 'mosaic', cta: 'banner' };
+const DIRECTIONS = {
+  directions: [
+    { name: 'Oven Glow', description: 'Charcoal and ember.', colors: { background: '#141010', foreground: '#f6eee4', accent: '#f0a64a', secondary: '#c9a98a' }, headingFont: 'didone', bodyFont: 'humanist', style: STYLE, composition: COMPOSITION, rationale: 'Bakeries start in the dark.' },
+    // Foreground too dim: repaired toward white.
+    { name: 'Flour Dust', description: 'Soft cream.', colors: { background: '#2a2724', foreground: '#8a8580', accent: '#e8c27a', secondary: '#bfb3a3' }, headingFont: 'not-a-font', bodyFont: 'system', style: { ...STYLE, mode: 'light' }, composition: COMPOSITION, rationale: 'Quiet mornings.' },
+    // Mid-grey background: no colour reaches 7:1, so it is dropped.
+    { name: 'Grey Crumb', description: 'Muddy.', colors: { background: '#777777', foreground: '#808080', accent: '#7a7a7a', secondary: '#757575' }, headingFont: 'grotesk', bodyFont: 'grotesk', style: STYLE, composition: COMPOSITION, rationale: 'Nope.' },
+  ],
+};
+const BRIEF = { audience: 'Neighbours who walk past every morning', tone: 'Warm, unhurried, proud', motion: 'calm', chapters: 4, notes: 'Show the ovens.\nEnd with opening hours.', reasons: 'A calm pace suits an early-morning story.' };
 const fakes: CreativeDeps = {
   fetchPage: async (url) => {
     if (url.includes('127.0.0.1')) throw new BlockedUrlError('private address');
@@ -46,7 +59,7 @@ const fakes: CreativeDeps = {
   runTask: async (provider, task, ctx) => {
     prompts.push(task.prompt);
     ctx.log(`${provider}: ${task.name}`);
-    const replies: Record<string, unknown> = { kickoff: KICKOFF };
+    const replies: Record<string, unknown> = { kickoff: KICKOFF, directions: DIRECTIONS, brief: BRIEF };
     return { value: task.schema.parse(replies[task.name]), provenance: provenanceFor(provider, task.name, task.skills) };
   },
   guidance: async (phase) => (phase === 'storyboard' ? [{ name: 'test-skill', text: 'Prefer short headings.' }] : []),
@@ -238,6 +251,47 @@ describe('creative workflow', () => {
     state = await s.creative(id).kickoff(id);
     await s.waitAiJob(state.aiJob!.id);
     expect((await s.creative(id).state(id)).answered).toEqual([]);
+  });
+
+  it('adds AI art directions with enforced contrast, and fills an editable brief', async () => {
+    const { s, id } = await boot();
+    s.store.saveProviderStatuses([{ id: 'claude-code', displayName: 'Claude Code CLI', state: 'available', version: '2', detail: null, authentication: 'managed-by-provider-cli' }]);
+    s.settings().saveSettings({ onboarded: true, provider: 'claude-code', steps: {}, deepResearch: false });
+    for (const [q, a] of [['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
+    let state = await s.creative(id).aiDirections(id);
+    let job = await s.waitAiJob(state.aiJob!.id);
+    expect(job.log.at(-1)).toBe('2 directions added (1 dropped: contrast or duplicate name).');
+    state = await s.creative(id).state(id);
+    const [glow, flour] = state.directions;
+    expect(glow).toMatchObject({ id: 'ai-1-1-oven-glow', name: 'Oven Glow', basis: 'AI: Bakeries start in the dark.', style: { mode: 'dark' } });
+    expect(glow!.typography.heading).toContain('Didot');
+    expect(flour!.name).toBe('Flour Dust');
+    expect(flour!.colors.foreground).not.toBe('#8a8580');
+    expect(contrastRatio(flour!.colors.foreground, flour!.colors.background)).toBeGreaterThanOrEqual(7);
+    expect(flour!.typography.heading).toContain('Avenir'); // unknown font id → humanist
+    expect(flour!.style.mode).toBe('dark'); // mode follows the background
+    expect(state.directions.some((d) => d.name === 'Grey Crumb')).toBe(false);
+    expect(state.directions.length).toBeGreaterThanOrEqual(5); // studio directions stay on offer
+
+    // Choose an AI direction, then let AI fill the brief: the direction is kept, approval is reset.
+    await s.creative(id).saveBrief(id, { audience: '', tone: 'Warm', directionId: glow!.id, motion: 'balanced', chapters: 1, notes: '' });
+    await s.creative(id).approveBrief(id);
+    state = await s.creative(id).aiBrief(id);
+    job = await s.waitAiJob(state.aiJob!.id);
+    expect(job.status).toBe('succeeded');
+    expect(prompts.at(-1)).toContain('Oven Glow');
+    state = await s.creative(id).state(id);
+    expect(state.brief).toMatchObject({ audience: 'Neighbours who walk past every morning', motion: 'calm', chapters: 4, directionId: glow!.id, approved: false });
+    expect(state.briefSource).toMatchObject({ reasons: 'A calm pace suits an early-morning story.', provenance: { task: 'brief' } });
+    // A new round of AI directions keeps the chosen one on offer, in place of its namesake.
+    state = await s.creative(id).aiDirections(id);
+    await s.waitAiJob(state.aiJob!.id);
+    state = await s.creative(id).state(id);
+    expect(state.directions.filter((d) => d.name === 'Oven Glow').map((d) => d.id)).toEqual([glow!.id]);
+    expect(state.directions.map((d) => d.id)).toContain('ai-2-2-flour-dust');
+    // Editing the brief makes it the user's own.
+    state = await s.creative(id).saveBrief(id, { audience: 'Everyone', tone: 'Warm', directionId: glow!.id, motion: 'calm', chapters: 4, notes: '' });
+    expect(state.briefSource).toBeNull();
   });
 
   it('does not plan automatically when AI is off, and explains why when asked', async () => {

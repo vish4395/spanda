@@ -76,6 +76,13 @@ describe('creative workflow', () => {
     state = await s.creative(id).moreDirections(id);
     expect(state.directions.map((d) => d.id)).toContain(chosen.id);
     expect(state.directions.filter((d) => d.id !== chosen.id).map((d) => d.id)).not.toEqual(offered.filter((d) => d.id !== chosen.id).map((d) => d.id));
+    // The kept direction replaces any new offer from the same family, so no two cards share a name.
+    for (let i = 0; i < 8; i += 1) {
+      state = await s.creative(id).moreDirections(id);
+      const names = state.directions.map((d) => d.name);
+      expect(new Set(names).size).toBe(names.length);
+      expect(state.directions.map((d) => d.id)).toContain(chosen.id);
+    }
     state = await s.creative(id).approveBrief(id);
     expect(state.stage).toBe('storyboard_ready');
     state = await s.creative(id).draftStoryboard(id, 'local-planner');

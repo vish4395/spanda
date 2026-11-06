@@ -83,11 +83,11 @@ export class CreativeService {
     return Object.keys(file.answers).length ? 'discovery' : 'draft';
   }
 
-  /** The offered directions: generated per project and seed, plus the chosen one if it is no longer offered. */
+  /** The offered directions: generated per project and seed, plus the chosen one (in place of its family's new offer) if it is no longer offered. */
   private directionsOf(projectId: string, file: CreativeFile): CreativeDirection[] {
     const directions = directionsFor(file.answers, { seed: file.directionSeed ?? 0, salt: projectId });
     const chosen = file.brief ? this.chosenDirection(projectId, file, directions) : null;
-    if (chosen && !directions.some((d) => d.id === chosen.id)) directions.unshift(chosen);
+    if (chosen && !directions.some((d) => d.id === chosen.id)) return [chosen, ...directions.filter((d) => d.name !== chosen.name)];
     return directions;
   }
 

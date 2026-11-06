@@ -10,6 +10,7 @@ test('M3: new primitives from the storyboard, scoped scene edit, regenerate', as
   await win.getByLabel('Project name').fill('Harbour Kiln');
   await win.getByLabel('One-line idea').fill('A ceramics studio by the harbour.');
   await win.getByRole('button', { name: 'Create project' }).click();
+  await win.getByRole('button', { name: 'Skip' }).click(); // no particular look
   for (const label of [/Warm and inviting/, /A product or object/, /Balanced/, /Short/]) await win.getByRole('button', { name: label }).click();
   await win.getByRole('tab', { name: 'Brief' }).click();
   await win.getByRole('button', { name: 'Approve brief' }).click();

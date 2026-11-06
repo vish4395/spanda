@@ -13,12 +13,15 @@ test('M2: idea → discovery → brief → storyboard → approved StorySpec →
   await win.getByRole('button', { name: 'Create project' }).click();
   await expect(win.getByRole('tab', { name: 'Discover' })).toHaveAttribute('aria-selected', 'true');
 
-  // T011 — one question at a time, with skip and "you decide".
-  await expect(win.getByText('Question 1 of 4')).toBeVisible();
-  await expect(win.getByRole('heading', { name: 'How should the story feel?' })).toBeVisible();
+  // T011 — one question at a time, with skip and "you decide". First: what kind of website (the look).
+  await expect(win.getByText('Question 1 of 5')).toBeVisible();
+  await expect(win.getByRole('heading', { name: 'What kind of website should this feel like?' })).toBeVisible();
+  await expect(win.locator('.look-thumb')).toHaveCount(6);
   await win.screenshot({ path: path.join(screenshots, 'desktop-m2-discover.png') });
+  await win.getByRole('button', { name: /Cinematic story/ }).click();
+  await expect(win.getByRole('heading', { name: 'How should the story feel?' })).toBeVisible();
   await win.getByRole('button', { name: /Mysterious and dramatic/ }).click();
-  await expect(win.getByText('Question 2 of 4')).toBeVisible();
+  await expect(win.getByText('Question 3 of 5')).toBeVisible();
   await win.getByRole('button', { name: /A place or environment/ }).click();
   await win.getByRole('button', { name: 'You decide' }).click();
   await win.getByRole('button', { name: 'Skip' }).click();
@@ -78,5 +81,22 @@ test('M2: idea → discovery → brief → storyboard → approved StorySpec →
   await expect(win.frameLocator('iframe').locator('#chapter-02 h2')).toHaveText('Lanterns on the water', { timeout: 30_000 });
   await win.waitForTimeout(1200);
   await win.screenshot({ path: path.join(screenshots, 'desktop-m2-preview.png') });
+  await app.close();
+});
+
+test('Plan for me: the studio decides everything up to a storyboard to review', async () => {
+  const { app, win } = await launchStudio(await mkdtemp(path.join(tmpdir(), 'studio-plan-')), { experience: 'guided' });
+  await win.getByRole('button', { name: 'New project' }).click();
+  await win.getByRole('button', { name: 'Chai Trail' }).click();
+  await win.getByRole('button', { name: 'Create project' }).click();
+  await expect(win.getByRole('region', { name: 'Answer a few quick questions' })).toBeVisible();
+  await win.getByRole('region', { name: 'Not sure where to start?' }).getByRole('button', { name: 'Plan for me' }).click();
+  await expect(win.getByRole('region', { name: 'AI task' })).toHaveCount(0, { timeout: 30_000 });
+  await win.getByRole('tab', { name: 'Brief' }).click();
+  await expect(win.getByText('Approved', { exact: true })).toBeVisible();
+  await win.getByRole('tab', { name: 'Storyboard' }).click();
+  await expect(win.getByRole('list', { name: 'Storyboard scenes' }).getByRole('listitem').first()).toBeVisible();
+  await expect(win.getByRole('region', { name: 'Read the scenes and approve them' })).toBeVisible();
+  await win.screenshot({ path: path.join(screenshots, 'desktop-plan-for-me.png') });
   await app.close();
 });

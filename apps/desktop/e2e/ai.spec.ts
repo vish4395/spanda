@@ -113,7 +113,10 @@ test('first run: choose and test an AI provider, then draft a storyboard with it
   await expect(plan).toContainText('Festival invitation', { timeout: 30_000 });
   await expect(plan).toContainText('Assumptions to check');
   await expect(plan.getByRole('listitem').filter({ hasText: 'Approve the brief' })).toBeVisible();
-  await expect(win.getByText(/Question 1 of 3/)).toBeVisible();
+  await expect(win.getByText(/Question 1 of 4/)).toBeVisible();
+  await expect(win.getByRole('heading', { name: 'What kind of website should this feel like?' })).toBeVisible();
+  await win.screenshot({ path: path.join(screenshots, 'desktop-ai-looks.png') });
+  await win.getByRole('button', { name: 'Decide for me' }).click();
   // Guided: the next step is spelled out, and the stepper shows where we are.
   await expect(win.getByRole('region', { name: 'Answer the questions written for your project' })).toBeVisible();
   await expect(win.getByRole('tab', { name: 'Discover' })).toHaveAccessibleDescription('Next step');

@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { AiProvenance, AiStep } from './ai.ts';
+import { AiChoice, AiProvenance, AiStep } from './ai.ts';
+import { CoreChoices } from './ai-tasks.ts';
 import { DesignStyleSchema, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.ts';
 
 // Creative workflow contracts (M2: discovery → brief → storyboard → StorySpec).
@@ -14,8 +15,24 @@ export const DiscoveryQuestion = z.object({
   prompt: z.string(),
   options: z.array(DiscoveryOption).min(2).max(4),
   default: Id,
+  /** Why the studio would pick `default` when asked to decide (AI-planned questions). */
+  why: z.string().optional(),
 });
 export type DiscoveryQuestion = z.infer<typeof DiscoveryQuestion>;
+
+/** A project plan drafted by AI from the name and idea (kickoff). */
+export const ProjectPlan = z.object({
+  projectType: z.string(),
+  summary: z.string(),
+  facts: z.array(z.string()),
+  assumptions: z.array(z.string()),
+  nextSteps: z.array(z.object({ title: z.string(), detail: z.string() })),
+  /** Starting values for the four core choices; answers override them. */
+  core: CoreChoices,
+  questions: z.array(DiscoveryQuestion).min(1).max(6),
+  provenance: AiProvenance,
+});
+export type ProjectPlan = z.infer<typeof ProjectPlan>;
 
 /** An option id, or the user explicitly skipping / letting the studio decide. */
 export const DiscoveryAnswer = z.union([Id, z.literal('skip'), z.literal('ai-decide')]);
@@ -130,6 +147,8 @@ export const CreativeFile = z.object({
   references: z.array(ReferenceReport).max(10),
   /** Bumped by "Show other directions"; directions are generated deterministically from it. */
   directionSeed: z.number().int().min(0).optional(),
+  /** AI plan; when present its questions replace the studio's fixed ones. */
+  plan: ProjectPlan.nullable().optional(),
 });
 export type CreativeFile = z.infer<typeof CreativeFile>;
 
@@ -137,12 +156,17 @@ export const CreativeState = z.object({
   stage: ProjectStage,
   idea: z.string(),
   nextQuestion: DiscoveryQuestion.nullable(),
+  /** How many discovery questions this project has (fixed set, or the AI plan's). */
+  questionCount: z.number().int().min(0),
+  plan: ProjectPlan.nullable(),
   answered: z.array(z.object({ question: DiscoveryQuestion, answer: DiscoveryAnswer })),
   directions: z.array(CreativeDirection),
   brief: CreativeBrief.nullable(),
   storyboard: Storyboard.nullable(),
   references: z.array(ReferenceReport),
   planners: z.array(z.object({ id: StoryboardPlanner, label: z.string(), available: z.boolean(), reason: z.string().nullable() })),
+  /** Per AI step: the provider it uses and whether it can run now. */
+  aiSteps: z.record(AiStep, z.object({ provider: AiChoice, available: z.boolean(), reason: z.string().nullable() })),
   /** The AI task running for this project, if any (poll it with `ai.job`). */
   aiJob: z.object({ id: z.string().uuid(), step: AiStep, title: z.string() }).nullable(),
   /** The last AI task that failed, so the error stays visible after the job ends. */

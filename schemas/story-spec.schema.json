@@ -381,7 +381,13 @@
                       "enum": [
                         "monolith",
                         "vessel",
-                        "orb"
+                        "orb",
+                        "crystal",
+                        "lantern",
+                        "bottle",
+                        "cup",
+                        "knot",
+                        "arch"
                       ]
                     },
                     "camera": {

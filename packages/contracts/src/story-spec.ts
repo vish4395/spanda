@@ -68,7 +68,7 @@ export const SceneContentSchema = z.strictObject({
 });
 
 /** Procedural 3D objects (original geometry, no external model files). */
-export const OBJECT_PRESETS = ['monolith', 'vessel', 'orb'] as const;
+export const OBJECT_PRESETS = ['monolith', 'vessel', 'orb', 'crystal', 'lantern', 'bottle', 'cup', 'knot', 'arch'] as const;
 
 /** Chapter compositions. Every layout is pure CSS over the same semantic markup. */
 export const SCENE_LAYOUTS = ['split', 'split-reverse', 'centered', 'full-bleed', 'editorial', 'asymmetric', 'stacked'] as const;

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { AiChoice, AiProvenance, AiStep } from './ai.ts';
 import { CoreChoices } from './ai-tasks.ts';
-import { DesignStyleSchema, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.ts';
+import { DesignStyleSchema, OBJECT_PRESETS, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.ts';
 
 // Creative workflow contracts (M2: discovery → brief → storyboard → StorySpec).
 
@@ -111,7 +111,7 @@ export const StoryboardScene = z.object({
   visualNote: ShortText(1000),
   items: z.array(z.object({ title: ShortText(120).min(1), text: ShortText(600) })).max(8).optional(),
   cta: z.object({ label: ShortText(80).min(1), href: z.string().max(2048) }).optional(),
-  object: z.enum(['monolith', 'vessel', 'orb']).optional(),
+  object: z.enum(OBJECT_PRESETS).optional(),
 });
 export type StoryboardScene = z.infer<typeof StoryboardScene>;
 

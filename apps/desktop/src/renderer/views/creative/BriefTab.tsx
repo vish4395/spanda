@@ -11,17 +11,17 @@ interface Props {
   onError: (message: string) => void;
 }
 
-type Draft = Omit<CreativeBrief, 'approved' | 'approvedAt'>;
+/** The editable fields; the direction snapshot is the main process's to set. */
+type Draft = Pick<CreativeBrief, 'audience' | 'tone' | 'directionId' | 'motion' | 'chapters' | 'notes'>;
+
+const toDraft = ({ audience, tone, directionId, motion, chapters, notes }: CreativeBrief): Draft => ({ audience, tone, directionId, motion, chapters, notes });
 
 export function BriefTab({ projectId, state, onState, onError }: Props) {
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [busy, setBusy] = useState<'save' | 'approve' | null>(null);
+  const [busy, setBusy] = useState<'save' | 'approve' | 'more' | null>(null);
 
   useEffect(() => {
-    if (state.brief) {
-      const { approved: _a, approvedAt: _b, ...rest } = state.brief;
-      setDraft(rest);
-    }
+    if (state.brief) setDraft(toDraft(state.brief));
   }, [state.brief]);
 
   if (!state.brief || !draft) {
@@ -35,7 +35,7 @@ export function BriefTab({ projectId, state, onState, onError }: Props) {
     );
   }
 
-  const dirty = JSON.stringify(draft) !== JSON.stringify((({ approved: _a, approvedAt: _b, ...rest }) => rest)(state.brief));
+  const dirty = JSON.stringify(draft) !== JSON.stringify(toDraft(state.brief));
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => setDraft((d) => (d ? { ...d, [key]: value } : d));
 
   const run = async (kind: 'save' | 'approve') => {
@@ -45,6 +45,17 @@ export function BriefTab({ projectId, state, onState, onError }: Props) {
       if (dirty || kind === 'save') next = await call('creative.saveBrief', { projectId, brief: draft });
       if (kind === 'approve') next = await call('creative.approveBrief', { projectId });
       onState(next);
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const moreDirections = async () => {
+    setBusy('more');
+    try {
+      onState(await call('creative.moreDirections', { projectId }));
     } catch (err) {
       onError((err as Error).message);
     } finally {
@@ -74,6 +85,10 @@ export function BriefTab({ projectId, state, onState, onError }: Props) {
             </button>
           ))}
         </div>
+        <button type="button" className="btn btn--ghost" onClick={() => void moreDirections()} disabled={busy !== null} aria-busy={busy === 'more'}>
+          {busy === 'more' && <SpinnerIcon />}
+          Show other directions
+        </button>
       </fieldset>
 
       <div className="field-grid">

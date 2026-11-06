@@ -1010,6 +1010,11 @@ button {
   gap: 10px;
 }
 
+.direction-grid + .btn {
+  margin-top: 6px;
+  margin-left: -8px;
+}
+
 .choice,
 .direction {
   display: flex;

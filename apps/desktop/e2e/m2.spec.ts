@@ -35,17 +35,29 @@ test('M2: idea → discovery → brief → storyboard → approved StorySpec →
   await win.getByRole('tab', { name: 'Brief' }).click();
   const directions = win.getByRole('radiogroup', { name: 'Art direction' });
   await expect(directions.getByRole('radio')).toHaveCount(3);
-  await directions.getByRole('radio', { name: /Violet Hour/ }).click();
+  // Directions are generated per project; other directions keep the chosen one on offer.
+  const first = await directions.getByRole('radio').allInnerTexts();
+  await win.getByRole('button', { name: 'Show other directions' }).click();
+  await expect.poll(() => directions.getByRole('radio').allInnerTexts()).not.toEqual(first);
+  const chosen = directions.getByRole('radio').nth(1);
+  const chosenName = (await chosen.locator('.direction__title').innerText()).trim();
+  await chosen.click();
+  await expect(chosen).toHaveAttribute('aria-checked', 'true');
   await win.getByLabel('Audience').fill('Local families');
   await win.screenshot({ path: path.join(screenshots, 'desktop-m2-brief.png') });
   await win.getByRole('button', { name: 'Approve brief' }).click();
   await expect(win.getByRole('tab', { name: 'Storyboard' })).toHaveAttribute('aria-selected', 'true');
+  // The approved brief keeps the chosen direction.
+  await win.getByRole('tab', { name: 'Brief' }).click();
+  await expect(directions.getByRole('radio', { checked: true })).toContainText(chosenName);
+  await expect(win.getByText('Approved', { exact: true })).toBeVisible();
+  await win.getByRole('tab', { name: 'Storyboard' }).click();
 
   // T014/T015 — draft with the local planner (no AI), edit, reorder, approve.
   await win.getByRole('button', { name: 'Draft storyboard' }).click();
   const scenes = win.getByRole('list', { name: 'Storyboard scenes' });
-  await expect(scenes.getByRole('listitem')).toHaveCount(4); // hero + 3 chapters (standard length)
-  await expect(win.getByText(/Structure only \(no AI\)/)).toBeVisible();
+  await expect(scenes.getByRole('listitem')).toHaveCount(7); // hero, 3 chapters with a gallery and a reveal between them, CTA
+  await expect(win.getByText(/Draft from your name and idea \(no AI\)/)).toBeVisible();
   await win.getByLabel('Heading').nth(1).fill('Lanterns on the water');
   await win.getByLabel('Body').nth(1).fill('Hundreds of paper lights drift past the old bridge.');
   await win.getByRole('button', { name: 'Move scene 2 down' }).click();

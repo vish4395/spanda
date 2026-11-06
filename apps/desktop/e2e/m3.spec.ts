@@ -16,18 +16,17 @@ test('M3: new primitives from the storyboard, scoped scene edit, regenerate', as
   await win.getByRole('button', { name: 'Draft storyboard' }).click();
 
   const scenes = win.getByRole('list', { name: 'Storyboard scenes' });
-  await expect(scenes.getByRole('listitem')).toHaveCount(2);
+  // Short product story: hero, chapter, showcase, closing call to action.
+  await expect(scenes.getByRole('listitem')).toHaveCount(4);
   const ids = await scenes.locator('.mono').allInnerTexts();
   await win.getByLabel('Scene type to add').selectOption('gallery');
   await win.getByRole('button', { name: 'Add scene' }).click();
-  await win.getByLabel('Scene type to add').selectOption('cta');
-  await win.getByRole('button', { name: 'Add scene' }).click();
-  await expect(scenes.getByRole('listitem')).toHaveCount(4);
+  await expect(scenes.getByRole('listitem')).toHaveCount(5);
   await win.getByLabel('card 1 title').fill('Salt-glaze jug');
   await win.getByLabel('Button label').fill('Book a class');
-  // Reordering keeps existing scene IDs stable.
-  await win.getByRole('button', { name: 'Move scene 4 up' }).click();
-  expect((await scenes.locator('.mono').allInnerTexts()).slice(0, 2)).toEqual(ids);
+  // Reordering keeps existing scene IDs stable; the gallery moves ahead of the CTA.
+  await win.getByRole('button', { name: 'Move scene 5 up' }).click();
+  expect((await scenes.locator('.mono').allInnerTexts()).slice(0, 3)).toEqual(ids.slice(0, 3));
   await win.getByRole('button', { name: 'Approve storyboard' }).click();
   await expect(win.getByRole('tab', { name: 'Build & preview' })).toHaveAttribute('aria-selected', 'true');
 
@@ -70,7 +69,7 @@ test('M3: new primitives from the storyboard, scoped scene edit, regenerate', as
   // The storyboard follows the rollback, so approving it again cannot bring the edit back.
   await win.getByRole('tab', { name: 'Storyboard' }).click();
   const headings = () => win.getByRole('list', { name: 'Storyboard scenes' }).getByLabel('Heading').evaluateAll((els) => els.map((el) => (el as HTMLInputElement).value));
-  await expect.poll(async () => (await headings()).length).toBe(4);
+  await expect.poll(async () => (await headings()).length).toBe(5);
   expect(await headings()).not.toContain('Clay from the shore');
   await app.close();
 });

@@ -83,18 +83,26 @@ test('first run: choose and test an AI provider, then draft a storyboard with it
   await expect(win.getByRole('region', { name: 'AI task' })).toBeVisible();
   await expect(win.getByText(/Connected \(fake-model\): Hello from the fake CLI\./)).toBeVisible({ timeout: 15_000 });
   await win.screenshot({ path: path.join(screenshots, 'desktop-ai-welcome.png') });
+  // Guided is the default way of working.
+  await expect(win.getByRole('radiogroup', { name: 'How you work' }).getByRole('radio', { name: /Guide me/ })).toHaveAttribute('aria-checked', 'true');
   await win.getByRole('button', { name: 'Use Claude Code CLI' }).click();
   await expect(win.getByRole('tab', { name: 'Build & preview' })).toBeVisible();
+  await expect(win.getByRole('radiogroup', { name: 'Experience' }).getByRole('radio', { name: 'Guided' })).toHaveAttribute('aria-checked', 'true');
 
   // Settings: per-step choice; turning the storyboard step off makes the planner say why.
   await win.getByRole('button', { name: /AI providers/ }).click();
   await expect(win.getByRole('radiogroup', { name: 'Default AI' }).getByRole('radio', { name: 'Claude Code' })).toHaveAttribute('aria-checked', 'true');
   await expect(win.getByRole('table').getByText('7 of 7 steps')).toBeVisible();
-  await win.getByLabel('Storyboard', { exact: true }).selectOption('none');
+  // Guided keeps per-step choices under Advanced.
+  await expect(win.getByRole('combobox', { name: 'Storyboard' })).toBeHidden();
+  await win.getByText('Advanced: AI for each step and deep research').click();
+  await win.getByRole('combobox', { name: 'Storyboard' }).selectOption('none');
   await expect(win.getByRole('table').getByText('6 of 7 steps')).toBeVisible();
   await win.screenshot({ path: path.join(screenshots, 'desktop-ai-providers.png') });
 
   await win.getByRole('button', { name: 'New project' }).click();
+  await win.getByRole('button', { name: 'Riverside Lantern Festival' }).click();
+  await expect(win.getByLabel('One-line idea')).toHaveValue('Invite local families to an evening lantern festival by the river.');
   await win.getByLabel('Project name').fill('Ghat Lanterns');
   await win.getByLabel('One-line idea').fill('A riverside lantern festival for families.');
   await win.getByRole('button', { name: 'Create project' }).click();
@@ -106,12 +114,17 @@ test('first run: choose and test an AI provider, then draft a storyboard with it
   await expect(plan).toContainText('Assumptions to check');
   await expect(plan.getByRole('listitem').filter({ hasText: 'Approve the brief' })).toBeVisible();
   await expect(win.getByText(/Question 1 of 3/)).toBeVisible();
+  // Guided: the next step is spelled out, and the stepper shows where we are.
+  await expect(win.getByRole('region', { name: 'Answer the questions written for your project' })).toBeVisible();
+  await expect(win.getByRole('tab', { name: 'Discover' })).toHaveAccessibleDescription('Next step');
   await expect(win.getByRole('heading', { name: 'Who is the festival mainly for?' })).toBeVisible();
   await win.screenshot({ path: path.join(screenshots, 'desktop-ai-plan.png') });
   await win.getByRole('button', { name: 'You decide' }).click();
   await win.getByRole('button', { name: /The crowd at dusk/ }).click();
   await win.getByRole('button', { name: /Plan their evening/ }).click();
   await expect(win.getByText('Studio decides: Young families — The idea names families.')).toBeVisible();
+  await expect(win.getByRole('tab', { name: 'Discover' })).toHaveAccessibleDescription('Done');
+  await expect(win.getByRole('region', { name: 'Pick a look and approve the brief' })).toBeVisible();
   await win.getByRole('tab', { name: 'Brief' }).click();
 
   // Art directions from AI join the studio's own; contrast is enforced by the studio.
@@ -131,7 +144,8 @@ test('first run: choose and test an AI provider, then draft a storyboard with it
   await expect(win.getByRole('radio', { name: 'Local planner (no AI)' })).toBeChecked();
 
   await win.getByRole('button', { name: /AI providers/ }).click();
-  await win.getByLabel('Storyboard', { exact: true }).selectOption('default');
+  await win.getByText('Advanced: AI for each step and deep research').click();
+  await win.getByRole('combobox', { name: 'Storyboard' }).selectOption('default');
   await win.locator('.project-item', { hasText: 'Ghat Lanterns' }).click();
   await win.getByRole('tab', { name: 'Storyboard' }).click();
   await expect(win.getByRole('radio', { name: 'Claude Code CLI' })).toBeChecked();

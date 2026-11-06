@@ -12,6 +12,8 @@ export interface LaunchOptions {
   welcome?: 'skip' | 'show';
   /** Put a scripted test double named `claude` first on PATH (never the real CLI). */
   fakeClaude?: FakeReplies;
+  /** Experience mode after first-run setup (default `pro`: every control visible). */
+  experience?: 'guided' | 'pro';
 }
 
 /** Prompt marker → JSON reply the fake CLI returns as its result. */
@@ -51,6 +53,9 @@ export async function launchStudio(workspace: string, options: LaunchOptions = {
     await win.locator('#workspace .welcome, #workspace .tabs, #workspace .empty').first().waitFor();
     const later = win.getByRole('button', { name: 'Set up later' });
     if (await later.isVisible()) await later.click();
+    const mode = win.getByRole('radiogroup', { name: 'Experience' }).getByRole('radio', { name: options.experience === 'guided' ? 'Guided' : 'Pro' });
+    if ((await mode.getAttribute('aria-checked')) !== 'true') await mode.click();
+    await mode.and(win.locator('[aria-checked="true"]')).waitFor();
   }
   return { app, win };
 }

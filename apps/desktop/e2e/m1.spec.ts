@@ -53,12 +53,13 @@ test('M1: create, snapshot, restore, settings, and persistence across restart', 
   await expect(skills.getByText('Enabled')).toHaveCount(4);
   await win.screenshot({ path: path.join(screenshots, 'desktop-m1-skills.png') });
 
-  // T007 — provider settings, honest about generation being off.
+  // T007 — provider settings, honest about AI being off after "Set up later".
   await win.getByRole('button', { name: /AI providers/ }).click();
   const table = win.getByRole('table');
   await expect(table.getByRole('row')).toHaveCount(3);
   await expect(table.getByText('Off', { exact: true })).toHaveCount(2);
-  await expect(win.getByRole('heading', { name: 'Draft storyboards with Claude Code' })).toBeVisible();
+  await expect(win.getByRole('radiogroup', { name: 'Default AI' }).getByRole('radio', { name: 'Off' })).toHaveAttribute('aria-checked', 'true');
+  await expect(win.getByRole('checkbox', { name: 'Allow web research' })).not.toBeChecked();
   await win.getByRole('button', { name: 'Check again' }).click();
   await expect(win.getByRole('button', { name: 'Check again' })).toBeEnabled();
   await win.screenshot({ path: path.join(screenshots, 'desktop-m1-providers.png') });

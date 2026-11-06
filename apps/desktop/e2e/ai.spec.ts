@@ -28,6 +28,37 @@ const replies: FakeReplies = [
     },
   },
   {
+    marker: 'Propose 3 ORIGINAL',
+    reply: {
+      directions: [
+        {
+          name: 'River Ember',
+          description: 'Ink-blue night with marigold lantern light.',
+          colors: { background: '#0d1424', foreground: '#f4efe6', accent: '#f2a93b', secondary: '#9fb6d9' },
+          headingFont: 'didone',
+          bodyFont: 'humanist',
+          style: { mode: 'dark', scale: 'monumental', headingCase: 'normal', headingWeight: 'light', radius: 'soft', texture: 'grain', density: 'airy', reveal: 'blur', easing: 'dramatic', heroArt: 'particles', panelArt: 'arcs' },
+          composition: { hero: 'centered', chapterLayouts: ['full-bleed', 'split'], steps: 'timeline', showcase: 'stage', gallery: 'mosaic', cta: 'banner' },
+          rationale: 'Lanterns read best against a deep night sky.',
+        },
+        {
+          name: 'Paper Boat',
+          description: 'Rice-paper cream with vermilion ink.',
+          colors: { background: '#f6f0e4', foreground: '#1f1a14', accent: '#a8321c', secondary: '#6b5a44' },
+          headingFont: 'classic-serif',
+          bodyFont: 'book-serif',
+          style: { mode: 'light', scale: 'editorial', headingCase: 'normal', headingWeight: 'regular', radius: 'sharp', texture: 'none', density: 'balanced', reveal: 'mask', easing: 'gentle', heroArt: 'ribbons', panelArt: 'stripes' },
+          composition: { hero: 'split', chapterLayouts: ['editorial'], steps: 'cards', showcase: 'split', gallery: 'grid', cta: 'card' },
+          rationale: 'A daylight, handmade feel for families planning ahead.',
+        },
+      ],
+    },
+  },
+  {
+    marker: 'Write the creative brief',
+    reply: { audience: 'Local families with young children', tone: 'Warm, magical, unhurried', motion: 'calm', chapters: 2, notes: 'Show the first lantern on the water.', reasons: 'Young children and evening reading call for a calm pace.' },
+  },
+  {
     marker: 'Story Architect',
     reply: {
       scenes: [
@@ -82,6 +113,19 @@ test('first run: choose and test an AI provider, then draft a storyboard with it
   await win.getByRole('button', { name: /Plan their evening/ }).click();
   await expect(win.getByText('Studio decides: Young families — The idea names families.')).toBeVisible();
   await win.getByRole('tab', { name: 'Brief' }).click();
+
+  // Art directions from AI join the studio's own; contrast is enforced by the studio.
+  await win.getByRole('button', { name: 'Suggest directions with AI' }).click();
+  const directions = win.getByRole('radiogroup', { name: 'Art direction' });
+  await expect(directions.getByRole('radio', { name: /River Ember/ })).toBeVisible({ timeout: 30_000 });
+  await expect(directions.getByRole('radio', { name: /Paper Boat/ })).toContainText('A daylight, handmade feel');
+  await directions.getByRole('radio', { name: /River Ember/ }).click();
+  await win.getByRole('button', { name: 'Save draft' }).click();
+  await win.getByRole('button', { name: 'Fill brief with AI' }).click();
+  await expect(win.getByLabel('Audience')).toHaveValue('Local families with young children', { timeout: 30_000 });
+  await expect(win.getByText(/Filled by AI \(Claude Code\): Young children and evening reading/)).toBeVisible();
+  await expect(directions.getByRole('radio', { name: /River Ember/ })).toHaveAttribute('aria-checked', 'true');
+  await win.screenshot({ path: path.join(screenshots, 'desktop-ai-brief.png') });
   await win.getByRole('button', { name: 'Approve brief' }).click();
   await expect(win.getByRole('radio', { name: 'Claude Code CLI' })).toBeDisabled();
   await expect(win.getByRole('radio', { name: 'Local planner (no AI)' })).toBeChecked();

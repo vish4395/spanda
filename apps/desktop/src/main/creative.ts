@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { DEFAULT_SETTINGS, StudioSettings as SettingsSchema, providerForStep } from '@studio/contracts';
+import { AI_STEPS, DEFAULT_SETTINGS, KickoffOutput, StudioSettings as SettingsSchema, providerForStep } from '@studio/contracts';
 import type {
   AiProviderId,
   AiStep,
@@ -17,12 +17,16 @@ import type {
   StudioSettings,
 } from '@studio/contracts';
 import type { JobContext, ProjectWorkspace } from '@studio/core';
-import { PROVIDER_LIMITS, codexRefusal, draftStoryboardWithAi, type AiResult } from '@studio/providers';
+import { PROVIDER_LIMITS, codexRefusal, draftStoryboardWithAi, runAiTask, type AiResult, type AiTask } from '@studio/providers';
 import { extractFacts, safeFetch, type FetchedPage } from '@studio/reference-analyzer';
 import type { StudioStore } from '@studio/storage';
 import {
-  QUESTIONS,
   directionsFor,
+  discoveryNotes,
+  effectiveAnswers,
+  kickoffPrompt,
+  questionsOf,
+  sanitizePlan,
   legacyDirection,
   draftBrief,
   isValidAnswer,
@@ -40,6 +44,8 @@ export interface CreativeDeps {
   /** Returns a small JPEG data URL of the page, or null when capture is unavailable. */
   capture: (url: string) => Promise<string | null>;
   draftWithAi: (provider: AiProviderId, prompt: string, ctx: JobContext, skills: string[], untrustedData: boolean) => Promise<AiResult<DraftStoryboardOutput>>;
+  /** Any other structured AI task (kickoff, directions, brief, scene edits, chat). */
+  runTask: <T>(provider: AiProviderId, task: AiTask<T>, ctx: JobContext) => Promise<AiResult<T>>;
   /** Text of the enabled skills that apply to a phase, for the AI prompt (empty when none). */
   guidance: (phase: 'storyboard' | 'direction' | 'code' | 'qa') => Promise<{ name: string; text: string }[]>;
 }
@@ -48,6 +54,7 @@ export const defaultCreativeDeps: CreativeDeps = {
   fetchPage: (url) => safeFetch(url),
   capture: async () => null,
   draftWithAi: (provider, prompt, ctx, skills, untrustedData) => draftStoryboardWithAi(provider, prompt, { signal: ctx.signal, onLog: ctx.log, skills, untrustedData }),
+  runTask: (provider, task, ctx) => runAiTask(provider, task, { signal: ctx.signal, onLog: ctx.log }),
   guidance: async () => [],
 };
 
@@ -135,13 +142,13 @@ export class CreativeService {
   private stageOf(file: CreativeFile): ProjectStage {
     if (file.storyboard?.approved && file.brief?.approved) return 'approved';
     if (file.brief?.approved) return 'storyboard_ready';
-    if (file.brief || nextQuestion(file.answers) === null) return 'brief_ready';
+    if (file.brief || nextQuestion(file.answers, questionsOf(file.plan)) === null) return 'brief_ready';
     return Object.keys(file.answers).length ? 'discovery' : 'draft';
   }
 
   /** The offered directions: generated per project and seed, plus the chosen one (in place of its family's new offer) if it is no longer offered. */
   private directionsOf(projectId: string, file: CreativeFile): CreativeDirection[] {
-    const directions = directionsFor(file.answers, { seed: file.directionSeed ?? 0, salt: projectId });
+    const directions = directionsFor(effectiveAnswers(file.answers, file.plan), { seed: file.directionSeed ?? 0, salt: projectId });
     const chosen = file.brief ? this.chosenDirection(projectId, file, directions) : null;
     if (chosen && !directions.some((d) => d.id === chosen.id)) return [chosen, ...directions.filter((d) => d.name !== chosen.name)];
     return directions;
@@ -152,7 +159,7 @@ export class CreativeService {
     const brief = file.brief;
     if (!brief) return null;
     if (brief.direction?.id === brief.directionId) return brief.direction;
-    const pool = offered ?? directionsFor(file.answers, { seed: file.directionSeed ?? 0, salt: projectId });
+    const pool = offered ?? directionsFor(effectiveAnswers(file.answers, file.plan), { seed: file.directionSeed ?? 0, salt: projectId });
     return pool.find((d) => d.id === brief.directionId) ?? legacyDirection(brief.directionId);
   }
 
@@ -167,11 +174,14 @@ export class CreativeService {
     const spec = await this.workspace.readSpec(projectId);
     const idea = spec.ok ? spec.spec.project.goal : '';
     const directions = this.directionsOf(projectId, data);
+    const questions = questionsOf(data.plan);
     return {
       stage: this.stageOf(data),
       idea,
-      nextQuestion: nextQuestion(data.answers),
-      answered: QUESTIONS.filter((q) => q.id in data.answers).map((q) => ({ question: q, answer: data.answers[q.id]! })),
+      nextQuestion: nextQuestion(data.answers, questions),
+      questionCount: questions.length,
+      plan: data.plan ?? null,
+      answered: questions.filter((q) => q.id in data.answers).map((q) => ({ question: q, answer: data.answers[q.id]! })),
       directions,
       brief: data.brief,
       storyboard: data.storyboard,
@@ -183,9 +193,53 @@ export class CreativeService {
           return { id, label: PROVIDER_LABEL[id], available: reason === null, reason };
         }),
       ],
+      aiSteps: Object.fromEntries(
+        AI_STEPS.map((step) => {
+          const provider = providerForStep(this.settings(), step);
+          return [step, { provider, available: provider !== 'none' && this.unavailable(step, provider) === null, reason: provider === 'none' ? 'AI is off for this step. Choose a provider in AI providers.' : this.unavailable(step, provider) }];
+        }),
+      ) as CreativeState['aiSteps'],
       aiJob: this.aiJobs.get(projectId) ?? null,
       aiError: this.aiErrors.get(projectId) ?? null,
     };
+  }
+
+  /** The provider that runs a step, or an error explaining why none can. */
+  private providerFor(step: AiStep): AiProviderId {
+    const provider = providerForStep(this.settings(), step);
+    if (provider === 'none') throw new Error('AI is off for this step. Choose a provider in AI providers.');
+    const reason = this.unavailable(step, provider);
+    if (reason) throw new Error(reason);
+    return provider;
+  }
+
+  /**
+   * Kickoff: AI plans the project from its name and idea, with next steps and
+   * questions made for it. `auto` (right after creating a project) stays silent
+   * when AI is off or unavailable.
+   */
+  async kickoff(projectId: string, options: { auto?: boolean } = {}): Promise<CreativeState> {
+    let provider: AiProviderId;
+    try {
+      provider = this.providerFor('kickoff');
+    } catch (err) {
+      if (options.auto) return this.state(projectId);
+      throw err;
+    }
+    const spec = await this.workspace.readSpec(projectId);
+    if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
+    const { name, goal } = spec.spec.project;
+    this.runAi(projectId, 'kickoff', `Planning “${name}” with the ${PROVIDER_LABEL[provider]}`, async (ctx) => {
+      const guidance = await this.deps.guidance('storyboard');
+      const { value, provenance } = await this.deps.runTask(provider, { name: 'kickoff', prompt: kickoffPrompt({ name, idea: goal, guidance }), schema: KickoffOutput, skills: guidance.map((g) => g.name) }, ctx);
+      const latest = await this.workspace.readCreative(projectId);
+      // Answers to an earlier plan's questions no longer apply; answers to the fixed core questions still do.
+      for (const id of Object.keys(latest.answers)) if (id.startsWith('q-')) delete latest.answers[id];
+      latest.plan = sanitizePlan(value, provenance);
+      await this.save(projectId, latest);
+      ctx.log(`Plan saved: ${latest.plan.questions.length} questions, ${latest.plan.nextSteps.length} next steps.`);
+    });
+    return this.state(projectId);
   }
 
   private async save(projectId: string, file: CreativeFile): Promise<CreativeState> {
@@ -199,10 +253,10 @@ export class CreativeService {
     if (answer === null) {
       delete file.answers[questionId]; // "Change answer" re-asks this question
     } else {
-      if (!isValidAnswer(questionId, answer)) throw new Error('That answer is not one of the options.');
+      if (!isValidAnswer(questionId, answer, questionsOf(file.plan))) throw new Error('That answer is not one of the options.');
       file.answers[questionId] = answer;
     }
-    if (nextQuestion(file.answers) === null && !file.brief) file.brief = draftBrief(file.answers, this.directionsOf(projectId, file));
+    if (nextQuestion(file.answers, questionsOf(file.plan)) === null && !file.brief) file.brief = draftBrief(effectiveAnswers(file.answers, file.plan), this.directionsOf(projectId, file));
     return this.save(projectId, file);
   }
 
@@ -242,7 +296,7 @@ export class CreativeService {
     const { name, goal } = spec.spec.project;
     const direction = this.requireDirection(projectId, file);
     if (planner === 'local-planner') {
-      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(file.answers, 'subject'), direction });
+      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(effectiveAnswers(file.answers, file.plan), 'subject'), direction });
       return this.save(projectId, file);
     }
     const reason = this.unavailable('storyboard', planner) ?? (planner === 'codex' ? codexRefusal({ untrustedData: file.references.length > 0 }) : null);
@@ -250,7 +304,7 @@ export class CreativeService {
     const brief = file.brief;
     this.runAi(projectId, 'storyboard', `Drafting the storyboard with the ${PROVIDER_LABEL[planner]}`, async (ctx) => {
       const guidance = await this.deps.guidance('storyboard');
-      const prompt = storyboardPrompt({ name, idea: goal, brief, direction, references: file.references, guidance });
+      const prompt = storyboardPrompt({ name, idea: goal, brief, direction, references: file.references, guidance, discovery: discoveryNotes(file.answers, file.plan) });
       const { value, provenance } = await this.deps.draftWithAi(planner, prompt, ctx, guidance.map((g) => g.name), file.references.length > 0);
       // Re-read: the user may have edited other parts of the project while the job ran.
       const latest = await this.workspace.readCreative(projectId);

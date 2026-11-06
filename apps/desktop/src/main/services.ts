@@ -130,6 +130,8 @@ export class StudioServices {
     this.store.upsertProject(summary);
     await this.recordVersion(summary.id, spec, 'Created', null);
     this.store.touchProject(summary.id);
+    // With AI on, planning starts right away; without it, the fixed questions are used.
+    await this.creativeService.kickoff(summary.id, { auto: true }).catch(() => undefined);
     return this.store.listProjects().find((p) => p.id === summary.id)!;
   }
 

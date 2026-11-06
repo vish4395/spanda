@@ -96,6 +96,10 @@ export function registerIpc(services: StudioServices, menus: StudioMenus, inspec
       const { projectId } = req as { projectId: string };
       return services.creative(projectId).moreDirections(projectId);
     },
+    'creative.kickoff': (req) => {
+      const { projectId } = req as { projectId: string };
+      return services.creative(projectId).kickoff(projectId);
+    },
     'creative.approveBrief': (req) => {
       const { projectId } = req as { projectId: string };
       return services.creative(projectId).approveBrief(projectId);

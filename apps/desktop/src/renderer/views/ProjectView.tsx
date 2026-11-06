@@ -188,21 +188,24 @@ export function ProjectView({ projectId, experience, onJobChange, onProjectsChan
   const stepState = Object.fromEntries(TABS.map((t) => [t.id, doneSteps[t.id] ? 'done' : t.id === firstOpen ? 'next' : 'todo'])) as Record<TabId, 'done' | 'next' | 'todo'>;
 
   // Guided mode: one plain-language next step at a time.
-  type NextStep = { title: string; detail: string; action: { label: string; run: () => void; primary?: boolean; disabled?: boolean } | null };
+  type NextStep = { title: string; detail: string; action: { label: string; run: () => void; primary?: boolean; disabled?: boolean } | null; alt?: { label: string; run: () => void } };
+  const planForMe = { label: 'Plan for me', run: () => void call('creative.planForMe', { projectId }).then(setCreative).catch((err: Error) => setError(err.message)) };
   const go = (id: TabId, label: string) => (tab === id ? null : { label, run: () => setTab(id) });
   const next: NextStep | null = (() => {
     if (!creative || creative.aiJob || running) return null;
     if (!doneSteps.discover)
       return {
         title: creative.plan ? 'Answer the questions written for your project' : 'Answer a few quick questions',
-        detail: 'They set the mood, how long the story is and what the 3D visuals show. Not sure? Choose “You decide”.',
+        detail: 'They set the kind of site, the mood and what the 3D visuals show. Not sure? Choose “Decide for me”, or let the studio plan everything.',
         action: go('discover', 'Go to questions'),
+        alt: planForMe,
       };
     if (!doneSteps.brief)
       return {
         title: 'Pick a look and approve the brief',
         detail: creative.aiSteps.brief.available ? 'Choose an art direction, let AI fill in the brief if you like, then approve it.' : 'Choose an art direction, check who the site is for, then approve it.',
         action: go('brief', 'Go to the brief'),
+        alt: planForMe,
       };
     if (!creative.storyboard)
       return { title: 'Draft your story', detail: 'The studio writes the scenes from your brief. You can change every word afterwards.', action: go('storyboard', 'Go to the storyboard') };
@@ -419,6 +422,11 @@ export function ProjectView({ projectId, experience, onJobChange, onProjectsChan
               <h2 id="next-step-title">{next.title}</h2>
               <p className="muted">{next.detail}</p>
             </div>
+            {next.alt && (
+              <button type="button" className="btn btn--ghost" onClick={next.alt.run}>
+                {next.alt.label}
+              </button>
+            )}
             {next.action && (
               <button type="button" className={`btn ${next.action.primary ? 'btn--primary' : 'btn--secondary'}`} onClick={next.action.run} disabled={next.action.disabled}>
                 {next.action.label}

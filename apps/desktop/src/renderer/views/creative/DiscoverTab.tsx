@@ -23,6 +23,17 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
   const kickoff = state.aiSteps.kickoff;
   const plan = state.plan;
 
+  const planForMe = async () => {
+    setPlanning(true);
+    try {
+      onState(await call('creative.planForMe', { projectId }));
+    } catch (err) {
+      onError((err as Error).message);
+    } finally {
+      setPlanning(false);
+    }
+  };
+
   const replan = async () => {
     setPlanning(true);
     try {
@@ -70,6 +81,21 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
 
   return (
     <div className="tab-body">
+      {state.stage !== 'approved' && state.storyboard === null && (
+        <section className="plan-for-me" aria-labelledby="plan-for-me-title">
+          <div>
+            <h2 id="plan-for-me-title">Not sure where to start?</h2>
+            <p className="muted small">
+              The studio can decide everything for you: the kind of site, the questions, an art direction and the brief, then draft the storyboard. You review the story at the end and change anything.
+            </p>
+          </div>
+          <button type="button" className="btn btn--primary" onClick={() => void planForMe()} disabled={planning || state.aiJob !== null} aria-busy={planning}>
+            {planning && <SpinnerIcon />}
+            Plan for me
+          </button>
+        </section>
+      )}
+
       {plan ? (
         <section className="card plan" aria-labelledby="plan-title">
           <div className="card__head">
@@ -142,9 +168,11 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
             Question {state.answered.length + 1} of {state.questionCount} · {q.reason}
           </p>
           <h2 id="question-prompt">{q.prompt}</h2>
-          <div className="choice-grid" role="group" aria-labelledby="question-prompt">
+          <div className={`choice-grid${q.id === 'look' ? ' choice-grid--looks' : ''}`} role="group" aria-labelledby="question-prompt">
             {q.options.map((option) => (
               <button key={option.id} type="button" className="choice" onClick={() => void answer(q.id, option.id)} disabled={busy}>
+                {q.id === 'look' && <span className={`look-thumb look-thumb--${option.id}`} aria-hidden="true" />}
+                {q.id === 'look' && option.id === q.default && q.why && <span className="badge">Suggested</span>}
                 <span className="choice__label">{option.label}</span>
                 <span className="choice__text">{option.explanation}</span>
               </button>
@@ -152,7 +180,7 @@ export function DiscoverTab({ projectId, state, onState, onError }: Props) {
           </div>
           <div className="form-actions">
             <button type="button" className="btn btn--secondary" onClick={() => void answer(q.id, 'ai-decide')} disabled={busy} title={q.why ? `Studio would pick “${q.options.find((o) => o.id === q.default)?.label}”: ${q.why}` : undefined}>
-              You decide
+              {q.id === 'look' ? 'Decide for me' : 'You decide'}
             </button>
             <button type="button" className="btn btn--ghost" onClick={() => void answer(q.id, 'skip')} disabled={busy}>
               Skip

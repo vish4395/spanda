@@ -569,6 +569,30 @@ html[data-texture='dots'] body::after {
   background-size: 22px 22px;
 }
 
+/* Hero copy sits on a soft scrim in the page colour, so moving art never cuts through the text.
+   Painted after the canvas and below the copy (z-index 1); centred where each variant puts the copy. */
+.scene--hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(ellipse 48% 42% at var(--scrim-x, 26%) var(--scrim-y, 72%), color-mix(in srgb, var(--color-bg) 82%, transparent), transparent);
+  pointer-events: none;
+}
+
+.scene--hero[data-variant='centered'] {
+  --scrim-x: 50%;
+  --scrim-y: 52%;
+}
+
+.scene--hero[data-variant='top-left'] {
+  --scrim-y: 34%;
+}
+
+.scene--hero[data-variant='split'] {
+  --scrim-y: 50%;
+}
+
 /* Hero compositions */
 .scene--hero[data-variant='centered'] {
   align-items: center;

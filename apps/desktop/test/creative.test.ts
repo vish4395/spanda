@@ -219,11 +219,11 @@ describe('creative workflow', () => {
 
   it('migrates the old storyboard opt-in to the default provider', async () => {
     const { s } = await boot();
-    expect(s.settings().settings()).toEqual({ onboarded: false, provider: 'none', steps: {}, deepResearch: false });
+    expect(s.settings().settings()).toEqual({ onboarded: false, experience: 'guided', provider: 'none', steps: {}, deepResearch: false });
     s.store.setSetting('claudeStoryboard', 'true');
     expect(s.settings().settings()).toMatchObject({ onboarded: true, provider: 'claude-code' });
-    s.settings().saveSettings({ onboarded: true, provider: 'codex', steps: { research: 'none' }, deepResearch: true });
-    expect(s.settings().settings()).toEqual({ onboarded: true, provider: 'codex', steps: { research: 'none' }, deepResearch: true });
+    s.settings().saveSettings({ onboarded: true, experience: 'pro', provider: 'codex', steps: { research: 'none' }, deepResearch: true });
+    expect(s.settings().settings()).toEqual({ onboarded: true, experience: 'pro', provider: 'codex', steps: { research: 'none' }, deepResearch: true });
   });
 
   it('plans the project with AI right after creation: next steps, its own questions, and "You decide" with a reason', async () => {

@@ -15,6 +15,7 @@ import type {
   StoryboardScene,
   StorySpec,
   StudioSettings,
+  StudioSettingsInput,
 } from '@studio/contracts';
 import type { JobContext, ProjectWorkspace } from '@studio/core';
 import { PROVIDER_LIMITS, codexRefusal, draftStoryboardWithAi, runAiTask, type AiResult, type AiTask } from '@studio/providers';
@@ -111,7 +112,7 @@ export class CreativeService {
     return DEFAULT_SETTINGS;
   }
 
-  saveSettings(settings: StudioSettings): StudioSettings {
+  saveSettings(settings: StudioSettingsInput): StudioSettings {
     this.store.setSetting('studio', JSON.stringify(SettingsSchema.parse(settings)));
     return this.settings();
   }

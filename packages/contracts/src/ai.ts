@@ -25,9 +25,14 @@ export const AI_STEP_LABELS: Record<AiStep, string> = {
   research: 'Deep research',
 };
 
+/** Guided: plain language, one next step at a time. Pro: every control, IDs, logs and history. */
+export const Experience = z.enum(['guided', 'pro']);
+export type Experience = z.infer<typeof Experience>;
+
 export const StudioSettings = z.object({
   /** First-run setup finished (provider chosen or skipped). */
   onboarded: z.boolean(),
+  experience: Experience.default('guided'),
   /** Default provider for every AI step. */
   provider: AiChoice,
   /** Per-step overrides of `provider`. */
@@ -36,8 +41,9 @@ export const StudioSettings = z.object({
   deepResearch: z.boolean(),
 });
 export type StudioSettings = z.infer<typeof StudioSettings>;
+export type StudioSettingsInput = z.input<typeof StudioSettings>;
 
-export const DEFAULT_SETTINGS: StudioSettings = { onboarded: false, provider: 'none', steps: {}, deepResearch: false };
+export const DEFAULT_SETTINGS: StudioSettings = { onboarded: false, experience: 'guided', provider: 'none', steps: {}, deepResearch: false };
 
 /** The provider a step uses, after overrides. */
 export function providerForStep(settings: StudioSettings, step: AiStep): AiChoice {

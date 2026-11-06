@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import type { ProviderStatus, StudioSettings } from '@studio/contracts/ipc';
+import type { AiChoice, AiProviderId, AiStep } from '@studio/contracts';
+import type { JobSnapshot, ProviderStatus, StudioSettings } from '@studio/contracts/ipc';
 import { call } from '../api';
-import { StatusChip } from '../components/Common';
+import { AiActivity } from '../components/AiActivity';
+import { Segmented, StatusChip } from '../components/Common';
 import { ShieldIcon, SpinnerIcon } from '../components/Icons';
 
 interface Props {
@@ -10,21 +12,58 @@ interface Props {
   onRecheck: () => void;
 }
 
+const STEPS: { id: AiStep; label: string; detail: string }[] = [
+  { id: 'kickoff', label: 'Project plan and questions', detail: 'Reads your name and idea, suggests next steps and asks questions made for this project.' },
+  { id: 'direction', label: 'Art directions', detail: 'Proposes palettes, type and style; contrast is always checked.' },
+  { id: 'brief', label: 'Creative brief', detail: 'Fills audience, tone and chapters for you to edit.' },
+  { id: 'storyboard', label: 'Storyboard', detail: 'Drafts scenes and copy from the approved brief.' },
+  { id: 'scene', label: 'Scene edits', detail: 'Rewrites one scene at a time; you accept or reject the change.' },
+  { id: 'chat', label: 'Studio chat', detail: 'Builds through conversation; every change is a card you accept.' },
+  { id: 'research', label: 'Deep research', detail: 'Searches the web for your topic and cites its sources.' },
+];
+
+const LABEL: Record<AiChoice, string> = { 'claude-code': 'Claude Code', codex: 'Codex', none: 'Off' };
+
 export function ProvidersView({ providers, checking, onRecheck }: Props) {
   const [settings, setSettings] = useState<StudioSettings | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [test, setTest] = useState<{ jobId: string; title: string } | null>(null);
+  const [result, setResult] = useState<JobSnapshot | null>(null);
   useEffect(() => {
     call('settings.get').then(setSettings).catch(() => setSettings(null));
   }, []);
-  const claude = providers?.find((p) => p.id === 'claude-code');
-  const toggle = async (value: boolean) => {
+  const installed = (id: AiProviderId) => providers?.find((p) => p.id === id)?.state === 'available';
+
+  const save = async (next: StudioSettings) => {
     setSaving(true);
+    setError(null);
     try {
-      setSettings(await call('settings.set', { claudeStoryboard: value }));
+      setSettings(await call('settings.set', next));
+    } catch (err) {
+      setError((err as Error).message);
     } finally {
       setSaving(false);
     }
   };
+  const setStep = (step: AiStep, value: AiChoice | 'default') => {
+    if (!settings) return;
+    const steps = { ...settings.steps };
+    if (value === 'default') delete steps[step];
+    else steps[step] = value;
+    void save({ ...settings, steps });
+  };
+  const runTest = async (provider: AiProviderId) => {
+    setResult(null);
+    try {
+      const job = await call('ai.test', { provider });
+      setTest({ jobId: job.id, title: job.title ?? 'Testing connection' });
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+  const missing = (choice: AiChoice) => choice !== 'none' && providers !== null && !installed(choice);
+
   return (
     <div className="page">
       <div className="page__header">
@@ -34,11 +73,11 @@ export function ProvidersView({ providers, checking, onRecheck }: Props) {
           Check again
         </button>
       </div>
-      <p className="muted page__intro">The studio uses the official CLIs you install and sign in to yourself. It only checks whether each CLI is present and which version it is.</p>
+      <p className="muted page__intro">The studio uses the official CLIs you install and sign in to yourself. Choose which one helps at each step; you review and approve everything it suggests.</p>
       <div className="notice">
         <ShieldIcon />
         <p>
-          Your sign-in stays with each CLI. The studio never reads, copies or shares credentials or subscription sessions. AI features are opt-in, run only on this computer through the CLI you installed, and every result is validated and reviewed by you.
+          Your sign-in stays with each CLI. The studio never reads, copies or shares credentials or subscription sessions. AI runs on this computer with its tools limited to the task (no shell, no file edits), every result is validated, and usage counts against your own plan under that provider’s terms.
         </p>
       </div>
       <table className="table">
@@ -48,8 +87,10 @@ export function ProvidersView({ providers, checking, onRecheck }: Props) {
             <th scope="col">Provider</th>
             <th scope="col">Status</th>
             <th scope="col">Version</th>
-            <th scope="col">AI generation</th>
-            <th scope="col">Details</th>
+            <th scope="col">Used for</th>
+            <th scope="col">
+              <span className="visually-hidden">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -60,32 +101,95 @@ export function ProvidersView({ providers, checking, onRecheck }: Props) {
               </td>
             </tr>
           ) : (
-            providers.map((p) => (
-              <tr key={p.id}>
-                <th scope="row">{p.displayName}</th>
-                <td>{p.state === 'available' ? <StatusChip tone="ok">Installed</StatusChip> : p.state === 'not-found' ? <StatusChip tone="idle">Not installed</StatusChip> : <StatusChip tone="warn">Error</StatusChip>}</td>
-                <td className="mono">{p.version ?? '—'}</td>
-                <td>
-                  {p.id === 'claude-code' && settings?.claudeStoryboard ? <StatusChip tone="ok">Storyboard drafting on</StatusChip> : <StatusChip tone="idle">Off</StatusChip>}
-                </td>
-                <td className="muted">{p.detail ?? ''}</td>
-              </tr>
-            ))
+            providers.map((p) => {
+              const used = settings ? STEPS.filter((s) => (settings.steps[s.id] ?? settings.provider) === p.id).length : 0;
+              return (
+                <tr key={p.id}>
+                  <th scope="row">{p.displayName}</th>
+                  <td>{p.state === 'available' ? <StatusChip tone="ok">Installed</StatusChip> : p.state === 'not-found' ? <StatusChip tone="idle">Not installed</StatusChip> : <StatusChip tone="warn">Error</StatusChip>}</td>
+                  <td className="mono">{p.version ?? '—'}</td>
+                  <td>{used ? <StatusChip tone="ok">{`${used} of ${STEPS.length} steps`}</StatusChip> : <StatusChip tone="idle">Off</StatusChip>}</td>
+                  <td>
+                    <button type="button" className="btn btn--secondary btn--small" disabled={p.state !== 'available' || test !== null} onClick={() => void runTest(p.id)}>
+                      Test connection
+                    </button>
+                  </td>
+                </tr>
+              );
+            })
           )}
         </tbody>
       </table>
+      {test && (
+        <AiActivity
+          jobId={test.jobId}
+          title={test.title}
+          onFinished={(job) => {
+            setTest(null);
+            setResult(job);
+          }}
+        />
+      )}
+      {result && (
+        <div className={`notice ${result.status === 'succeeded' ? 'notice--ok' : ''}`} role="status">
+          <p>{result.status === 'succeeded' ? result.log.at(-1) : result.status === 'cancelled' ? 'Test cancelled.' : `The test failed: ${result.error ?? 'unknown error'}`}</p>
+        </div>
+      )}
 
-      <section className="card setting" aria-labelledby="claude-setting-title">
-        <h2 id="claude-setting-title">Draft storyboards with Claude Code</h2>
-        <p className="muted">
-          When on, the Storyboard step can ask your locally installed, signed-in Claude Code CLI to draft scene copy. It runs in its documented non-interactive mode with every tool disabled, in an empty folder, and the prompt contains only this project’s name, idea, brief and reference observations. The result is validated and you review it before anything is approved. Usage counts against your own Claude plan and is subject to Anthropic’s terms.
+      {settings && (
+        <>
+          <section className="card setting" aria-labelledby="default-provider-title">
+            <h2 id="default-provider-title">Default AI</h2>
+            <p className="muted">Used by every step unless you choose otherwise below.</p>
+            <Segmented
+              label="Default AI"
+              value={settings.provider}
+              onChange={(provider) => void save({ ...settings, provider })}
+              options={(['claude-code', 'codex', 'none'] as const).map((id) => ({ id, label: LABEL[id] }))}
+            />
+            {missing(settings.provider) && <p className="small card__reason">{LABEL[settings.provider]} is not installed. Steps fall back to the local planner until it is.</p>}
+          </section>
+
+          <section className="card setting" aria-labelledby="steps-title">
+            <h2 id="steps-title">AI for each step</h2>
+            <ul className="step-providers">
+              {STEPS.map((step) => {
+                const value = settings.steps[step.id] ?? 'default';
+                return (
+                  <li key={step.id}>
+                    <div>
+                      <label className="step-providers__label" htmlFor={`step-${step.id}`}>
+                        {step.label}
+                      </label>
+                      <p className="small muted">{step.detail}</p>
+                    </div>
+                    <select id={`step-${step.id}`} value={value} disabled={saving} onChange={(e) => setStep(step.id, e.target.value as AiChoice | 'default')}>
+                      <option value="default">Default ({LABEL[settings.provider]})</option>
+                      <option value="claude-code">Claude Code</option>
+                      <option value="codex">Codex</option>
+                      <option value="none">Off</option>
+                    </select>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+
+          <section className="card setting" aria-labelledby="research-title">
+            <h2 id="research-title">Deep research</h2>
+            <p className="muted">When on, research tasks may search the web and read public pages about your topic. Only search and page reading are allowed; results cite their sources and are treated as untrusted input. Searches can use noticeably more of your plan.</p>
+            <label className="toggle">
+              <input type="checkbox" checked={settings.deepResearch} disabled={saving} onChange={(e) => void save({ ...settings, deepResearch: e.target.checked })} />
+              <span>Allow web research</span>
+            </label>
+          </section>
+        </>
+      )}
+      {error && (
+        <p className="small card__reason" role="alert">
+          {error}
         </p>
-        <label className="toggle">
-          <input type="checkbox" checked={settings?.claudeStoryboard ?? false} disabled={settings === null || saving || claude?.state !== 'available'} onChange={(e) => void toggle(e.target.checked)} />
-          <span>Use Claude Code CLI for storyboard drafts</span>
-        </label>
-        {claude && claude.state !== 'available' && <p className="small card__reason">Install and sign in to the official Claude Code CLI to enable this.</p>}
-      </section>
+      )}
     </div>
   );
 }

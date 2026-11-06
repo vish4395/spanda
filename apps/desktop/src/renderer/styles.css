@@ -1479,3 +1479,109 @@ button {
   background: color-mix(in srgb, var(--accent) 22%, var(--raised));
   color: var(--fg);
 }
+
+/* AI tasks */
+.ai-activity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+}
+
+.ai-activity__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-activity__title {
+  margin: 0;
+  font-weight: 500;
+}
+
+.ai-activity__detail {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.ai-activity__time {
+  color: var(--fg-muted);
+  font-size: 0.75rem;
+}
+
+/* First run and provider settings */
+.provider-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+  background: var(--raised);
+  color: var(--fg);
+  text-align: left;
+  cursor: pointer;
+}
+
+.provider-choice:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.provider-choice[aria-checked='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.provider-choice:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.provider-choice__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.provider-choice__title {
+  font-weight: 500;
+}
+
+.welcome .direction-grid {
+  margin: 16px 0;
+}
+
+.step-providers {
+  display: grid;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step-providers li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.step-providers p {
+  margin: 2px 0 0;
+}
+
+.step-providers__label {
+  font-weight: 500;
+}
+
+.step-providers select {
+  min-width: 190px;
+}

@@ -7,8 +7,9 @@ import { NewProjectView } from './views/NewProjectView';
 import { ProjectView, type ProjectMenuState } from './views/ProjectView';
 import { ProvidersView } from './views/ProvidersView';
 import { SkillsView } from './views/SkillsView';
+import { WelcomeView } from './views/WelcomeView';
 
-type View = { kind: 'project'; projectId: string } | { kind: 'new' } | { kind: 'skills' } | { kind: 'providers' } | { kind: 'empty' };
+type View = { kind: 'project'; projectId: string } | { kind: 'new' } | { kind: 'skills' } | { kind: 'providers' } | { kind: 'welcome' } | { kind: 'empty' };
 
 const PROJECT_DEFAULTS: ProjectMenuState = { canGenerate: false, canSnapshot: false, canExport: false, running: false, tab: null, target: 'html', device: 'desktop', reducedMotion: false, hasPreview: false };
 /** Commands handled by the open project view (forwarded, or queued until that project opens). */
@@ -43,14 +44,15 @@ export function App() {
     }
   }, []);
 
+  const openFirst = useCallback((list: ProjectSummary[]) => setView(list[0] ? { kind: 'project', projectId: list[0].id } : { kind: 'empty' }), []);
+
   useEffect(() => {
-    reloadProjects()
-      .then((list) => {
-        if (list[0]) setView({ kind: 'project', projectId: list[0].id });
-      })
+    // First run: choose an AI provider before anything else.
+    Promise.all([reloadProjects(), call('settings.get')])
+      .then(([list, settings]) => (settings.onboarded ? openFirst(list) : setView({ kind: 'welcome' })))
       .catch((err: Error) => setError(err.message));
     void probe();
-  }, [reloadProjects, probe]);
+  }, [reloadProjects, probe, openFirst]);
 
   const onProjectsChanged = useCallback(() => {
     void reloadProjects();
@@ -97,7 +99,7 @@ export function App() {
 
   const selectedId = view.kind === 'project' ? view.projectId : null;
   const selected = projects.find((p) => p.id === selectedId) ?? null;
-  const crumb = view.kind === 'project' ? selected?.name : view.kind === 'new' ? 'New project' : view.kind === 'skills' ? 'Skills' : view.kind === 'providers' ? 'AI providers' : null;
+  const crumb = view.kind === 'project' ? selected?.name : view.kind === 'new' ? 'New project' : view.kind === 'skills' ? 'Skills' : view.kind === 'providers' ? 'AI providers' : view.kind === 'welcome' ? 'Welcome' : null;
 
   const jobChip =
     view.kind !== 'project' || !job ? (
@@ -211,6 +213,7 @@ export function App() {
         )}
         {view.kind === 'skills' && <SkillsView />}
         {view.kind === 'providers' && <ProvidersView providers={providers} checking={checkingProviders} onRecheck={() => void probe()} />}
+        {view.kind === 'welcome' && <WelcomeView providers={providers} checking={checkingProviders} onRecheck={() => void probe()} onDone={() => openFirst(projects)} />}
         {view.kind === 'empty' && (
           <div className="empty">
             <p className="empty__title">No project selected</p>

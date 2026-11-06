@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { CreativeState, StoryboardScene } from '@studio/contracts';
+import type { CreativeState, StoryboardPlanner, StoryboardScene } from '@studio/contracts';
 import { call } from '../../api';
 import { StatusChip } from '../../components/Common';
 import { ITEM_LIMITS, ItemsEditor } from '../../components/ItemsEditor';
@@ -37,7 +37,9 @@ function newScene(type: SceneType, id: string): StoryboardScene {
 
 export function StoryboardTab({ projectId, state, onState, onError, onApproved }: Props) {
   const [scenes, setScenes] = useState<StoryboardScene[]>([]);
-  const [planner, setPlanner] = useState<'local-planner' | 'claude-code'>('local-planner');
+  // Preselect the AI chosen for this step when it can run; otherwise the local planner.
+  const [picked, setPicked] = useState<StoryboardPlanner | null>(null);
+  const planner = picked ?? state.planners.find((p) => p.id !== 'local-planner' && p.available)?.id ?? 'local-planner';
   const [busy, setBusy] = useState<'draft' | 'save' | 'approve' | null>(null);
   const [announcement, setAnnouncement] = useState('');
   const [addType, setAddType] = useState<SceneType>('chapter');
@@ -104,17 +106,17 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
           <legend>Draft with</legend>
           {state.planners.map((p) => (
             <label key={p.id} className={`radio ${p.available ? '' : 'radio--disabled'}`}>
-              <input type="radio" name="planner" value={p.id} checked={planner === p.id} disabled={!p.available} onChange={() => setPlanner(p.id)} />
+              <input type="radio" name="planner" value={p.id} checked={planner === p.id} disabled={!p.available} onChange={() => setPicked(p.id)} />
               {p.label}
             </label>
           ))}
         </fieldset>
-        <button type="button" className="btn btn--secondary" onClick={() => void run('draft')} disabled={busy !== null || !selectedPlanner?.available} aria-busy={busy === 'draft'}>
+        <button type="button" className="btn btn--secondary" onClick={() => void run('draft')} disabled={busy !== null || state.aiJob !== null || !selectedPlanner?.available} aria-busy={busy === 'draft'}>
           {busy === 'draft' && <SpinnerIcon />}
           {state.storyboard ? 'Redraft storyboard' : 'Draft storyboard'}
         </button>
       </div>
-      {state.planners.filter((p) => !p.available && p.reason).map((p) => (
+      {state.planners.filter((p) => !p.available && p.reason && p.id === picked).map((p) => (
         <p key={p.id} className="muted small">
           {p.label}: {p.reason}
         </p>

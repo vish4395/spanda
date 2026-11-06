@@ -10,6 +10,7 @@ import type { StorySpec } from '@studio/contracts';
 import { BriefTab } from './creative/BriefTab';
 import { DiscoverTab } from './creative/DiscoverTab';
 import { StoryboardTab } from './creative/StoryboardTab';
+import { AiActivity } from '../components/AiActivity';
 
 const TABS = [
   { id: 'discover', label: 'Discover' },
@@ -345,6 +346,21 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
           ))}
           {creative && <span className="tabs__stage muted small">Stage: {creative.stage.replace('_', ' ')}</span>}
         </div>
+
+        {creative?.aiJob && (
+          <AiActivity
+            key={creative.aiJob.id}
+            jobId={creative.aiJob.id}
+            title={creative.aiJob.title}
+            onFinished={(job) => {
+              call('creative.get', { projectId })
+                .then(setCreative)
+                .catch((err: Error) => setError(err.message));
+              if (job.status === 'failed') setError(job.error ?? 'The AI task failed.');
+              else if (job.status === 'succeeded') setAnnouncement(`${job.title ?? 'AI task'}: done. Review the result before approving.`);
+            }}
+          />
+        )}
 
         {creative && tab !== 'build' && (
           <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="tabpanel">

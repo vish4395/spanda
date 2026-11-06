@@ -1,5 +1,20 @@
 # Implementation log
 
+## 2026-11-06 — M-A1 AI provider layer and first-run setup
+
+| Area | Result |
+|---|---|
+| Runner | `@studio/providers` `runAiTask`: prompt + JSON Schema via stdin; tools per mode — none, `Read,Glob` on files copied into an empty temp folder, or `WebSearch,WebFetch` only; reply parsed, validated, retried once; provenance (provider, models, prompt hash, skills, cost) |
+| Providers | Claude Code CLI (live-tested: plain, file reading and web research modes) and Codex CLI (`exec --sandbox read-only`; flags from the published docs, **not verified live** because Codex is not installed here) |
+| Jobs | AI tasks run as cancellable jobs with logs, one per project at a time, persisted with the project and kept out of the generation history |
+| Settings | Default provider, per-step override, deep research consent; the old storyboard opt-in migrates to the default provider |
+| First run | Welcome screen preselects the installed CLI, runs a test call as a visible job, explains sign-in and data handling; "Set up later" keeps AI off |
+| Skills | Enabled, pinned skills matching the phase now reach prompts (until now `guidance` always returned nothing in the app) |
+
+The JSON Schema goes inside the prompt, not on the command line: on Windows `.cmd` launchers run through cmd.exe, so arguments stay limited to the safe character set.
+
+Verification: typecheck pass · 215/215 unit · desktop E2E 19/19 (new `ai.spec.ts` uses a scripted `claude` test double on PATH, never a real model) · live connection test against Claude Code 2.1.316 (claude-sonnet-5-5, about $0.014). Screenshots reviewed: welcome, AI providers, storyboard job running, AI-drafted storyboard.
+
 ## 2026-11-06 — Design language (StorySpec 0.2.0) and fixes
 
 | Area | Result |

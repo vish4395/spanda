@@ -5,8 +5,7 @@ import { CommandNotFoundError, runAllowlisted, type AllowedBinary } from '@studi
 // T004: detect official provider CLIs WITHOUT touching authentication.
 // We only run `<cli> --version`. Login state, tokens and subscriptions are
 // managed by each provider's own tooling; the studio never reads, copies or
-// proxies them. Real generation runs arrive in a later milestone after a
-// terms review of each CLI's supported automation modes (docs/07).
+// proxies them. Structured AI tasks run through `ai-runner.ts`.
 
 interface ProviderDef {
   id: ProviderStatus['id'];
@@ -41,4 +40,5 @@ export async function probeProvider(def: ProviderDef, run: Runner = runAllowlist
 export function probeAll(run?: Runner): Promise<ProviderStatus[]> {
   return Promise.all(PROVIDERS.map((def) => probeProvider(def, run)));
 }
-export * from './claude-code.ts';
+export * from './ai-runner.ts';
+export * from './storyboard.ts';

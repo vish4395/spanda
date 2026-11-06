@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@studio/contracts": "workspace:*",
-    "@studio/core": "workspace:*"
+    "@studio/core": "workspace:*",
+    "zod": "4.6.7"
   }
 }

@@ -15,15 +15,17 @@ describe('html-three generator', () => {
   it('renders semantic HTML with one h1, scene ids and fallbacks', () => {
     const html = renderIndexHtml(prepareSpec(example));
     expect(html.match(/<h1\b/g)).toHaveLength(1);
-    expect(html).toContain('<h1 id="hero-01-title">A Place With a Story</h1>');
-    expect(html).toContain('<h2 id="chapter-02-title">Explore the Journey</h2>');
+    // Headline words are spans so scroll can reveal them; the text itself stays intact.
+    expect(html).toContain('<h1 id="hero-01-title"><span class="word">A</span> <span class="word">Place</span> <span class="word">With</span> <span class="word">a</span> <span class="word">Story</span></h1>');
+    expect(html).toContain('<h2 id="chapter-02-title"><span class="word">Explore</span> <span class="word">the</span> <span class="word">Journey</span></h2>');
     expect(html).toContain('id="main"');
     expect(html).toContain('class="skip-link"');
     expect(html).toContain('A heritage introduction with scenic imagery.');
     expect(html).toContain('aria-hidden="true"');
     expect(html).toContain('data-webgl="off"');
     expect(html).toContain('Content-Security-Policy');
-    expect(html).not.toMatch(/https?:\/\/(?!github)/); // no CDN or remote references
+    // No CDN or remote references; the JSON-LD @context is an identifier, never fetched.
+    expect(html.replace('"@context":"https://schema.org"', '')).not.toMatch(/https?:\/\/(?!github)/);
   });
 
   it('escapes all spec text (no markup injection)', () => {
@@ -51,7 +53,7 @@ describe('html-three generator', () => {
     const out = path.join(await mkdtemp(path.join(tmpdir(), 'studio-html-')), 'html');
     const files = await generateHtmlSite(example, out);
     expect(files).toEqual(
-      expect.arrayContaining(['index.html', 'tokens.css', 'styles.css', 'js/main.js', 'js/scene3d.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/LICENSE', 'vendor/three/package.json', 'THIRD_PARTY_NOTICES.md', 'README.md', 'story-spec.json']),
+      expect.arrayContaining(['index.html', 'tokens.css', 'styles.css', 'js/main.js', 'js/cinema/stage.js', 'js/cinema/director.js', 'vendor/three/three.module.js', 'vendor/three/three.core.js', 'vendor/three/LICENSE', 'vendor/three/package.json', 'THIRD_PARTY_NOTICES.md', 'README.md', 'story-spec.json']),
     );
     const notices = await readFile(path.join(out, 'THIRD_PARTY_NOTICES.md'), 'utf8');
     expect(notices).toContain('MIT');
@@ -76,7 +78,12 @@ describe('M3 primitives (html-three)', () => {
     for (const id of ['hero-01', 'reveal-02', 'showcase-03', 'chapter-04', 'gallery-05', 'cta-06']) expect(html).toContain(`id="${id}"`);
     expect(html.match(/<h1\b/g)).toHaveLength(1);
     expect(html).toContain('<ol class="reveal-steps">');
-    expect(html).toContain('data-scene3d="showcase" data-object="vessel" data-camera="orbit"');
+    // One persistent stage; the showcase object is the story's protagonist and the scene pins.
+    expect(html.match(/<canvas/g)).toHaveLength(1);
+    expect(html).toContain('<canvas class="stage" data-art="rings" data-object="vessel" aria-hidden="true"></canvas>');
+    expect(html).toMatch(/<section id="showcase-03" class="scene scene--model-showcase" data-shot="showcase-split" data-pin=""/);
+    expect(html).toMatch(/<section id="cta-06" class="scene scene--cta" data-shot="finale"/);
+    expect(html).toContain('<nav class="story-rail" aria-label="Story chapters">');
     const gallery = bench.pages[0]!.scenes[4]!;
     gallery.visual.variant = 'carousel';
     const carousel = renderIndexHtml(prepareSpec(bench));

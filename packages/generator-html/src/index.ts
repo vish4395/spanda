@@ -9,12 +9,15 @@ import {
   designRootAttributes,
   renderDesignTokensCss,
   findUnsupportedScenes,
+  isPinned,
+  protagonistOf,
+  shotOf,
   validateStorySpec,
   type Scene,
   type SceneType,
   type StorySpec,
 } from '@studio/contracts';
-import { escapeHtml, writeGeneratedFiles, type GeneratedFiles } from '@studio/core';
+import { escapeHtml, renderSeoHead, writeGeneratedFiles, type GeneratedFiles } from '@studio/core';
 
 export { escapeHtml };
 
@@ -63,10 +66,20 @@ function heroArt(spec: StorySpec): string | null {
   return spec.design.style.heroArt === 'none' ? null : spec.design.style.heroArt;
 }
 
-function sceneAttributes(scene: Scene): string {
+/** Split a headline into words so scroll can reveal them one by one (text stays real, for SEO and screen readers). */
+function words(text: string): string {
+  return text
+    .split(/(\s+)/)
+    .map((part) => (/^\s+$/.test(part) ? part : part ? `<span class="word">${escapeHtml(part)}</span>` : ''))
+    .join('');
+}
+
+function sceneAttributes(scene: Scene, index: number, scenes: readonly Scene[]): string {
   const attrs: Record<string, string | undefined> = {
     id: scene.id,
     class: `scene scene--${scene.type}`,
+    'data-shot': shotOf(scene, index, scenes),
+    'data-pin': isPinned(scene) ? '' : undefined,
     'aria-labelledby': `${scene.id}-title`,
     'data-background': scene.visual.background,
     'data-layout': scene.visual.layout ?? (scene.type === 'chapter' ? 'split' : undefined),
@@ -81,12 +94,12 @@ function sceneAttributes(scene: Scene): string {
 
 function sceneCopy(scene: Scene, headingLevel: 1 | 2): string {
   const c = scene.content;
-  const reveal = scene.motion.type === 'none' ? '' : ' data-reveal';
+  const scrub = scene.motion.type === 'none' ? '' : ' data-scrub';
   const tag = `h${headingLevel}`;
   return [
-    `<div class="scene__copy"${reveal}>`,
+    `<div class="scene__copy"${scrub}>`,
     c.eyebrow ? `  <p class="eyebrow">${escapeHtml(c.eyebrow)}</p>` : '',
-    `  <${tag} id="${escapeHtml(scene.id)}-title">${escapeHtml(c.heading)}</${tag}>`,
+    `  <${tag} id="${escapeHtml(scene.id)}-title">${words(c.heading)}</${tag}>`,
     c.body ? `  <p class="scene__body">${escapeHtml(c.body)}</p>` : '',
     c.cta ? `  <a class="cta" href="${escapeHtml(c.cta.href)}"${c.cta.href.startsWith('https:') ? ' rel="noopener noreferrer"' : ''}>${escapeHtml(c.cta.label)}</a>` : '',
     `  <p class="scene__fallback">${escapeHtml(scene.accessibility.fallbackText)}</p>`,
@@ -97,17 +110,18 @@ function sceneCopy(scene: Scene, headingLevel: 1 | 2): string {
 }
 
 function renderScene(spec: StorySpec, scene: Scene, index: number): string {
+  const scenes = spec.pages[0]!.scenes;
   const heading = index === 0 ? 1 : 2;
   const label = `data-scene-label="${escapeHtml(scene.accessibility.label)}"`;
   switch (scene.type) {
     case 'hero':
-      return `<section ${sceneAttributes(scene)} ${label}>
-${heroArt(spec) ? `<canvas class="scene__canvas" data-scene3d="hero" data-art="${escapeHtml(heroArt(spec)!)}" data-variant="${escapeHtml(variantOf(scene)!)}" aria-hidden="true"></canvas>\n` : ''}<div class="scene__inner">
+      return `<section ${sceneAttributes(scene, index, scenes)} ${label}>
+<div class="scene__inner">
 ${sceneCopy(scene, heading)}
 </div>
 </section>`;
     case 'chapter':
-      return `<section ${sceneAttributes(scene)} ${label}>
+      return `<section ${sceneAttributes(scene, index, scenes)} ${label}>
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
 <div class="chapter-visual" role="img" aria-label="${escapeHtml(scene.accessibility.fallbackText)}"${scene.motion.type === 'none' ? '' : ' data-reveal'}></div>
@@ -118,7 +132,7 @@ ${sceneCopy(scene, heading)}
       const steps = (scene.content.items ?? [])
         .map((item, i) => `<li class="reveal-step reveal-step--${i}"${reveal}><span class="reveal-step__index" aria-hidden="true">${String(i + 1).padStart(2, '0')}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p></li>`)
         .join('\n');
-      return `<section ${sceneAttributes(scene)} ${label}>
+      return `<section ${sceneAttributes(scene, index, scenes)} ${label}>
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
 <ol class="reveal-steps">
@@ -128,19 +142,17 @@ ${steps}
 </section>`;
     }
     case 'model-showcase':
-      return `<section ${sceneAttributes(scene)} ${label}>
+      return `<section ${sceneAttributes(scene, index, scenes)} ${label}>
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
-<div class="showcase-stage" data-object="${escapeHtml(scene.visual.object ?? 'orb')}">
-<canvas class="scene__canvas" data-scene3d="showcase" data-object="${escapeHtml(scene.visual.object ?? 'orb')}" data-camera="${escapeHtml(scene.visual.camera ?? 'orbit')}" aria-hidden="true"></canvas>
-</div>
+<div class="showcase-stage" data-object="${escapeHtml(scene.visual.object ?? 'orb')}" aria-hidden="true"></div>
 </div>
 </section>`;
     case 'gallery': {
       const items = (scene.content.items ?? [])
         .map((item, i) => `<li class="gallery__item"><article><div class="gallery__art gallery__art--${i}" aria-hidden="true"></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.text)}</p></article></li>`)
         .join('\n');
-      return `<section ${sceneAttributes(scene)} ${label}>
+      return `<section ${sceneAttributes(scene, index, scenes)} ${label}>
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
 <div class="gallery" data-gallery>
@@ -162,7 +174,7 @@ ${items}
 </section>`;
     }
     case 'cta':
-      return `<section ${sceneAttributes(scene)} ${label}>
+      return `<section ${sceneAttributes(scene, index, scenes)} ${label}>
 <div class="scene__inner">
 ${sceneCopy(scene, heading)}
 </div>
@@ -171,6 +183,14 @@ ${sceneCopy(scene, heading)}
       // prepareSpec rejects these; keep the switch exhaustive for future primitives.
       throw new UnsupportedSceneError(HTML_TARGET, [{ path: scene.id, message: `Unsupported scene type ${scene.type}` }]);
   }
+}
+
+/** Chapter rail: a quiet table of contents on the right edge (real links, keyboard reachable). */
+function renderRail(scenes: readonly Scene[]): string {
+  if (scenes.length < 3) return '';
+  return `<nav class="story-rail" aria-label="Story chapters"><ol>
+${scenes.map((s) => `<li><a href="#${escapeHtml(s.id)}"><span class="story-rail__label">${escapeHtml(s.content.heading)}</span></a></li>`).join('\n')}
+</ol></nav>`;
 }
 
 export function renderTokensCss(spec: StorySpec): string {
@@ -195,9 +215,8 @@ export function renderIndexHtml(spec: StorySpec): string {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="${csp}">
-<meta name="description" content="${escapeHtml(spec.project.goal)}">
+${renderSeoHead(spec)}
 <meta name="generator" content="Spanda Studio (${HTML_TARGET})">
-<title>${escapeHtml(spec.project.name)}</title>
 <link rel="stylesheet" href="./tokens.css">
 <link rel="stylesheet" href="./styles.css">
 <script type="module" src="./js/main.js"></script>
@@ -205,6 +224,9 @@ export function renderIndexHtml(spec: StorySpec): string {
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
 <header class="site-header"><span class="brand">${escapeHtml(spec.project.name)}</span></header>
+${heroArt(spec) ? `<canvas class="stage" data-art="${escapeHtml(heroArt(spec)!)}"${protagonistOf(spec) ? ` data-object="${escapeHtml(protagonistOf(spec)!)}"` : ''} aria-hidden="true"></canvas>` : ''}
+<div class="page-progress" aria-hidden="true"></div>
+${renderRail(page.scenes)}
 <main id="main">
 ${page.scenes.map((scene, i) => renderScene(spec, scene, i)).join('\n')}
 </main>
@@ -248,7 +270,7 @@ export async function renderHtmlSite(input: unknown, resources: HtmlResources = 
   files.set('tokens.css', renderTokensCss(spec));
   files.set('styles.css', await readFile(path.join(runtimeDir, 'styles.css'), 'utf8'));
   files.set('js/main.js', await readFile(path.join(runtimeDir, 'js/main.js'), 'utf8'));
-  files.set('js/scene3d.js', await readFile(path.join(runtimeDir, 'js/scene3d.js'), 'utf8'));
+  for (const file of ['cinema/stage.js', 'cinema/director.js']) files.set(`js/${file}`, await readFile(path.join(runtimeDir, 'js', file), 'utf8'));
   files.set('vendor/three/three.module.js', await readFile(path.join(threeDir, 'build/three.module.js')));
   files.set('vendor/three/three.core.js', await readFile(path.join(threeDir, 'build/three.core.js')));
   const threeLicense = await readFile(path.join(threeDir, 'LICENSE'), 'utf8');

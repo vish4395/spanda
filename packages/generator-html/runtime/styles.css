@@ -169,9 +169,11 @@ a {
   font-size: var(--size-h1);
 }
 
-.scene__canvas {
-  position: absolute;
+/* The persistent 3D stage behind the whole story. */
+.stage {
+  position: fixed;
   inset: 0;
+  z-index: 0;
   width: 100%;
   height: 100%;
   display: block;
@@ -179,11 +181,11 @@ a {
 }
 
 /* Invisible (but measurable) until the first frame renders; removed entirely without WebGL. */
-html[data-webgl='loading'] .scene__canvas {
+html[data-webgl='loading'] .stage {
   visibility: hidden;
 }
 
-html[data-webgl='off'] .scene__canvas {
+html[data-webgl='off'] .stage {
   display: none;
 }
 
@@ -307,9 +309,6 @@ html:not([data-webgl='off']) .scene__fallback {
     aspect-ratio: 16 / 10;
   }
 
-  .scene--hero[data-mobile='static-hero'] .scene__canvas {
-    opacity: 0.55;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -944,4 +943,179 @@ html[data-panel]:not([data-panel='arcs']) .chapter-visual::after {
   .scene--hero[data-variant] h1 {
     font-size: min(var(--size-h1), 13vw);
   }
+}
+
+/* ------------------------------------------------------------------------- */
+/* Cinematic scroll: content above the stage, scrubbed typography, pinned     */
+/* scenes, progress bar and chapter rail. Without JS or with reduced motion,  */
+/* everything is simply visible.                                              */
+/* ------------------------------------------------------------------------- */
+main,
+.site-footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* With the stage running, sections are transparent windows onto the 3D world. */
+html[data-webgl='on'] .scene {
+  background: transparent;
+}
+
+html[data-webgl='on'] .chapter-visual {
+  visibility: hidden;
+}
+
+/* Copy over the stage keeps a soft scrim in the page colour. */
+html[data-webgl='on'] .scene:not(.scene--hero) .scene__copy {
+  position: relative;
+}
+
+html[data-webgl='on'] .scene:not(.scene--hero) .scene__copy::before {
+  content: '';
+  position: absolute;
+  inset: -2.5rem -3rem;
+  z-index: -1;
+  background: radial-gradient(closest-side, color-mix(in srgb, var(--color-bg) 78%, transparent), transparent);
+  pointer-events: none;
+}
+
+/* Pinned scenes: the copy holds while the camera keeps moving. */
+.js[data-motion='full'] .scene[data-pin] {
+  min-height: 210vh;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.js[data-motion='full'] .scene[data-pin] > .scene__inner {
+  position: sticky;
+  top: 0;
+  display: grid;
+  align-content: center;
+  min-height: 100vh;
+  min-height: 100svh;
+  padding-block: var(--space-gap);
+}
+
+/* Headlines rise word by word as the section enters (scrubbed, so scrolling back reverses it). */
+.js[data-motion='full'] [data-scrub] .word {
+  display: inline-block;
+  opacity: clamp(0.06, calc(var(--enter, 1) * 4.5 - var(--i, 0) * 0.32), 1);
+  transform: translateY(calc((1 - clamp(0, calc(var(--enter, 1) * 4.5 - var(--i, 0) * 0.32), 1)) * 0.55em));
+}
+
+.js[data-motion='full'] [data-scrub] > :not(h1):not(h2) {
+  opacity: clamp(0, calc(var(--enter, 1) * 2.6 - 1.1), 1);
+  transform: translateY(calc((1 - clamp(0, calc(var(--enter, 1) * 2.6 - 1.1), 1)) * 1.5rem));
+}
+
+/* Pinned scenes drift their copy slightly as the camera works around the object. */
+.js[data-motion='full'] .scene[data-pin] .scene__copy {
+  translate: 0 calc((0.5 - var(--progress, 0.5)) * 3rem);
+}
+
+/* Page progress */
+.page-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 20;
+  height: 2px;
+  background: var(--color-accent);
+  transform: scaleX(var(--page, 0));
+  transform-origin: 0 50%;
+  pointer-events: none;
+}
+
+html:not(.js) .page-progress {
+  display: none;
+}
+
+/* Chapter rail */
+.story-rail {
+  position: fixed;
+  top: 50%;
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  z-index: 15;
+  translate: 0 -50%;
+}
+
+.story-rail ol {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.story-rail a {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 24px;
+  min-height: 24px;
+  color: var(--color-fg);
+  text-decoration: none;
+}
+
+.story-rail a::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--color-fg) 35%, transparent);
+  transition: transform 200ms ease, background-color 200ms ease;
+}
+
+.story-rail a[aria-current]::after {
+  background: var(--color-accent);
+  transform: scale(1.6);
+}
+
+.story-rail__label {
+  position: absolute;
+  right: 1.5rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-bg) 85%, transparent);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 150ms ease;
+}
+
+.story-rail a:hover .story-rail__label,
+.story-rail a:focus-visible .story-rail__label {
+  opacity: 1;
+}
+
+@media (max-width: 767px) {
+  .story-rail {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-rail a::after,
+  .story-rail__label {
+    transition: none;
+  }
+}
+
+/* The stage replaces the showcase's static frame; the closing card turns to frosted glass. */
+html[data-webgl='on'] .showcase-stage {
+  background: none;
+  border-color: transparent;
+}
+
+html[data-webgl='on'] .scene--cta:not([data-variant='banner']) .scene__inner {
+  background: color-mix(in srgb, var(--color-bg) 42%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-fg) 12%, transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  backdrop-filter: blur(14px) saturate(1.2);
+}
+
+/* Scrims and drifting copy may reach past the edges; never let them scroll the page sideways. */
+main {
+  overflow-x: clip;
 }

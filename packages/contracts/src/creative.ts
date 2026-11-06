@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AiProvenance, AiStep } from './ai.ts';
 import { DesignStyleSchema, SCENE_LAYOUTS, SCENE_VARIANTS } from './story-spec.ts';
 
 // Creative workflow contracts (M2: discovery → brief → storyboard → StorySpec).
@@ -97,10 +98,16 @@ export const StoryboardScene = z.object({
 });
 export type StoryboardScene = z.infer<typeof StoryboardScene>;
 
+/** Who drafts a storyboard: the local planner (no AI) or one of the provider CLIs. */
+export const StoryboardPlanner = z.enum(['local-planner', 'claude-code', 'codex']);
+export type StoryboardPlanner = z.infer<typeof StoryboardPlanner>;
+
 export const StoryboardSource = z.object({
-  kind: z.enum(['local-planner', 'claude-code']),
+  kind: StoryboardPlanner,
   detail: z.string(),
   createdAt: z.string(),
+  /** Set when a provider drafted it. */
+  provenance: AiProvenance.optional(),
 });
 
 export const Storyboard = z.object({
@@ -135,7 +142,11 @@ export const CreativeState = z.object({
   brief: CreativeBrief.nullable(),
   storyboard: Storyboard.nullable(),
   references: z.array(ReferenceReport),
-  planners: z.array(z.object({ id: z.enum(['local-planner', 'claude-code']), label: z.string(), available: z.boolean(), reason: z.string().nullable() })),
+  planners: z.array(z.object({ id: StoryboardPlanner, label: z.string(), available: z.boolean(), reason: z.string().nullable() })),
+  /** The AI task running for this project, if any (poll it with `ai.job`). */
+  aiJob: z.object({ id: z.string().uuid(), step: AiStep, title: z.string() }).nullable(),
+  /** The last AI task that failed, so the error stays visible after the job ends. */
+  aiError: z.string().nullable(),
 });
 export type CreativeState = z.infer<typeof CreativeState>;
 

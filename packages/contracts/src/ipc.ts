@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import type { IpcChannel } from './ipc-channels.ts';
 import { StorySpecSchema } from './story-spec.ts';
-import { CreativeBrief, CreativeState, DiscoveryAnswer, StoryboardScene } from './creative.ts';
+import { CreativeBrief, CreativeState, StoryboardPlanner, DiscoveryAnswer, StoryboardScene } from './creative.ts';
+import { AiProviderId, StudioSettings } from './ai.ts';
 
 export { IPC_CHANNELS, MENU_COMMANDS, MENU_COMMAND_CHANNEL, type IpcChannel, type IpcEnvelope, type MenuCommand, type MenuCommandMessage } from './ipc-channels.ts';
 
@@ -54,7 +55,10 @@ export type JobStatus = z.infer<typeof JobStatus>;
 
 export const JobSnapshot = z.object({
   id: JobId,
-  kind: z.literal('generate'),
+  /** `generate` builds outputs; `ai` runs one provider task (its targets are empty). */
+  kind: z.enum(['generate', 'ai']),
+  /** Short description shown in activity lists. */
+  title: z.string().max(120).optional(),
   projectId: ProjectId,
   targets: z.array(OutputTarget),
   status: JobStatus,
@@ -146,15 +150,11 @@ export const ProjectDetail = z.object({
 });
 export type ProjectDetail = z.infer<typeof ProjectDetail>;
 
-export const StudioSettings = z.object({
-  /** Opt-in: draft storyboards with the user's own Claude Code CLI. */
-  claudeStoryboard: z.boolean(),
-});
-export type StudioSettings = z.infer<typeof StudioSettings>;
+export { StudioSettings };
 
 /** What the renderer is showing, so the native menu can enable/check the right items. */
 export const MenuState = z.strictObject({
-  view: z.enum(['project', 'new', 'skills', 'providers', 'empty']),
+  view: z.enum(['project', 'new', 'skills', 'providers', 'welcome', 'empty']),
   projectId: ProjectId.nullable(),
   canGenerate: z.boolean(),
   canSnapshot: z.boolean(),
@@ -197,12 +197,15 @@ export const ipcContract = {
   'skills.list': { request: z.void(), response: z.array(SkillManifest) },
   'settings.get': { request: z.void(), response: StudioSettings },
   'settings.set': { request: StudioSettings.strict(), response: StudioSettings },
+  'ai.test': { request: z.strictObject({ provider: AiProviderId }), response: JobSnapshot },
+  'ai.job': { request: z.strictObject({ jobId: JobId }), response: JobSnapshot },
+  'ai.cancel': { request: z.strictObject({ jobId: JobId }), response: JobSnapshot },
   'creative.get': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'creative.answer': { request: z.strictObject({ projectId: ProjectId, questionId: z.string().max(64), answer: DiscoveryAnswer.nullable() }), response: CreativeState },
   'creative.saveBrief': { request: z.strictObject({ projectId: ProjectId, brief: BriefInput }), response: CreativeState },
   'creative.approveBrief': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'creative.moreDirections': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
-  'creative.draftStoryboard': { request: z.strictObject({ projectId: ProjectId, planner: z.enum(['local-planner', 'claude-code']) }), response: CreativeState },
+  'creative.draftStoryboard': { request: z.strictObject({ projectId: ProjectId, planner: StoryboardPlanner }), response: CreativeState },
   'creative.saveStoryboard': { request: z.strictObject({ projectId: ProjectId, scenes: z.array(StoryboardScene).min(1).max(8) }), response: CreativeState },
   'creative.approveStoryboard': { request: z.strictObject({ projectId: ProjectId }), response: CreativeState },
   'references.analyze': { request: z.strictObject({ projectId: ProjectId, url: z.string().max(2048), inspiration: z.string().trim().max(300) }), response: CreativeState },

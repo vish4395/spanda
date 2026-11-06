@@ -79,17 +79,19 @@ for (const target of TARGETS) {
 
         const webgl = await page.locator('html').getAttribute('data-webgl');
         test.info().annotations.push({ type: 'webgl', description: `${webgl}` });
-        if (webgl === 'on') await expect(page.locator('.scene__canvas').first()).toBeVisible();
+        if (webgl === 'on') await expect(page.locator('.stage').first()).toBeVisible();
         else await expect(page.locator('.scene__fallback').first()).toBeVisible();
         if (browserName === 'chromium') expect(webgl, 'Chromium must exercise the 3D path').toBe('on');
 
-        // Layout guard: the 3D layer must overlay the hero, never take space from the copy.
+        // Layout guard: the 3D stage sits behind the whole page, never taking space from the copy.
         const heroBox = await page.locator('#hero-01').boundingBox();
         const copyBox = await page.locator('#hero-01 .scene__copy').boundingBox();
         expect(copyBox!.x - heroBox!.x, 'hero copy starts at the left gutter').toBeLessThan(Math.max(160, vp.width * 0.12));
         if (webgl === 'on') {
-          const canvasBox = await page.locator('.scene__canvas').first().boundingBox();
-          expect(Math.round(canvasBox!.width)).toBe(Math.round(heroBox!.width));
+          const stageBox = await page.locator('.stage').first().boundingBox();
+          expect(Math.round(stageBox!.width)).toBe(vp.width);
+          expect(Math.round(stageBox!.height)).toBe(vp.height);
+          expect(await page.locator('.stage').first().evaluate((el) => getComputedStyle(el).position)).toBe('fixed');
         }
 
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -110,8 +112,8 @@ for (const target of TARGETS) {
       await page.goto(url());
       await waitReady(page);
       await expect(page.locator('html')).toHaveAttribute('data-webgl', 'off');
-      await expect(page.locator('.scene__canvas')).toHaveCount(target.name === 'html' ? 1 : 0);
-      if (target.name === 'html') await expect(page.locator('.scene__canvas')).toBeHidden();
+      await expect(page.locator('.stage')).toHaveCount(target.name === 'html' ? 1 : 0);
+      if (target.name === 'html') await expect(page.locator('.stage')).toBeHidden();
       await expect(page.locator('#hero-01 .scene__fallback')).toBeVisible();
       await expect(page.locator('#hero-01 .scene__fallback')).toHaveText('A heritage introduction with scenic imagery.');
       await expect(page.locator('h1')).toBeVisible();

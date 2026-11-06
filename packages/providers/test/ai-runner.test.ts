@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
-import { claudeArgs, codexArgs, draftStoryboardWithAi, parseClaudeEnvelope, parseJsonReply, runAiTask, testConnection } from '../src/index.ts';
+import { claudeArgs, codexArgs, codexRefusal, draftStoryboardWithAi, parseClaudeEnvelope, parseJsonReply, runAiTask, testConnection } from '../src/index.ts';
 
 const valid = { scenes: [{ type: 'hero', heading: 'H', body: 'b', visualNote: '' }, { type: 'chapter', heading: 'C', body: 'c', visualNote: '' }] };
 const cliJson = (result: string, extra = {}) => JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result, ...extra });
@@ -28,11 +28,22 @@ describe('AI runner', () => {
   it('limits tools per mode: reading files or web research only', () => {
     expect(claudeArgs('read-files')).toEqual(expect.arrayContaining(['--tools', 'Read,Glob', '--allowedTools', 'Read', 'Glob']));
     expect(claudeArgs('research')).toEqual(expect.arrayContaining(['--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch', 'WebFetch']));
-    for (const mode of ['plain', 'read-files', 'research'] as const) {
-      expect(claudeArgs(mode).join(' ')).not.toMatch(/Bash|Edit|Write|dangerously/);
-      expect(codexArgs(mode, 'out.txt')).toEqual(expect.arrayContaining(['exec', '--sandbox', 'read-only']));
-    }
-    expect(codexArgs('research', 'o')).toContain('--search');
+    for (const mode of ['plain', 'read-files', 'research'] as const) expect(claudeArgs(mode).join(' ')).not.toMatch(/Bash|Edit|Write|dangerously/);
+    expect(codexArgs('out.txt')).toEqual(['exec', '--sandbox', 'read-only', '--skip-git-repo-check', '--output-last-message', 'out.txt', '-']);
+  });
+
+  it('keeps third-party content and file or web modes away from Codex, whose sandbox can still read local files', async () => {
+    expect(codexRefusal({ mode: 'plain' })).toBeNull();
+    expect(codexRefusal({ mode: 'research' })).toMatch(/not used for reading files or web research/);
+    expect(codexRefusal({ mode: 'read-files' })).toMatch(/not used/);
+    expect(codexRefusal({ untrustedData: true })).toMatch(/third-party content/);
+    let ran = false;
+    const run = async () => {
+      ran = true;
+      return { ...base, exitCode: 0, stdout: '' };
+    };
+    await expect(draftStoryboardWithAi('codex', 'p', { untrustedData: true, run })).rejects.toThrow(/third-party content/);
+    expect(ran).toBe(false);
   });
 
   it('copies reference files into the run folder for read-files mode and refuses unsafe names', async () => {

@@ -17,7 +17,7 @@ import type {
   StudioSettings,
 } from '@studio/contracts';
 import type { JobContext, ProjectWorkspace } from '@studio/core';
-import { draftStoryboardWithAi, type AiResult } from '@studio/providers';
+import { PROVIDER_LIMITS, codexRefusal, draftStoryboardWithAi, type AiResult } from '@studio/providers';
 import { extractFacts, safeFetch, type FetchedPage } from '@studio/reference-analyzer';
 import type { StudioStore } from '@studio/storage';
 import {
@@ -39,7 +39,7 @@ export interface CreativeDeps {
   fetchPage: (url: string) => Promise<FetchedPage>;
   /** Returns a small JPEG data URL of the page, or null when capture is unavailable. */
   capture: (url: string) => Promise<string | null>;
-  draftWithAi: (provider: AiProviderId, prompt: string, ctx: JobContext, skills: string[]) => Promise<AiResult<DraftStoryboardOutput>>;
+  draftWithAi: (provider: AiProviderId, prompt: string, ctx: JobContext, skills: string[], untrustedData: boolean) => Promise<AiResult<DraftStoryboardOutput>>;
   /** Text of the enabled skills that apply to a phase, for the AI prompt (empty when none). */
   guidance: (phase: 'storyboard' | 'direction' | 'code' | 'qa') => Promise<{ name: string; text: string }[]>;
 }
@@ -47,7 +47,7 @@ export interface CreativeDeps {
 export const defaultCreativeDeps: CreativeDeps = {
   fetchPage: (url) => safeFetch(url),
   capture: async () => null,
-  draftWithAi: (provider, prompt, ctx, skills) => draftStoryboardWithAi(provider, prompt, { signal: ctx.signal, onLog: ctx.log, skills }),
+  draftWithAi: (provider, prompt, ctx, skills, untrustedData) => draftStoryboardWithAi(provider, prompt, { signal: ctx.signal, onLog: ctx.log, skills, untrustedData }),
   guidance: async () => [],
 };
 
@@ -245,17 +245,17 @@ export class CreativeService {
       file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(file.answers, 'subject'), direction });
       return this.save(projectId, file);
     }
-    const reason = this.unavailable('storyboard', planner);
+    const reason = this.unavailable('storyboard', planner) ?? (planner === 'codex' ? codexRefusal({ untrustedData: file.references.length > 0 }) : null);
     if (reason) throw new Error(reason);
     const brief = file.brief;
     this.runAi(projectId, 'storyboard', `Drafting the storyboard with the ${PROVIDER_LABEL[planner]}`, async (ctx) => {
       const guidance = await this.deps.guidance('storyboard');
       const prompt = storyboardPrompt({ name, idea: goal, brief, direction, references: file.references, guidance });
-      const { value, provenance } = await this.deps.draftWithAi(planner, prompt, ctx, guidance.map((g) => g.name));
+      const { value, provenance } = await this.deps.draftWithAi(planner, prompt, ctx, guidance.map((g) => g.name), file.references.length > 0);
       // Re-read: the user may have edited other parts of the project while the job ran.
       const latest = await this.workspace.readCreative(projectId);
       const models = provenance.models.length ? ` (${provenance.models.join(', ')})` : '';
-      latest.storyboard = sanitizeDraft(value, { kind: planner, detail: `Drafted by your local ${PROVIDER_LABEL[planner]}${models} with tools off. Review before approving.`, createdAt: provenance.createdAt, provenance }, direction);
+      latest.storyboard = sanitizeDraft(value, { kind: planner, detail: `Drafted by your local ${PROVIDER_LABEL[planner]}${models} ${PROVIDER_LIMITS[planner]}. Review before approving.`, createdAt: provenance.createdAt, provenance }, direction);
       await this.save(projectId, latest);
       ctx.log('Storyboard draft saved.');
     });

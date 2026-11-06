@@ -29,6 +29,8 @@ export interface AiTask<T> {
   timeoutMs?: number;
   /** Skill names whose guidance is inside the prompt (provenance only). */
   skills?: string[];
+  /** The prompt carries third-party content (references, research, files). */
+  untrustedData?: boolean;
 }
 
 export interface AiRunOptions {
@@ -59,13 +61,24 @@ export function claudeArgs(mode: AiMode): string[] {
 }
 
 /**
- * Codex `exec` arguments: read-only sandbox, final message written to a file.
- * Not yet verified against a live Codex install on this machine; the flags follow
- * the published `codex exec` documentation.
+ * Codex `exec` arguments: read-only sandbox (no network), final message written to a file.
+ * The read-only sandbox still lets Codex's shell READ any local file, so Codex only
+ * runs plain tasks without third-party content until a no-tools mode is verified
+ * against a live install (see `codexRefusal`). Flags follow the published docs.
  */
-export function codexArgs(mode: AiMode, outFile: string): string[] {
-  return ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', ...(mode === 'research' ? ['--search'] : []), '--output-last-message', outFile, '-'];
+export function codexArgs(outFile: string): string[] {
+  return ['exec', '--sandbox', 'read-only', '--skip-git-repo-check', '--output-last-message', outFile, '-'];
 }
+
+/** Why Codex may not run this task, or null. Prompt injection must never reach a model that can read local files. */
+export function codexRefusal(task: Pick<AiTask<unknown>, 'mode' | 'untrustedData'>): string | null {
+  if ((task.mode ?? 'plain') !== 'plain') return 'Codex is not used for reading files or web research yet: its sandbox cannot be limited to the task. Choose Claude Code for this step.';
+  if (task.untrustedData) return 'This step includes third-party content (references or research), and Codex’s sandbox can still read local files. Choose Claude Code for this step, or remove the references.';
+  return null;
+}
+
+/** How the provider was limited, for user-facing provenance. */
+export const PROVIDER_LIMITS: Record<AiProviderId, string> = { 'claude-code': 'with tools off', codex: 'in its read-only, offline sandbox' };
 
 interface ClaudeEnvelope {
   text: string;
@@ -126,6 +139,10 @@ const DISPLAY: Record<AiProviderId, string> = { 'claude-code': 'Claude Code', co
 export async function runAiTask<T>(provider: AiProviderId, task: AiTask<T>, options: AiRunOptions = {}): Promise<AiResult<T>> {
   const run = options.run ?? runAllowlisted;
   const mode = task.mode ?? 'plain';
+  if (provider === 'codex') {
+    const refusal = codexRefusal(task);
+    if (refusal) throw new ProviderOutputError(refusal);
+  }
   const prompt = withSchema(task.prompt, task.schema);
   const cwd = await mkdtemp(path.join(tmpdir(), 'studio-ai-'));
   const log = (line: string) => options.onLog?.(`${provider}: ${line}`);
@@ -142,7 +159,7 @@ export async function runAiTask<T>(provider: AiProviderId, task: AiTask<T>, opti
       const input = attempt === 1 ? prompt : `${prompt}\n\nYour previous reply was rejected (${lastError?.message}). Reply with the JSON object only.`;
       log(`${task.name} (attempt ${attempt}/2${mode === 'plain' ? '' : `, ${mode}`})`);
       const outFile = '.codex-last-message.txt'; // relative to cwd, so the argument stays portable
-      const args = provider === 'claude-code' ? claudeArgs(mode) : codexArgs(mode, outFile);
+      const args = provider === 'claude-code' ? claudeArgs(mode) : codexArgs(outFile);
       const result = await run({
         binary: provider === 'claude-code' ? 'claude' : 'codex',
         args,

@@ -1,4 +1,4 @@
-import type { CreativeDirection, DiscoveryAnswer, DiscoveryQuestion } from '@studio/contracts';
+import type { CreativeDirection, DiscoveryAnswer, DiscoveryQuestion, ProjectPlan } from '@studio/contracts';
 import { generateDirections, type DirectionOptions } from './directions.ts';
 
 // Visual discovery (FR-02): at most one focused question at a time, 2–4 options,
@@ -53,14 +53,41 @@ export const QUESTIONS: readonly DiscoveryQuestion[] = [
   },
 ];
 
-export function nextQuestion(answers: Record<string, DiscoveryAnswer>): DiscoveryQuestion | null {
-  return QUESTIONS.find((q) => !(q.id in answers)) ?? null;
+/** The questions a project asks: its AI plan's, or the studio's fixed set. */
+export function questionsOf(plan: ProjectPlan | null | undefined): readonly DiscoveryQuestion[] {
+  return plan?.questions.length ? plan.questions : QUESTIONS;
 }
 
-export function isValidAnswer(questionId: string, answer: DiscoveryAnswer): boolean {
-  const q = QUESTIONS.find((x) => x.id === questionId);
+export function nextQuestion(answers: Record<string, DiscoveryAnswer>, questions: readonly DiscoveryQuestion[] = QUESTIONS): DiscoveryQuestion | null {
+  return questions.find((q) => !(q.id in answers)) ?? null;
+}
+
+export function isValidAnswer(questionId: string, answer: DiscoveryAnswer, questions: readonly DiscoveryQuestion[] = QUESTIONS): boolean {
+  const q = questions.find((x) => x.id === questionId);
   if (!q) return false;
   return answer === 'skip' || answer === 'ai-decide' || q.options.some((o) => o.id === answer);
+}
+
+/**
+ * Answers for the four core choices: the AI plan's starting values, overridden by
+ * any core question the user answered with a concrete option.
+ */
+export function effectiveAnswers(answers: Record<string, DiscoveryAnswer>, plan: ProjectPlan | null | undefined): Record<string, DiscoveryAnswer> {
+  if (!plan) return answers;
+  const chosen = Object.fromEntries(Object.entries(answers).filter(([id, a]) => id in plan.core && a !== 'skip' && a !== 'ai-decide'));
+  return { ...plan.core, ...chosen };
+}
+
+/** The plan's questions with the user's answers as readable text, for AI prompts. */
+export function discoveryNotes(answers: Record<string, DiscoveryAnswer>, plan: ProjectPlan | null | undefined): { question: string; answer: string }[] {
+  if (!plan) return [];
+  return plan.questions.flatMap((q) => {
+    const a = answers[q.id];
+    if (!a || a === 'skip') return [];
+    const id = a === 'ai-decide' ? q.default : a;
+    const option = q.options.find((o) => o.id === id);
+    return option ? [{ question: q.prompt, answer: `${option.label} — ${option.explanation}` }] : [];
+  });
 }
 
 /** Resolve an answer to a concrete option (skip and "you decide" use the question default). */

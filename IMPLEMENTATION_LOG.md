@@ -1,5 +1,20 @@
 # Implementation log
 
+## 2026-11-06 — Design language (StorySpec 0.2.0) and fixes
+
+| Area | Result |
+|---|---|
+| StorySpec 0.2.0 | `design.style` (mode, scale, heading case/weight, radius, texture, density, reveal, easing, hero art, panel art), a secondary colour, seven chapter layouts and per-type variants; 0.1.0 → 0.2.0 migration reproduces the old look |
+| Directions | 14 design families; three directions per project, seeded, contrast-checked (text ≥ 7:1, accent ≥ 4.5:1) and forced to differ; "Show other directions" keeps the chosen one and replaces its family's new offer, so names never repeat |
+| Planner | Local planner mixes scene types by subject, follows the direction's layout rhythm, ends on a CTA and drafts copy from the name and idea |
+| Generators | Both targets render the design language from one token mapping; hero copy sits on a scrim so moving art never crosses the text |
+
+Defects found and fixed: every brief edit failed with "Invalid request for creative.saveBrief" (the renderer sent the direction snapshot back to a strict schema); duplicate direction names after "Show other directions"; ribbon hero art made centred titles hard to read.
+
+Verification: typecheck pass · 210/210 unit · license gate passed · secret scan passed · browser suite 116/116 (Chromium, WebKit; 3 WebKit benchmark tests failed once under load and passed on two reruns) · desktop E2E 18/18. Screenshots reviewed: brief directions, M2 preview, hero of the educational, heritage and portfolio benchmarks.
+
+Next: AI in every step (plan approved 2026-11-06): provider layer for Claude Code and Codex CLIs, AI kickoff/questions/directions/brief, build chat, references hub with deep research, design controls, assets and image → 3D, custom skills/agents/MCP, scroll-linked 3D.
+
 ## 2026-11-02 — Brand applied to the product (Spanda Studio)
 
 User-facing name is now **Spanda Studio**: window title, renderer `<title>`, top bar, About panel (tagline "Stillness, set in motion. Designed and built in India."), Help menu, exported ZIP README, and the HTML/React generators' `generator` meta tag and READMEs. The top-bar `LogoMark` is the Kolam S (Neel Light line, Diya Gold dots via the logo-only `--brand-gold` token, added to MASTER). Brand sources: `docs/brand/branding.md`, `docs/brand/assets/*.svg`.

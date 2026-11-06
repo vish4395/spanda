@@ -233,8 +233,9 @@ export class StudioStore {
     return Number(result.changes);
   }
 
+  /** Generation jobs, newest first (AI jobs are kept in the same table but listed separately). */
   listJobs(projectId: string, limit = 10): JobSnapshot[] {
-    const rows = this.db.prepare('SELECT id, project_id, targets, status, error FROM jobs WHERE project_id = ? ORDER BY started_at DESC, rowid DESC LIMIT ?').all(projectId, limit) as unknown as JobRow[];
+    const rows = this.db.prepare("SELECT id, project_id, targets, status, error FROM jobs WHERE project_id = ? AND kind = 'generate' ORDER BY started_at DESC, rowid DESC LIMIT ?").all(projectId, limit) as unknown as JobRow[];
     const logStmt = this.db.prepare('SELECT payload FROM job_events WHERE job_id = ? ORDER BY sequence');
     return rows.map((r) => ({
       id: r.id,
@@ -258,6 +259,12 @@ export class StudioStore {
     this.transaction(() => {
       for (const s of statuses) stmt.run(s.id, s.displayName, s.state, s.version, s.detail, ts);
     });
+  }
+
+  /** Last probe result per provider (empty before the first probe). */
+  providerStatuses(): ProviderStatus[] {
+    const rows = this.db.prepare('SELECT id, display_name, state, version, detail FROM providers ORDER BY id').all() as { id: ProviderStatus['id']; display_name: string; state: ProviderStatus['state']; version: string | null; detail: string | null }[];
+    return rows.map((r) => ({ id: r.id, displayName: r.display_name, state: r.state, version: r.version, detail: r.detail, authentication: 'managed-by-provider-cli' as const }));
   }
 
   lastProbeAt(): string | null {

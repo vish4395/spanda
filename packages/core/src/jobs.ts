@@ -40,11 +40,12 @@ export class JobManager {
     }
   }
 
-  start(projectId: string, targets: OutputTarget[], work: (ctx: JobContext) => Promise<void>): JobSnapshot {
+  start(projectId: string, targets: OutputTarget[], work: (ctx: JobContext) => Promise<void>, options: { kind?: JobSnapshot['kind']; title?: string } = {}): JobSnapshot {
     const controller = new AbortController();
     const snapshot: JobSnapshot = {
       id: randomUUID(),
-      kind: 'generate',
+      kind: options.kind ?? 'generate',
+      ...(options.title ? { title: options.title } : {}),
       projectId,
       targets,
       status: 'running',

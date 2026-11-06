@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import {
   validateStorySpec,
+  type AiProviderId,
   type IpcResponse,
   type OutputTarget,
   type PreviewSession,
@@ -14,11 +15,14 @@ import { buildExport, type ExportResult } from '@studio/export';
 import { generateHtmlSite } from '@studio/generator-html';
 import { generateReactProject } from '@studio/generator-react';
 import { buildReactExport, startStaticServer, type StaticServer } from '@studio/preview';
-import { probeAll } from '@studio/providers';
-import { loadRegistry } from '@studio/skills';
+import { probeAll, testConnection } from '@studio/providers';
+import { loadRegistry, selectSkills } from '@studio/skills';
 import { StudioStore } from '@studio/storage';
 import { createStarterSpec } from '@studio/story-engine';
 import { CreativeService, defaultCreativeDeps, type CreativeDeps } from './creative.ts';
+
+/** Job scope for studio-level AI work that belongs to no project. */
+const STUDIO_JOB_SCOPE = '0-studio';
 
 export interface ResourcePaths {
   htmlRuntimeDir: string;
@@ -35,6 +39,8 @@ export class StudioServices {
   readonly workspace: ProjectWorkspace;
   readonly store: StudioStore;
   private readonly jobs: JobManager;
+  /** AI tasks run in their own manager so they never look like generation runs. */
+  private readonly aiJobs: JobManager;
   private readonly previews = new Map<string, StaticServer>();
   private readonly resources: ResourcePaths;
   private readonly creativeService: CreativeService;
@@ -43,15 +49,42 @@ export class StudioServices {
     this.workspace = new ProjectWorkspace(workspaceRoot);
     this.store = StudioStore.open(path.join(workspaceRoot, 'studio.db'));
     this.resources = resources;
-    this.creativeService = new CreativeService(this.workspace, this.store, { ...defaultCreativeDeps, ...creativeDeps }, async (projectId, label) => {
-      await this.snapshot(projectId, label);
-      for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
-    });
     this.jobs = new JobManager({
       started: (job) => this.store.recordJobStart(job),
       logged: (jobId, line) => this.store.appendJobLog(jobId, line),
       finished: (job) => this.store.recordJobEnd(job.id, job.status, job.error),
     });
+    // AI jobs are persisted with their project; studio-level ones (connection tests) are not.
+    const persisted = new Set<string>();
+    this.aiJobs = new JobManager({
+      started: (job) => {
+        if (!this.store.hasProject(job.projectId)) return;
+        persisted.add(job.id);
+        this.store.recordJobStart(job);
+      },
+      logged: (jobId, line) => persisted.has(jobId) && this.store.appendJobLog(jobId, line),
+      finished: (job) => persisted.has(job.id) && this.store.recordJobEnd(job.id, job.status, job.error),
+    });
+    this.creativeService = new CreativeService(
+      this.workspace,
+      this.store,
+      { ...defaultCreativeDeps, guidance: (phase) => this.guidance(phase), ...creativeDeps },
+      async (projectId, label) => {
+        await this.snapshot(projectId, label);
+        for (const t of ['html', 'react'] as const) await this.closePreview(projectId, t);
+      },
+      {
+        start: (projectId, title, work) => this.aiJobs.start(projectId, [], work, { kind: 'ai', title }),
+        isRunning: (jobId) => {
+          try {
+            return this.aiJobs.get(jobId).status === 'running';
+          } catch {
+            return false;
+          }
+        },
+        installed: () => this.store.providerStatuses().filter((p) => p.state === 'available').map((p) => p.id),
+      },
+    );
   }
 
   /** First-run seeding, crash recovery and import of project folders that have no metadata yet. */
@@ -248,6 +281,41 @@ export class StudioServices {
     return this.creativeService;
   }
 
+  // AI ------------------------------------------------------------------------
+
+  /** "Test connection": one tiny structured call, shown as a job with its log. */
+  testProvider(provider: AiProviderId): IpcResponse<'ai.test'> {
+    return this.aiJobs.start(STUDIO_JOB_SCOPE, [], async ({ signal, log }) => {
+      const { value, provenance } = await testConnection(provider, { signal, onLog: log });
+      log(`Connected${provenance.models.length ? ` (${provenance.models.join(', ')})` : ''}: ${value.note}`);
+    }, { kind: 'ai', title: `Test connection: ${provider === 'claude-code' ? 'Claude Code' : 'Codex'}` });
+  }
+
+  getAiJob(jobId: string): IpcResponse<'ai.job'> {
+    return this.aiJobs.get(jobId);
+  }
+
+  cancelAiJob(jobId: string): IpcResponse<'ai.cancel'> {
+    return this.aiJobs.cancel(jobId);
+  }
+
+  waitAiJob(jobId: string): Promise<IpcResponse<'ai.job'>> {
+    return this.aiJobs.wait(jobId);
+  }
+
+  /** Enabled, pinned skills that match a phase, for prompts (trusted guidance, size-capped). */
+  private async guidance(phase: 'storyboard' | 'direction' | 'code' | 'qa'): Promise<{ name: string; text: string }[]> {
+    const keywords: Record<typeof phase, string[]> = {
+      storyboard: ['story', 'storyboard', 'brief', 'discovery', 'storyspec'],
+      direction: ['brief', 'story', 'discovery'],
+      code: ['generate', 'scene', 'three', 'r3f'],
+      qa: ['qa', 'screenshot', 'critique', 'accessibility'],
+    };
+    const { skills } = await loadRegistry(this.resources.skillsDir);
+    const chosen = selectSkills(skills, { keywords: keywords[phase] }, 2);
+    return Promise.all(chosen.map(async (skill) => ({ name: skill.manifest.name, text: (await skill.readInstructions()).slice(0, 6000) })));
+  }
+
   // Providers and skills -----------------------------------------------------
 
   async probeProviders(): Promise<IpcResponse<'providers.probe'>> {
@@ -282,6 +350,7 @@ export class StudioServices {
 
   async dispose(): Promise<void> {
     this.jobs.cancelAll();
+    this.aiJobs.cancelAll();
     await Promise.all([...this.previews.values()].map((s) => s.close()));
     this.previews.clear();
     this.store.close();

@@ -76,7 +76,10 @@ export function registerIpc(services: StudioServices, menus: StudioMenus, inspec
     'providers.probe': () => services.probeProviders(),
     'skills.list': () => services.listSkills(),
     'settings.get': () => services.settings().settings(),
-    'settings.set': (req) => services.settings().saveSettings(req as { claudeStoryboard: boolean }),
+    'settings.set': (req) => services.settings().saveSettings(req as Parameters<ReturnType<typeof services.settings>['saveSettings']>[0]),
+    'ai.test': (req) => services.testProvider((req as { provider: 'claude-code' | 'codex' }).provider),
+    'ai.job': (req) => services.getAiJob((req as { jobId: string }).jobId),
+    'ai.cancel': (req) => services.cancelAiJob((req as { jobId: string }).jobId),
     'creative.get': (req) => {
       const { projectId } = req as { projectId: string };
       return services.creative(projectId).state(projectId);
@@ -98,7 +101,7 @@ export function registerIpc(services: StudioServices, menus: StudioMenus, inspec
       return services.creative(projectId).approveBrief(projectId);
     },
     'creative.draftStoryboard': (req) => {
-      const { projectId, planner } = req as { projectId: string; planner: 'local-planner' | 'claude-code' };
+      const { projectId, planner } = req as { projectId: string; planner: 'local-planner' | 'claude-code' | 'codex' };
       return services.creative(projectId).draftStoryboard(projectId, planner);
     },
     'creative.saveStoryboard': (req) => {

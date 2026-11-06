@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_SETTINGS, StudioSettings as SettingsSchema, providerForStep } from '@studio/contracts';
 import type {
+  AiProviderId,
+  AiStep,
   CreativeBrief,
   CreativeDirection,
   CreativeFile,
@@ -8,12 +11,13 @@ import type {
   DraftStoryboardOutput,
   ProjectStage,
   ReferenceReport,
+  StoryboardPlanner,
   StoryboardScene,
   StorySpec,
   StudioSettings,
 } from '@studio/contracts';
-import type { ProjectWorkspace } from '@studio/core';
-import { draftStoryboardWithClaude } from '@studio/providers';
+import type { JobContext, ProjectWorkspace } from '@studio/core';
+import { draftStoryboardWithAi, type AiResult } from '@studio/providers';
 import { extractFacts, safeFetch, type FetchedPage } from '@studio/reference-analyzer';
 import type { StudioStore } from '@studio/storage';
 import {
@@ -35,7 +39,7 @@ export interface CreativeDeps {
   fetchPage: (url: string) => Promise<FetchedPage>;
   /** Returns a small JPEG data URL of the page, or null when capture is unavailable. */
   capture: (url: string) => Promise<string | null>;
-  draftWithClaude: (prompt: string) => Promise<DraftStoryboardOutput>;
+  draftWithAi: (provider: AiProviderId, prompt: string, ctx: JobContext, skills: string[]) => Promise<AiResult<DraftStoryboardOutput>>;
   /** Text of the enabled skills that apply to a phase, for the AI prompt (empty when none). */
   guidance: (phase: 'storyboard' | 'direction' | 'code' | 'qa') => Promise<{ name: string; text: string }[]>;
 }
@@ -43,9 +47,18 @@ export interface CreativeDeps {
 export const defaultCreativeDeps: CreativeDeps = {
   fetchPage: (url) => safeFetch(url),
   capture: async () => null,
-  draftWithClaude: (prompt) => draftStoryboardWithClaude(prompt),
+  draftWithAi: (provider, prompt, ctx, skills) => draftStoryboardWithAi(provider, prompt, { signal: ctx.signal, onLog: ctx.log, skills }),
   guidance: async () => [],
 };
+
+/** How the creative service runs AI work: as a cancellable job, plus which CLIs are installed. */
+export interface AiHost {
+  start(projectId: string, title: string, work: (ctx: JobContext) => Promise<void>): { id: string };
+  isRunning(jobId: string): boolean;
+  installed(): AiProviderId[];
+}
+
+const PROVIDER_LABEL: Record<AiProviderId, string> = { 'claude-code': 'Claude Code CLI', codex: 'Codex CLI' };
 
 const RIGHTS_NOTICE =
   'Third-party page: use only as inspiration for structure and mood. Its text, images, fonts and code are not licensed for reuse.';
@@ -59,21 +72,64 @@ export class CreativeService {
   private readonly store: StudioStore;
   private readonly deps: CreativeDeps;
   private readonly onSpecChanged: (projectId: string, label: string) => Promise<void>;
+  private readonly ai: AiHost;
+  /** Running AI job per project, and the last AI failure (cleared by the next run). */
+  private readonly aiJobs = new Map<string, { id: string; step: AiStep; title: string }>();
+  private readonly aiErrors = new Map<string, string>();
 
-  constructor(workspace: ProjectWorkspace, store: StudioStore, deps: CreativeDeps, onSpecChanged: (projectId: string, label: string) => Promise<void>) {
+  constructor(workspace: ProjectWorkspace, store: StudioStore, deps: CreativeDeps, onSpecChanged: (projectId: string, label: string) => Promise<void>, ai: AiHost) {
     this.workspace = workspace;
     this.store = store;
     this.deps = deps;
     this.onSpecChanged = onSpecChanged;
+    this.ai = ai;
   }
 
   settings(): StudioSettings {
-    return { claudeStoryboard: this.store.getSetting('claudeStoryboard') === 'true' };
+    const raw = this.store.getSetting('studio');
+    if (raw) {
+      try {
+        const parsed = SettingsSchema.safeParse(JSON.parse(raw));
+        if (parsed.success) return parsed.data;
+      } catch {
+        // fall through to defaults
+      }
+    }
+    // Earlier versions only had the storyboard opt-in; it becomes the default provider.
+    if (this.store.getSetting('claudeStoryboard') === 'true') return { ...DEFAULT_SETTINGS, onboarded: true, provider: 'claude-code' };
+    return DEFAULT_SETTINGS;
   }
 
   saveSettings(settings: StudioSettings): StudioSettings {
-    this.store.setSetting('claudeStoryboard', String(settings.claudeStoryboard));
+    this.store.setSetting('studio', JSON.stringify(SettingsSchema.parse(settings)));
     return this.settings();
+  }
+
+  /** Why a provider cannot run a step right now, or null when it can. */
+  private unavailable(step: AiStep, provider: AiProviderId): string | null {
+    if (!this.ai.installed().includes(provider)) return `Install and sign in to the official ${PROVIDER_LABEL[provider]}, then check again in AI providers.`;
+    const chosen = providerForStep(this.settings(), step);
+    if (chosen === 'none') return 'AI is off for this step. Choose a provider in AI providers.';
+    if (chosen !== provider) return `This step uses the ${PROVIDER_LABEL[chosen]}. Change it in AI providers.`;
+    return null;
+  }
+
+  /** Run AI work for a project as a job; one at a time per project. */
+  private runAi(projectId: string, step: AiStep, title: string, work: (ctx: JobContext) => Promise<void>): void {
+    const running = this.aiJobs.get(projectId);
+    if (running && this.ai.isRunning(running.id)) throw new Error(`“${running.title}” is still running. Wait for it or cancel it first.`);
+    this.aiErrors.delete(projectId);
+    const job = this.ai.start(projectId, title, async (ctx) => {
+      try {
+        await work(ctx);
+      } catch (err) {
+        if (!ctx.signal.aborted) this.aiErrors.set(projectId, (err as Error).message);
+        throw err;
+      } finally {
+        this.aiJobs.delete(projectId);
+      }
+    });
+    this.aiJobs.set(projectId, { id: job.id, step, title });
   }
 
   private stageOf(file: CreativeFile): ProjectStage {
@@ -111,7 +167,6 @@ export class CreativeService {
     const spec = await this.workspace.readSpec(projectId);
     const idea = spec.ok ? spec.spec.project.goal : '';
     const directions = this.directionsOf(projectId, data);
-    const claudeEnabled = this.settings().claudeStoryboard;
     return {
       stage: this.stageOf(data),
       idea,
@@ -123,13 +178,13 @@ export class CreativeService {
       references: data.references,
       planners: [
         { id: 'local-planner', label: 'Local planner (no AI)', available: true, reason: null },
-        {
-          id: 'claude-code',
-          label: 'Claude Code CLI',
-          available: claudeEnabled,
-          reason: claudeEnabled ? null : 'Turn on “Draft storyboards with Claude Code” in AI providers settings.',
-        },
+        ...(['claude-code', 'codex'] as const).map((id) => {
+          const reason = this.unavailable('storyboard', id);
+          return { id, label: PROVIDER_LABEL[id], available: reason === null, reason };
+        }),
       ],
+      aiJob: this.aiJobs.get(projectId) ?? null,
+      aiError: this.aiErrors.get(projectId) ?? null,
     };
   }
 
@@ -175,21 +230,36 @@ export class CreativeService {
     return this.save(projectId, file);
   }
 
-  async draftStoryboard(projectId: string, planner: 'local-planner' | 'claude-code'): Promise<CreativeState> {
+  /**
+   * The local planner drafts immediately. A provider drafts in a cancellable job;
+   * the returned state carries `aiJob`, and the draft is saved when the job ends.
+   */
+  async draftStoryboard(projectId: string, planner: StoryboardPlanner): Promise<CreativeState> {
     const file = await this.workspace.readCreative(projectId);
     if (!file.brief?.approved) throw new Error('Approve the brief before drafting a storyboard.');
     const spec = await this.workspace.readSpec(projectId);
     if (!spec.ok) throw new Error('Fix the StorySpec issues first.');
     const { name, goal } = spec.spec.project;
-    if (planner === 'claude-code') {
-      if (!this.settings().claudeStoryboard) throw new Error('Claude Code drafting is turned off in AI providers settings.');
-      const direction = this.requireDirection(projectId, file);
-      const output = await this.deps.draftWithClaude(storyboardPrompt({ name, idea: goal, brief: file.brief, direction, references: file.references, guidance: await this.deps.guidance('storyboard') }));
-      file.storyboard = sanitizeDraft(output, { kind: 'claude-code', detail: 'Drafted by your local Claude Code CLI (tools disabled). Review before approving.', createdAt: new Date().toISOString() }, direction);
-    } else {
-      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(file.answers, 'subject'), direction: this.requireDirection(projectId, file) });
+    const direction = this.requireDirection(projectId, file);
+    if (planner === 'local-planner') {
+      file.storyboard = localStoryboard({ name, idea: goal, brief: file.brief, subject: resolved(file.answers, 'subject'), direction });
+      return this.save(projectId, file);
     }
-    return this.save(projectId, file);
+    const reason = this.unavailable('storyboard', planner);
+    if (reason) throw new Error(reason);
+    const brief = file.brief;
+    this.runAi(projectId, 'storyboard', `Drafting the storyboard with the ${PROVIDER_LABEL[planner]}`, async (ctx) => {
+      const guidance = await this.deps.guidance('storyboard');
+      const prompt = storyboardPrompt({ name, idea: goal, brief, direction, references: file.references, guidance });
+      const { value, provenance } = await this.deps.draftWithAi(planner, prompt, ctx, guidance.map((g) => g.name));
+      // Re-read: the user may have edited other parts of the project while the job ran.
+      const latest = await this.workspace.readCreative(projectId);
+      const models = provenance.models.length ? ` (${provenance.models.join(', ')})` : '';
+      latest.storyboard = sanitizeDraft(value, { kind: planner, detail: `Drafted by your local ${PROVIDER_LABEL[planner]}${models} with tools off. Review before approving.`, createdAt: provenance.createdAt, provenance }, direction);
+      await this.save(projectId, latest);
+      ctx.log('Storyboard draft saved.');
+    });
+    return this.state(projectId, file);
   }
 
   async saveStoryboard(projectId: string, scenes: StoryboardScene[]): Promise<CreativeState> {

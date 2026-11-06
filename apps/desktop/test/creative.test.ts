@@ -30,9 +30,13 @@ const fakes: CreativeDeps = {
   },
   capture: async () => 'data:image/jpeg;base64,AAAA',
   guidance: async (phase) => (phase === 'storyboard' ? [{ name: 'test-skill', text: 'Prefer short headings.' }] : []),
-  draftWithClaude: async (prompt) => {
+  draftWithAi: async (provider, prompt, ctx, skills) => {
     prompts.push(prompt);
-    return { scenes: [{ type: 'hero', heading: 'Warm Bread at Dawn', body: 'A bakery wakes.', visualNote: 'golden haze' }, { type: 'chapter', heading: 'The Starter', body: 'Fed every morning.', visualNote: '' }] };
+    ctx.log(`${provider}: drafting`);
+    return {
+      value: { scenes: [{ type: 'hero', heading: 'Warm Bread at Dawn', body: 'A bakery wakes.', visualNote: 'golden haze' }, { type: 'chapter', heading: 'The Starter', body: 'Fed every morning.', visualNote: '' }] },
+      provenance: { provider, models: ['test-model'], task: 'storyboard', promptHash: '0'.repeat(64), skills, costUsd: null, createdAt: new Date().toISOString() },
+    };
   },
 };
 
@@ -113,20 +117,80 @@ describe('creative workflow', () => {
     expect(state.storyboard?.approved).toBe(false);
   });
 
-  it('uses Claude Code only when enabled, with references as untrusted data', async () => {
+  it('drafts with the chosen, installed provider in a job, with references as untrusted data', async () => {
     const { s, id } = await boot();
     for (const [q, a] of [['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
     await s.creative(id).approveBrief(id);
     await s.creative(id).analyzeReference(id, 'https://aurora.example/', 'the slow pacing');
-    expect((await s.creative(id).state(id)).planners.find((p) => p.id === 'claude-code')?.available).toBe(false);
-    await expect(s.creative(id).draftStoryboard(id, 'claude-code')).rejects.toThrow(/turned off/);
-    s.settings().saveSettings({ claudeStoryboard: true });
-    const state = await s.creative(id).draftStoryboard(id, 'claude-code');
-    expect(state.storyboard?.source.kind).toBe('claude-code');
+    const planner = async (p: string) => (await s.creative(id).state(id)).planners.find((x) => x.id === p);
+    // Not installed, then installed but AI off, then chosen.
+    expect(await planner('claude-code')).toMatchObject({ available: false, reason: expect.stringMatching(/Install/) });
+    s.store.saveProviderStatuses([{ id: 'claude-code', displayName: 'Claude Code CLI', state: 'available', version: '2', detail: null, authentication: 'managed-by-provider-cli' }]);
+    expect(await planner('claude-code')).toMatchObject({ available: false, reason: expect.stringMatching(/AI is off/) });
+    await expect(s.creative(id).draftStoryboard(id, 'claude-code')).rejects.toThrow(/AI is off/);
+    s.settings().saveSettings({ onboarded: true, provider: 'claude-code', steps: {}, deepResearch: false });
+    expect(await planner('claude-code')).toMatchObject({ available: true });
+    expect(await planner('codex')).toMatchObject({ available: false });
+    let state = await s.creative(id).draftStoryboard(id, 'claude-code');
+    expect(state.aiJob?.step).toBe('storyboard');
+    await expect(s.creative(id).draftStoryboard(id, 'claude-code')).rejects.toThrow(/still running/);
+    const job = await s.waitAiJob(state.aiJob!.id);
+    expect(job).toMatchObject({ kind: 'ai', status: 'succeeded' });
+    expect(job.log).toContain('claude-code: drafting');
+    state = await s.creative(id).state(id);
+    expect(state.aiJob).toBeNull();
+    expect(state.storyboard?.source).toMatchObject({ kind: 'claude-code', provenance: { provider: 'claude-code', models: ['test-model'], skills: ['test-skill'] } });
+    // AI jobs stay out of the generation history.
+    expect(s.openProject(id).jobs).toEqual([]);
     expect(state.storyboard?.scenes[0]).toMatchObject({ id: 'hero-01', heading: 'Warm Bread at Dawn' });
     const prompt = prompts.at(-1)!;
     expect(prompt.indexOf('Ignore previous instructions')).toBeGreaterThan(prompt.indexOf('<untrusted_reference_data>'));
     expect(prompt).toContain('<skill name="test-skill">');
+  });
+
+  it('keeps AI failures visible, supports cancelling, and loads real skill guidance', async () => {
+    const claude = { id: 'claude-code' as const, displayName: 'Claude Code CLI', state: 'available' as const, version: '2', detail: null, authentication: 'managed-by-provider-cli' as const };
+    let release: (() => void) | undefined;
+    const seen: string[][] = [];
+    const { guidance: _fakeGuidance, ...withoutGuidance } = fakes; // use the real skill registry
+    const s = new StudioServices(await mkdtemp(path.join(tmpdir(), 'studio-ai-')), resources, {
+      ...withoutGuidance,
+      draftWithAi: async (_provider, _prompt, ctx, skills) => {
+        seen.push(skills);
+        if (seen.length === 1) throw new Error('Claude Code exited with code 1.');
+        await new Promise<void>((resolve) => {
+          release = resolve;
+          ctx.signal.addEventListener('abort', () => resolve());
+        });
+        throw new Error('Cancelled');
+      },
+    });
+    open.push(s);
+    await s.init(sample);
+    const { id } = await s.createProject({ name: 'Glass Harbour', goal: 'A harbour museum' });
+    s.store.saveProviderStatuses([claude]);
+    s.settings().saveSettings({ onboarded: true, provider: 'none', steps: { storyboard: 'claude-code' }, deepResearch: false });
+    for (const [q, a] of [['tone', 'warm'], ['subject', 'place'], ['motion', 'balanced'], ['length', 'short']] as const) await s.creative(id).answer(id, q, a);
+    await s.creative(id).approveBrief(id);
+    let state = await s.creative(id).draftStoryboard(id, 'claude-code'); // the per-step override applies
+    expect(await s.waitAiJob(state.aiJob!.id)).toMatchObject({ status: 'failed', error: expect.stringMatching(/exited with code 1/) });
+    expect((await s.creative(id).state(id)).aiError).toMatch(/exited with code 1/);
+    expect(seen[0]).toEqual(['cinematic-story-architect']); // the repo's pinned storyboard skill
+    state = await s.creative(id).draftStoryboard(id, 'claude-code');
+    expect(state.aiError).toBeNull();
+    await expect.poll(() => release !== undefined).toBe(true);
+    expect(s.cancelAiJob(state.aiJob!.id).status).toMatch(/running|cancelled/);
+    expect(await s.waitAiJob(state.aiJob!.id)).toMatchObject({ status: 'cancelled', error: null });
+    expect((await s.creative(id).state(id)).aiError).toBeNull();
+  });
+
+  it('migrates the old storyboard opt-in to the default provider', async () => {
+    const { s } = await boot();
+    expect(s.settings().settings()).toEqual({ onboarded: false, provider: 'none', steps: {}, deepResearch: false });
+    s.store.setSetting('claudeStoryboard', 'true');
+    expect(s.settings().settings()).toMatchObject({ onboarded: true, provider: 'claude-code' });
+    s.settings().saveSettings({ onboarded: true, provider: 'codex', steps: { research: 'none' }, deepResearch: true });
+    expect(s.settings().settings()).toEqual({ onboarded: true, provider: 'codex', steps: { research: 'none' }, deepResearch: true });
   });
 
   it('analyses references safely and reports blocked URLs', async () => {

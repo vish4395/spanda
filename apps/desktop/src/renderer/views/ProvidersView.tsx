@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import type { AiChoice, AiProviderId, AiStep } from '@studio/contracts';
+import { useState } from 'react';
+import type { AiChoice, AiProviderId, AiStep, Experience } from '@studio/contracts';
 import type { JobSnapshot, ProviderStatus, StudioSettings } from '@studio/contracts/ipc';
 import { call } from '../api';
 import { AiActivity } from '../components/AiActivity';
@@ -10,6 +10,9 @@ interface Props {
   providers: ProviderStatus[] | null;
   checking: boolean;
   onRecheck: () => void;
+  settings: StudioSettings | null;
+  onSave: (next: StudioSettings) => Promise<StudioSettings>;
+  experience: Experience;
 }
 
 const STEPS: { id: AiStep; label: string; detail: string }[] = [
@@ -24,22 +27,18 @@ const STEPS: { id: AiStep; label: string; detail: string }[] = [
 
 const LABEL: Record<AiChoice, string> = { 'claude-code': 'Claude Code', codex: 'Codex', none: 'Off' };
 
-export function ProvidersView({ providers, checking, onRecheck }: Props) {
-  const [settings, setSettings] = useState<StudioSettings | null>(null);
+export function ProvidersView({ providers, checking, onRecheck, settings, onSave, experience }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [test, setTest] = useState<{ jobId: string; title: string } | null>(null);
   const [result, setResult] = useState<JobSnapshot | null>(null);
-  useEffect(() => {
-    call('settings.get').then(setSettings).catch(() => setSettings(null));
-  }, []);
   const installed = (id: AiProviderId) => providers?.find((p) => p.id === id)?.state === 'available';
 
   const save = async (next: StudioSettings) => {
     setSaving(true);
     setError(null);
     try {
-      setSettings(await call('settings.set', next));
+      await onSave(next);
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -150,6 +149,8 @@ export function ProvidersView({ providers, checking, onRecheck }: Props) {
             {missing(settings.provider) && <p className="small card__reason">{LABEL[settings.provider]} is not installed. Steps fall back to the local planner until it is.</p>}
           </section>
 
+          <details className="advanced" open={experience === 'pro'}>
+            <summary>Advanced: AI for each step and deep research</summary>
           <section className="card setting" aria-labelledby="steps-title">
             <h2 id="steps-title">AI for each step</h2>
             <ul className="step-providers">
@@ -183,6 +184,7 @@ export function ProvidersView({ providers, checking, onRecheck }: Props) {
               <span>Allow web research</span>
             </label>
           </section>
+          </details>
         </>
       )}
       {error && (

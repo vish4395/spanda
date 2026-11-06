@@ -11,6 +11,8 @@ interface Props {
   onState: (s: CreativeState) => void;
   onError: (message: string) => void;
   onApproved: () => void;
+  /** Pro mode shows scene IDs. */
+  pro: boolean;
 }
 
 type SceneType = StoryboardScene['type'];
@@ -35,7 +37,7 @@ function newScene(type: SceneType, id: string): StoryboardScene {
   return { ...base, eyebrow: 'Chapter', heading: 'New chapter', body: 'Starter text — replace with this chapter’s story.', layout: 'split' };
 }
 
-export function StoryboardTab({ projectId, state, onState, onError, onApproved }: Props) {
+export function StoryboardTab({ projectId, state, onState, onError, onApproved, pro }: Props) {
   const [scenes, setScenes] = useState<StoryboardScene[]>([]);
   // Preselect the AI chosen for this step when it can run; otherwise the local planner.
   const [picked, setPicked] = useState<StoryboardPlanner | null>(null);
@@ -132,7 +134,7 @@ export function StoryboardTab({ projectId, state, onState, onError, onApproved }
             <div className="card__head">
               <span className="scene-card__index">{index + 1}</span>
               <h3>{TYPE_LABELS[scene.type]}</h3>
-              <span className="mono small muted">{scene.id}</span>
+              {pro && <span className="mono small muted">{scene.id}</span>}
               {scene.type !== 'hero' && (
                 <span className="scene-card__actions">
                   <button type="button" className="btn btn--ghost btn--small" onClick={() => move(index, -1)} disabled={index <= 1} aria-label={`Move scene ${index + 1} up`}>

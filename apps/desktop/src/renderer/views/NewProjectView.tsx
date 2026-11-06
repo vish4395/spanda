@@ -4,13 +4,23 @@ import { call } from '../api';
 import { SpinnerIcon } from '../components/Icons';
 
 interface Props {
+  /** AI is set up, so the studio will plan the project right after it is created. */
+  aiOn: boolean;
   onCreated: (project: ProjectSummary) => void;
   onCancel: () => void;
 }
 
 const LIMITS = { name: 80, goal: 300 };
 
-export function NewProjectView({ onCreated, onCancel }: Props) {
+/** Starting points for people who are not sure how to describe their site. */
+const EXAMPLES = [
+  { name: 'Riverside Lantern Festival', goal: 'Invite local families to an evening lantern festival by the river.' },
+  { name: 'Halden Desk Lamp', goal: 'Launch a desk lamp that follows daylight, for people who work from home.' },
+  { name: 'Studio Marrow', goal: 'A portfolio for a set designer who builds walk-through exhibitions.' },
+  { name: 'Chai Trail', goal: 'Tell the journey of Assam tea from garden to cup for a small tea brand.' },
+];
+
+export function NewProjectView({ aiOn, onCreated, onCancel }: Props) {
   const [name, setName] = useState('');
   const [goal, setGoal] = useState('');
   const [touched, setTouched] = useState({ name: false, goal: false });
@@ -44,7 +54,32 @@ export function NewProjectView({ onCreated, onCancel }: Props) {
   return (
     <form className="form-page" onSubmit={(e) => void submit(e)} noValidate aria-labelledby="new-project-title">
       <h1 id="new-project-title">New project</h1>
-      <p className="muted">Start from a name and a one-line idea. The studio creates an editable two-scene StorySpec you can generate as HTML and React right away.</p>
+      <p className="muted">
+        Start with a name and one line about your idea.{' '}
+        {aiOn ? 'AI then plans the project, suggests next steps and asks a few questions written for it.' : 'The studio then asks a few quick questions and drafts a starting point you can edit.'} Nothing is final until you approve it.
+      </p>
+
+      <div className="examples" role="group" aria-labelledby="examples-title">
+        <p id="examples-title" className="small muted">
+          Not sure? Start from an example:
+        </p>
+        <div className="examples__list">
+          {EXAMPLES.map((example) => (
+            <button
+              key={example.name}
+              type="button"
+              className="example-chip"
+              onClick={() => {
+                setName(example.name);
+                setGoal(example.goal);
+                setTouched({ name: false, goal: false });
+              }}
+            >
+              {example.name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="field">
         <label htmlFor="project-name">Project name</label>
@@ -78,7 +113,7 @@ export function NewProjectView({ onCreated, onCancel }: Props) {
           onBlur={() => setTouched((t) => ({ ...t, goal: true }))}
         />
         <p id="project-goal-help" className="field__help">
-          For example: “Introduce a family-run bakery with warm, cinematic scenes.” {goal.trim().length}/{LIMITS.goal}
+          Who is it for and what should they feel or do? For example: “Introduce a family-run bakery with warm, cinematic scenes.” {goal.trim().length}/{LIMITS.goal}
         </p>
         <p id="project-goal-error" className="field__error" aria-live="polite">
           {touched.goal ? errors.goal : ''}

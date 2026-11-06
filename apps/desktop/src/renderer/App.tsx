@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { JobSnapshot, MenuCommandMessage, MenuState, ProjectSummary, ProviderStatus } from '@studio/contracts/ipc';
+import type { JobSnapshot, MenuCommandMessage, MenuState, ProjectSummary, ProviderStatus, StudioSettings } from '@studio/contracts/ipc';
 import { call } from './api';
-import { ErrorBanner, StatusChip, isContextMenuKey, timeAgo } from './components/Common';
+import { ErrorBanner, Segmented, StatusChip, isContextMenuKey, timeAgo } from './components/Common';
 import { FolderIcon, LogoMark, PlusIcon, PuzzleIcon, ServerIcon } from './components/Icons';
 import { NewProjectView } from './views/NewProjectView';
 import { ProjectView, type ProjectMenuState } from './views/ProjectView';
@@ -24,6 +24,15 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [projectMenu, setProjectMenu] = useState<ProjectMenuState>(PROJECT_DEFAULTS);
   const [command, setCommand] = useState<MenuCommandMessage | null>(null);
+  const [settings, setSettings] = useState<StudioSettings | null>(null);
+  const experience = settings?.experience ?? 'guided';
+
+  /** Settings are owned here so the top bar, welcome and AI providers views stay in step. */
+  const saveSettings = useCallback(async (next: StudioSettings) => {
+    const saved = await call('settings.set', next);
+    setSettings(saved);
+    return saved;
+  }, []);
   const viewRef = useRef<View>(view);
   viewRef.current = view;
 
@@ -49,7 +58,11 @@ export function App() {
   useEffect(() => {
     // First run: choose an AI provider before anything else.
     Promise.all([reloadProjects(), call('settings.get')])
-      .then(([list, settings]) => (settings.onboarded ? openFirst(list) : setView({ kind: 'welcome' })))
+      .then(([list, loaded]) => {
+        setSettings(loaded);
+        if (loaded.onboarded) openFirst(list);
+        else setView({ kind: 'welcome' });
+      })
       .catch((err: Error) => setError(err.message));
     void probe();
   }, [reloadProjects, probe, openFirst]);
@@ -130,6 +143,19 @@ export function App() {
             {crumb && <li aria-current="page">{crumb}</li>}
           </ol>
         </nav>
+        {settings && view.kind !== 'welcome' && (
+          <div className="topbar__mode">
+            <Segmented
+              label="Experience"
+              value={experience}
+              onChange={(value) => void saveSettings({ ...settings, experience: value }).catch((err: Error) => setError(err.message))}
+              options={[
+                { id: 'guided', label: 'Guided' },
+                { id: 'pro', label: 'Pro' },
+              ]}
+            />
+          </div>
+        )}
         <div className="topbar__status" role="status" aria-live="polite">
           {jobChip}
         </div>
@@ -195,6 +221,7 @@ export function App() {
           <ProjectView
             key={view.projectId}
             projectId={view.projectId}
+            experience={experience}
             onJobChange={setJob}
             onProjectsChanged={onProjectsChanged}
             onMenuState={setProjectMenu}
@@ -204,6 +231,7 @@ export function App() {
         )}
         {view.kind === 'new' && (
           <NewProjectView
+            aiOn={settings !== null && settings.provider !== 'none'}
             onCreated={(project) => {
               void reloadProjects();
               setView({ kind: 'project', projectId: project.id });
@@ -212,8 +240,18 @@ export function App() {
           />
         )}
         {view.kind === 'skills' && <SkillsView />}
-        {view.kind === 'providers' && <ProvidersView providers={providers} checking={checkingProviders} onRecheck={() => void probe()} />}
-        {view.kind === 'welcome' && <WelcomeView providers={providers} checking={checkingProviders} onRecheck={() => void probe()} onDone={() => openFirst(projects)} />}
+        {view.kind === 'providers' && <ProvidersView providers={providers} checking={checkingProviders} onRecheck={() => void probe()} settings={settings} onSave={saveSettings} experience={experience} />}
+        {view.kind === 'welcome' && (
+          <WelcomeView
+            providers={providers}
+            checking={checkingProviders}
+            onRecheck={() => void probe()}
+            onDone={(saved) => {
+              setSettings(saved);
+              openFirst(projects);
+            }}
+          />
+        )}
         {view.kind === 'empty' && (
           <div className="empty">
             <p className="empty__title">No project selected</p>

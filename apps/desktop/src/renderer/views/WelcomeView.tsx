@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { AiChoice, ProviderStatus } from '@studio/contracts';
-import type { JobSnapshot } from '@studio/contracts/ipc';
+import type { AiChoice, Experience, ProviderStatus } from '@studio/contracts';
+import type { JobSnapshot, StudioSettings } from '@studio/contracts/ipc';
 import { call } from '../api';
 import { AiActivity } from '../components/AiActivity';
 import { StatusChip } from '../components/Common';
@@ -10,7 +10,7 @@ interface Props {
   providers: ProviderStatus[] | null;
   checking: boolean;
   onRecheck: () => void;
-  onDone: () => void;
+  onDone: (settings: StudioSettings) => void;
 }
 
 const NAMES: Record<Exclude<AiChoice, 'none'>, { title: string; detail: string }> = {
@@ -32,6 +32,7 @@ export function WelcomeView({ providers, checking, onRecheck, onDone }: Props) {
   const [test, setTest] = useState<{ jobId: string; title: string } | null>(null);
   const [result, setResult] = useState<JobSnapshot | null>(null);
   const [saving, setSaving] = useState(false);
+  const [experience, setExperience] = useState<Experience>('guided');
   const [error, setError] = useState<string | null>(null);
   const status = (id: Exclude<AiChoice, 'none'>) => providers?.find((p) => p.id === id);
 
@@ -39,8 +40,7 @@ export function WelcomeView({ providers, checking, onRecheck, onDone }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await call('settings.set', { onboarded: true, provider, steps: {}, deepResearch: false });
-      onDone();
+      onDone(await call('settings.set', { onboarded: true, experience, provider, steps: {}, deepResearch: false }));
     } catch (err) {
       setError((err as Error).message);
       setSaving(false);
@@ -63,6 +63,20 @@ export function WelcomeView({ providers, checking, onRecheck, onDone }: Props) {
       <div className="page__header">
         <h1>Welcome to Spanda Studio</h1>
       </div>
+      <h2 className="section-title">How do you like to work?</h2>
+      <div className="direction-grid" role="radiogroup" aria-label="How you work">
+        <button type="button" role="radio" aria-checked={experience === 'guided'} className="provider-choice" onClick={() => setExperience('guided')}>
+          <span className="provider-choice__title">Guide me</span>
+          <span className="choice__text">I have an idea but I’m new to building websites. Show me one clear next step at a time, in plain language, and let AI handle the defaults.</span>
+        </button>
+        <button type="button" role="radio" aria-checked={experience === 'pro'} className="provider-choice" onClick={() => setExperience('pro')}>
+          <span className="provider-choice__title">I’m a designer or developer</span>
+          <span className="choice__text">Show every control: design tokens, scene IDs, version history, logs, AI and skills per step, and the generated code.</span>
+        </button>
+      </div>
+      <p className="muted small">You can switch any time with Guided / Pro in the top bar.</p>
+
+      <h2 className="section-title">Which AI should help?</h2>
       <p className="muted page__intro">Choose the AI that helps at every step: project plan and questions, art directions, brief, storyboard, scene edits and chat. You review and approve everything it suggests. Without AI, every step still works with the studio’s local planner.</p>
 
       <div className="direction-grid" role="radiogroup" aria-label="AI provider">

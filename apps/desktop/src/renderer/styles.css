@@ -1653,3 +1653,161 @@ button {
   gap: 16px;
   margin-bottom: 20px;
 }
+
+/* Guided / Pro switch in the top bar */
+.topbar__mode {
+  margin-left: auto;
+  -webkit-app-region: no-drag;
+}
+
+.topbar__mode + .topbar__status {
+  margin-left: 0;
+}
+
+.topbar__mode .segmented__option {
+  min-height: 28px;
+  padding: 0 10px;
+  font-size: 0.8125rem;
+}
+
+/* Workflow stepper (the project tabs) */
+.tab.step {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 6px 14px 6px 8px;
+  text-align: left;
+}
+
+.step__num {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--control-border);
+  border-radius: 50%;
+  color: var(--fg-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.step__num svg {
+  width: 14px;
+  height: 14px;
+}
+
+.step--done .step__num {
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.step--next .step__num {
+  border-color: var(--accent-text);
+  color: var(--accent-text);
+}
+
+.tab[aria-selected='true'] .step__num {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.step__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.step__hint {
+  color: var(--fg-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+/* Guided: the one thing to do next */
+.next-step {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0 4px;
+  padding: 14px 16px;
+  border: 1px solid var(--divider);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-card);
+  background: var(--panel);
+}
+
+.next-step__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.next-step h2 {
+  margin: 0 0 2px;
+  font-size: 1rem;
+}
+
+.next-step p {
+  margin: 0;
+}
+
+.next-step__eyebrow {
+  color: var(--accent-text);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* New project examples */
+.examples {
+  margin: 16px 0 8px;
+}
+
+.examples p {
+  margin: 0 0 8px;
+}
+
+.examples__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.example-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--raised);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.example-chip:hover {
+  border-color: var(--accent-text);
+}
+
+/* Progressive disclosure for advanced settings */
+.advanced {
+  margin-top: 16px;
+}
+
+.advanced > summary {
+  min-height: 32px;
+  color: var(--accent-text);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.inspector__history {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .step__num,
+  .example-chip {
+    transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  }
+}

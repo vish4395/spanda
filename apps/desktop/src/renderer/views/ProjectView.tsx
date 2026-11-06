@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CreativeState } from '@studio/contracts';
+import type { CreativeState, Experience } from '@studio/contracts';
 import type { JobSnapshot, MenuCommandMessage, MenuState, OutputTarget, PreviewDiagnostics, ProjectDetail, ProjectVersion } from '@studio/contracts/ipc';
 import { call } from '../api';
 import { ErrorBanner, Segmented, StatusChip, isContextMenuKey, timeAgo } from '../components/Common';
-import { ChevronIcon, MotionIcon, PlayIcon, ShieldIcon, SpinnerIcon, StopIcon, TerminalIcon } from '../components/Icons';
+import { CheckIcon, ChevronIcon, MotionIcon, PlayIcon, ShieldIcon, SpinnerIcon, StopIcon, TerminalIcon } from '../components/Icons';
 import { DEVICES, PreviewStage, type DeviceId } from '../components/PreviewStage';
 import { SceneEditor } from './SceneEditor';
 import type { StorySpec } from '@studio/contracts';
@@ -13,10 +13,10 @@ import { StoryboardTab } from './creative/StoryboardTab';
 import { AiActivity } from '../components/AiActivity';
 
 const TABS = [
-  { id: 'discover', label: 'Discover' },
-  { id: 'brief', label: 'Brief' },
-  { id: 'storyboard', label: 'Storyboard' },
-  { id: 'build', label: 'Build & preview' },
+  { id: 'discover', label: 'Discover', hint: 'Idea and questions' },
+  { id: 'brief', label: 'Brief', hint: 'Look and feel' },
+  { id: 'storyboard', label: 'Storyboard', hint: 'Scenes and words' },
+  { id: 'build', label: 'Build & preview', hint: 'See your website' },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
 
@@ -33,6 +33,7 @@ export type ProjectMenuState = Omit<MenuState, 'view' | 'projectId'>;
 
 interface Props {
   projectId: string;
+  experience: Experience;
   onJobChange: (job: JobSnapshot | null) => void;
   onProjectsChanged: () => void;
   onMenuState: (state: ProjectMenuState) => void;
@@ -40,7 +41,7 @@ interface Props {
   onCommandHandled: () => void;
 }
 
-export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuState, command, onCommandHandled }: Props) {
+export function ProjectView({ projectId, experience, onJobChange, onProjectsChanged, onMenuState, command, onCommandHandled }: Props) {
   const [detail, setDetail] = useState<ProjectDetail | null>(null);
   const [validation, setValidation] = useState<Validation>(null);
   const [target, setTarget] = useState<OutputTarget>('html');
@@ -58,6 +59,8 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
   const [reloadKey, setReloadKey] = useState(0);
   const [spec, setSpec] = useState<StorySpec | null>(null);
   const [selectedScene, setSelectedScene] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const pro = experience === 'pro';
   // The last build stays visible after edits, clearly marked until the next successful generation.
   const [stale, setStale] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -172,6 +175,46 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
 
   const generated = Boolean(previews.html || previews.react);
   const canExport = generated && !stale && !running && !exporting;
+
+  // Workflow progress, shown on the stepper in both modes.
+  const built = generated && !stale;
+  const doneSteps: Record<TabId, boolean> = {
+    discover: Boolean(creative && creative.nextQuestion === null),
+    brief: Boolean(creative?.brief?.approved),
+    storyboard: Boolean(creative?.storyboard?.approved),
+    build: built,
+  };
+  const firstOpen = TABS.find((t) => !doneSteps[t.id])?.id ?? null;
+  const stepState = Object.fromEntries(TABS.map((t) => [t.id, doneSteps[t.id] ? 'done' : t.id === firstOpen ? 'next' : 'todo'])) as Record<TabId, 'done' | 'next' | 'todo'>;
+
+  // Guided mode: one plain-language next step at a time.
+  type NextStep = { title: string; detail: string; action: { label: string; run: () => void; primary?: boolean; disabled?: boolean } | null };
+  const go = (id: TabId, label: string) => (tab === id ? null : { label, run: () => setTab(id) });
+  const next: NextStep | null = (() => {
+    if (!creative || creative.aiJob || running) return null;
+    if (!doneSteps.discover)
+      return {
+        title: creative.plan ? 'Answer the questions written for your project' : 'Answer a few quick questions',
+        detail: 'They set the mood, how long the story is and what the 3D visuals show. Not sure? Choose “You decide”.',
+        action: go('discover', 'Go to questions'),
+      };
+    if (!doneSteps.brief)
+      return {
+        title: 'Pick a look and approve the brief',
+        detail: creative.aiSteps.brief.available ? 'Choose an art direction, let AI fill in the brief if you like, then approve it.' : 'Choose an art direction, check who the site is for, then approve it.',
+        action: go('brief', 'Go to the brief'),
+      };
+    if (!creative.storyboard)
+      return { title: 'Draft your story', detail: 'The studio writes the scenes from your brief. You can change every word afterwards.', action: go('storyboard', 'Go to the storyboard') };
+    if (!doneSteps.storyboard) return { title: 'Read the scenes and approve them', detail: 'Edit any heading or text, move scenes up or down, then approve.', action: go('storyboard', 'Go to the storyboard') };
+    if (!built)
+      return {
+        title: stale ? 'Build again to see your edits' : 'Build your website',
+        detail: 'The studio builds your site in two versions (plain HTML and React). It takes about a minute; then preview it on desktop, tablet and phone.',
+        action: { label: stale ? 'Build again' : 'Build website', run: () => void generate(), primary: true, disabled: !validation?.ok },
+      };
+    return { title: 'Your website is ready', detail: 'Check it on each device size, then export a ZIP with the website, its source code and licence notes.', action: { label: 'Export…', run: () => void exportSite(), primary: true, disabled: !canExport } };
+  })();
   const exportSite = async () => {
     setError(null);
     setExportNote(null);
@@ -284,15 +327,22 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
             {validation === null ? (
               <StatusChip tone="busy">Validating…</StatusChip>
             ) : validation.ok ? (
-              <StatusChip tone="ok">StorySpec valid</StatusChip>
+              pro && <StatusChip tone="ok">StorySpec valid</StatusChip>
             ) : (
-              <StatusChip tone="error">{`${validation.issues.length} StorySpec issue${validation.issues.length === 1 ? '' : 's'}`}</StatusChip>
+              <StatusChip tone="error">{pro ? `${validation.issues.length} StorySpec issue${validation.issues.length === 1 ? '' : 's'}` : 'Needs fixing'}</StatusChip>
             )}
-            <select aria-label="Targets to export" value={exportTargets} onChange={(e) => setExportTargets(e.target.value as 'both' | OutputTarget)} disabled={exporting}>
-              <option value="both">HTML + React</option>
-              <option value="html">HTML only</option>
-              <option value="react">React only</option>
-            </select>
+            {pro && (
+              <select aria-label="Targets to export" value={exportTargets} onChange={(e) => setExportTargets(e.target.value as 'both' | OutputTarget)} disabled={exporting}>
+                <option value="both">HTML + React</option>
+                <option value="html">HTML only</option>
+                <option value="react">React only</option>
+              </select>
+            )}
+            {!pro && (
+              <button type="button" className="btn btn--ghost" aria-pressed={historyOpen} onClick={() => setHistoryOpen((v) => !v)}>
+                History
+              </button>
+            )}
             <button type="button" className="btn btn--secondary" onClick={() => void exportSite()} disabled={!canExport} aria-busy={exporting} title={stale ? 'Generate again to export the latest edits' : !generated ? 'Generate the project first' : undefined}>
               {exporting && <SpinnerIcon />}
               Export…
@@ -330,7 +380,9 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
               aria-selected={tab === t.id}
               aria-controls={`panel-${t.id}`}
               tabIndex={tab === t.id ? 0 : -1}
-              className="tab"
+              className={`tab step step--${stepState[t.id]}`}
+              aria-label={t.label}
+              aria-describedby={`tab-${t.id}-state`}
               onClick={() => setTab(t.id)}
               onKeyDown={(e) => {
                 const delta = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
@@ -341,11 +393,39 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
                 tabRefs.current[next]?.focus();
               }}
             >
-              {t.label}
+              <span className="step__num" aria-hidden="true">
+                {stepState[t.id] === 'done' ? <CheckIcon /> : index + 1}
+              </span>
+              <span className="step__text" aria-hidden="true">
+                <span className="step__label">{t.label}</span>
+                {!pro && <span className="step__hint">{t.hint}</span>}
+              </span>
+              <span id={`tab-${t.id}-state`} className="visually-hidden">
+                {stepState[t.id] === 'done' ? 'Done' : stepState[t.id] === 'next' ? 'Next step' : 'Not started'}
+              </span>
             </button>
           ))}
-          {creative && <span className="tabs__stage muted small">Stage: {creative.stage.replace('_', ' ')}</span>}
+          {creative && pro && <span className="tabs__stage muted small">Stage: {creative.stage.replace('_', ' ')}</span>}
         </div>
+
+        <p className="visually-hidden" role="status" aria-live="polite">
+          {announcement}
+        </p>
+
+        {!pro && next && (
+          <section className="next-step" aria-labelledby="next-step-title">
+            <div className="next-step__body">
+              <p className="next-step__eyebrow small">Next step</p>
+              <h2 id="next-step-title">{next.title}</h2>
+              <p className="muted">{next.detail}</p>
+            </div>
+            {next.action && (
+              <button type="button" className={`btn ${next.action.primary ? 'btn--primary' : 'btn--secondary'}`} onClick={next.action.run} disabled={next.action.disabled}>
+                {next.action.label}
+              </button>
+            )}
+          </section>
+        )}
 
         {creative?.aiJob && (
           <AiActivity
@@ -369,6 +449,7 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
             {tab === 'storyboard' && (
               <StoryboardTab
                 projectId={projectId}
+                pro={pro}
                 state={creative}
                 onState={setCreative}
                 onError={setError}
@@ -453,6 +534,7 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
         )}
       </div>
 
+      {(pro || tab === 'build' || historyOpen) && (
       <aside className="inspector" aria-label="Scenes and versions">
         {tab === 'build' && spec && (
           <section className="inspector__section" aria-labelledby="scenes-title">
@@ -465,9 +547,7 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
                     <span className="scene-card__index">{i + 1}</span>
                     <span className="scene-picker__text">
                       <span>{scene.content.heading}</span>
-                      <span className="muted small mono">
-                        {scene.type} · {scene.id}
-                      </span>
+                      <span className="muted small mono">{pro ? `${scene.type} · ${scene.id}` : scene.type.replace('-', ' ')}</span>
                     </span>
                   </button>
                   {selectedScene === scene.id && (
@@ -491,6 +571,12 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
             </ol>
           </section>
         )}
+        {!pro && !historyOpen ? (
+          <button type="button" className="btn btn--ghost btn--small inspector__history" onClick={() => setHistoryOpen(true)}>
+            Show history ({detail.versions.length})
+          </button>
+        ) : (
+        <>
         <div className="inspector__head" id="versions-title">
           <h2 id="versions-title">Versions</h2>
           <button type="button" className="btn btn--secondary btn--small" onClick={() => void saveSnapshot()} disabled={busyVersion !== null || !validation?.ok} aria-busy={busyVersion === 'snapshot'}>
@@ -498,10 +584,7 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
             Save snapshot
           </button>
         </div>
-        <p className="muted small">Restoring saves your current StorySpec first, so nothing is lost.</p>
-        <p className="visually-hidden" role="status" aria-live="polite">
-          {announcement}
-        </p>
+        <p className="muted small">{pro ? 'Restoring saves your current StorySpec first, so nothing is lost.' : 'Every approval and edit is saved here. Going back to an earlier version keeps your current one too.'}</p>
         <ol className="versions" aria-label="Version history, newest first">
           {detail.versions.map((version) => (
             <li
@@ -535,7 +618,10 @@ export function ProjectView({ projectId, onJobChange, onProjectsChanged, onMenuS
             </li>
           ))}
         </ol>
+        </>
+        )}
       </aside>
+      )}
     </div>
   );
 }
